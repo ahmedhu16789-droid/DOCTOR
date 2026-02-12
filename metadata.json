@@ -1,0 +1,5 @@
+{
+  "name": "Al-Fath Clinic Manager",
+  "description": "A high-performance, multi-tenant SaaS for managing branches, appointments, and patient queues across Al-Fath Clinic locations.",
+  "requestFramePermissions": []
+}

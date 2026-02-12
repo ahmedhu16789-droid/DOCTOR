@@ -1,0 +1,108 @@
+import React, { useState } from 'react';
+import { Branch } from '../types';
+import { BRANCHES } from '../constants';
+import { BranchForm } from '../components/forms/BranchForm';
+import { Building2, Plus, MapPin, Phone, XCircle } from 'lucide-react';
+
+export const BranchManagement: React.FC = () => {
+  const [branches, setBranches] = useState<Branch[]>(BRANCHES);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+
+  const handleSaveBranch = (savedBranch: Branch) => {
+    if (isCreatingBranch) {
+        setBranches([...branches, savedBranch]);
+    } else {
+        setBranches(branches.map(b => b.id === savedBranch.id ? savedBranch : b));
+    }
+    setIsCreatingBranch(false);
+    setEditingBranch(null);
+  };
+
+  const deleteBranch = (id: string) => {
+      if (window.confirm('Are you sure you want to delete this branch?')) {
+          setBranches(branches.filter(b => b.id !== id));
+      }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+         <div>
+            <h1 className="text-2xl font-bold text-gray-900">Branch Management</h1>
+            <p className="text-sm text-gray-500">Manage clinic locations and contact details.</p>
+         </div>
+         <button 
+            onClick={() => setIsCreatingBranch(true)}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 shadow-sm"
+         >
+            <Plus className="w-4 h-4 mr-2" /> Add New Branch
+         </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {branches.map(branch => (
+              <div key={branch.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
+                  <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-primary-50 rounded-lg text-primary-600">
+                              <Building2 className="w-6 h-6" />
+                          </div>
+                          <div className={`px-2 py-1 rounded-full text-xs font-bold ${branch.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {branch.isActive ? 'ACTIVE' : 'INACTIVE'}
+                          </div>
+                      </div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-1">{branch.name}</h4>
+                      <p className="text-sm text-gray-500 flex items-center mb-1">
+                          <MapPin className="w-4 h-4 mr-1" /> {branch.location}
+                      </p>
+                      <p className="text-sm text-gray-500 flex items-center">
+                          <Phone className="w-4 h-4 mr-1" /> {branch.contactPhone}
+                      </p>
+                  </div>
+                  <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-between items-center">
+                       <span className="text-xs text-gray-400">ID: {branch.id}</span>
+                       <div className="flex gap-2">
+                           <button 
+                             onClick={() => setEditingBranch(branch)}
+                             className="text-sm font-medium text-gray-600 hover:text-primary-600"
+                           >
+                               Edit
+                           </button>
+                           <button 
+                             onClick={() => deleteBranch(branch.id)}
+                             className="text-sm font-medium text-red-400 hover:text-red-600"
+                           >
+                               Delete
+                           </button>
+                       </div>
+                  </div>
+              </div>
+          ))}
+      </div>
+
+      {/* Branch Editor Modal */}
+      {(editingBranch || isCreatingBranch) && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl w-full max-w-lg h-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 shadow-2xl">
+                  <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                      <h2 className="text-xl font-bold text-gray-900">
+                          {isCreatingBranch ? 'Add New Branch' : 'Edit Branch Details'}
+                      </h2>
+                      <button onClick={() => { setIsCreatingBranch(false); setEditingBranch(null); }} className="p-2 hover:bg-gray-200 rounded-full">
+                          <XCircle className="w-6 h-6 text-gray-400" />
+                      </button>
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                      <BranchForm 
+                        initialData={editingBranch || undefined}
+                        onSave={handleSaveBranch}
+                        onCancel={() => { setIsCreatingBranch(false); setEditingBranch(null); }}
+                      />
+                  </div>
+              </div>
+          </div>
+      )}
+    </div>
+  );
+};
