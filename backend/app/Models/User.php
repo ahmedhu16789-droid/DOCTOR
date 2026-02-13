@@ -23,6 +23,7 @@ class User extends Authenticatable
         'clinic_id',
         'name',
         'email',
+        'phone',
         'password',
         'role',
         'specialty',

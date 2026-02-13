@@ -88,4 +88,6 @@ export const admin = {
     "default_currency": "Default Currency",
     "saving": "Saving...",
     "save_changes": "Save Changes",
+    "basic_info": "Basic Info",
+    "schedule": "Schedule",
 };

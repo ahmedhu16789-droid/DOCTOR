@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useFieldArray, Control, useWatch } from 'react-hook-form';
 import { Plus, Trash2, AlertCircle, Copy, Clock, ArrowRight, MapPin, AlertTriangle, Building2 } from 'lucide-react';
-import { WeeklyShift } from '../../types';
-import { BRANCHES } from '../../constants';
+import { WeeklyShift, Branch } from '../../types';
 import { clsx } from 'clsx';
 
 interface ScheduleGridProps {
   control: Control<any>;
   name: string;
   assignedBranchIds: string[];
+  branches: Branch[];
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -19,7 +19,7 @@ const timeToMinutes = (time: string) => {
   return (h || 0) * 60 + (m || 0);
 };
 
-export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assignedBranchIds = [] }) => {
+export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assignedBranchIds = [], branches }) => {
   // Default to the first assigned branch or empty
   const [activeBranchId, setActiveBranchId] = useState<string>(assignedBranchIds?.[0] || '');
 
@@ -41,7 +41,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
   }) as WeeklyShift[] || [];
 
   // Helper to get branch name
-  const getBranchName = (id: string) => BRANCHES.find(b => b.id === id)?.name || 'Unknown Branch';
+  const getBranchName = (id: string) => branches.find(b => b.id === id)?.name || 'Unknown Branch';
 
   const handleAddShift = (dayIndex: number) => {
     if (!activeBranchId) return;
@@ -143,7 +143,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
       {/* Branch Tabs */}
       <div className="flex overflow-x-auto gap-2 pb-2 border-b border-gray-200 no-scrollbar">
         {assignedBranchIds.map(branchId => {
-          const branch = BRANCHES.find(b => b.id === branchId);
+          const branch = branches.find(b => b.id === branchId);
           const isActive = activeBranchId === branchId;
           const shiftCount = scheduleData.filter(s => s.branchId === branchId).length;
 
