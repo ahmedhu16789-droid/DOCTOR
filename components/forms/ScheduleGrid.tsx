@@ -38,7 +38,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
   const scheduleData = useWatch({
     control,
     name
-  }) as WeeklyShift[] || [];
+  }) || [];
 
   // Helper to get branch name
   const getBranchName = (id: string) => BRANCHES.find(b => b.id === id)?.name || 'Unknown Branch';
@@ -57,6 +57,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
 
   // Advanced Conflict Detection: Returns ID of conflicting shift
   const getConflictInfo = (currentItem: WeeklyShift, currentIndex: number) => {
+    if (!currentItem) return null;
+
     const currentStart = timeToMinutes(currentItem.startTime);
     const currentEnd = timeToMinutes(currentItem.endTime);
 
@@ -65,6 +67,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
       if (i === currentIndex) continue;
 
       const other = scheduleData[i];
+
+      // Skip if undefined or null
+      if (!other) continue;
 
       // Check only same day
       if (other.dayOfWeek !== currentItem.dayOfWeek) continue;
@@ -101,7 +106,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
 
     // Keep shifts from other branches
     scheduleData.forEach(s => {
-      if (s.branchId !== activeBranchId) {
+      if (s && s.branchId !== activeBranchId) {
         newSchedule.push(s);
       }
     });
@@ -145,7 +150,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
         {assignedBranchIds.map(branchId => {
           const branch = BRANCHES.find(b => b.id === branchId);
           const isActive = activeBranchId === branchId;
-          const shiftCount = scheduleData.filter(s => s.branchId === branchId).length;
+          const shiftCount = scheduleData.filter(s => s && s.branchId === branchId).length;
 
           return (
             <button
@@ -185,7 +190,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
           // We filter visually, but must maintain the original index for RHF
           const relevantFields = fields
             .map((field, index) => ({ ...field, index }))
-            .filter((f: any) => f.dayOfWeek === dayIndex && f.branchId === activeBranchId);
+            .filter((f: any) => f && f.dayOfWeek === dayIndex && f.branchId === activeBranchId);
 
           const hasShifts = relevantFields.length > 0;
 
@@ -229,7 +234,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
               {hasShifts && (
                 <div className="p-3 space-y-2">
                   {relevantFields.map((field: any) => {
-                    const conflict = getConflictInfo(scheduleData[field.index], field.index);
+                    const currentShift = scheduleData?.[field.index];
+                    const conflict = currentShift ? getConflictInfo(currentShift, field.index) : null;
 
                     return (
                       <div key={field.id} className={clsx(

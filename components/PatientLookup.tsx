@@ -70,7 +70,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
     <div className="space-y-6">
       {/* Search Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Patient Search</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('patient_search')}</label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
@@ -78,7 +78,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
           <input
             type="text"
             className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-lg"
-            placeholder="Search by name or phone..."
+            placeholder={t('search_placeholder')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -87,7 +87,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
             autoFocus
           />
         </div>
-        <p className="mt-2 text-xs text-gray-500">Enter name or phone to search existing files or create a new profile.</p>
+        <p className="mt-2 text-xs text-gray-500">{t('search_hint')}</p>
       </div>
 
       {/* Results Area */}
@@ -95,7 +95,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
         <div className="space-y-3">
           {results.length > 0 && (
             <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-              Found {results.length} profile{results.length !== 1 ? 's' : ''}
+              {t('found_profiles', { count: results.length })}
             </div>
           )}
 
@@ -114,9 +114,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                     {patient.name}
                   </h4>
                   <div className="flex items-center text-sm text-gray-500 mt-1 space-x-3">
-                    <span>{patient.age} years</span>
+                    <span>{patient.age} {t('years')}</span>
                     <span>•</span>
-                    <span className="capitalize">{patient.gender}</span>
+                    <span className="capitalize">{t(patient.gender.toLowerCase())}</span>
                   </div>
                   <div className="flex items-center text-xs text-gray-400 mt-1">
                     <Phone className="w-3 h-3 mr-1" />
@@ -125,7 +125,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                   {patient.lastVisit && (
                     <div className="flex items-center text-xs text-gray-400 mt-2">
                       <History className="w-3 h-3 mr-1" />
-                      Last visit: {patient.lastVisit}
+                      {t('last_visit')}: {patient.lastVisit}
                     </div>
                   )}
                 </div>
@@ -139,9 +139,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                 className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all text-gray-500 hover:text-primary-600 h-full min-h-[100px]"
               >
                 <UserPlus className="w-8 h-8 mb-2" />
-                <span className="font-medium">Create New Profile</span>
+                <span className="font-medium">{t('create_new_profile')}</span>
                 <span className="text-xs text-gray-400 mt-1">
-                  {/^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, '')) ? `Use number ${searchQuery}` : `Add "${searchQuery}"`}
+                  {/^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, '')) ? t('use_number', { number: searchQuery }) : t('add_name', { name: searchQuery })}
                 </span>
               </button>
             )}
@@ -153,40 +153,40 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
       {isCreating && (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-gray-900">New Patient Profile</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('new_patient_profile')}</h3>
             <span className="bg-primary-100 text-primary-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-              Creating New Record
+              {t('creating_record')}
             </span>
           </div>
 
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label className="block text-sm font-medium text-gray-700">{t('full_name')}</label>
               <input
                 required
                 type="text"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Patient Full Name"
+                placeholder={t('patient_full_name')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <label className="block text-sm font-medium text-gray-700">{t('phone_number')}</label>
               <input
                 required
                 type="tel"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="01xxxxxxxxx"
+                placeholder={t('phone_placeholder')}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Age</label>
+                <label className="block text-sm font-medium text-gray-700">{t('age')}</label>
                 <input
                   required
                   type="number"
@@ -197,14 +197,14 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <label className="block text-sm font-medium text-gray-700">{t('gender')}</label>
                 <select
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
                   value={newGender}
                   onChange={(e) => setNewGender(e.target.value as 'Male' | 'Female')}
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  <option value="Male">{t('male')}</option>
+                  <option value="Female">{t('female')}</option>
                 </select>
               </div>
             </div>
@@ -215,13 +215,13 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                 onClick={() => setIsCreating(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="submit"
                 className="flex-1 px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
-                Create & Select
+                {t('create_select')}
               </button>
             </div>
           </form>

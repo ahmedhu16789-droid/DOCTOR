@@ -84,6 +84,8 @@ export const common = {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ],
+    "days_short": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+
     // Patient Lookup
     "patient_search": "Patient Search",
     "found_profiles": "Found {{count}} profile(s)",
