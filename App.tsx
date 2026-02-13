@@ -14,7 +14,7 @@ import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getPatientsFromApi, getCurrentUser } from './services/api';
+import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -34,18 +34,28 @@ export default function App() {
 
   // Initial Session Check
   useEffect(() => {
+    const cachedUser = getStoredUser();
+
+    if (cachedUser) {
+      setUser(cachedUser);
+      setView('APP');
+    }
+
     const initSession = async () => {
       try {
         setLoading(true);
         const currentUser = await getCurrentUser();
+
         if (currentUser) {
           setUser(currentUser);
           setView('APP');
         }
       } catch (error) {
-        console.error('Session restoration failed:', error);
-        clearAuthToken();
-        setView('AUTH');
+        if (!cachedUser) {
+          console.error('Session restoration failed:', error);
+          clearAuthToken();
+          setView('AUTH');
+        }
       } finally {
         setLoading(false);
       }
@@ -58,11 +68,19 @@ export default function App() {
   useEffect(() => {
     if (user || view === 'PUBLIC') {
       setLoading(true);
-      getPatientsFromApi()
-        .then(async (pts) => {
-          const apiAppointments = await getAppointmentsFromApi(pts);
+      Promise.all([
+        getPatientsFromApi(),
+        getAppointmentsFromApi([]),
+      ])
+        .then(([pts, apiAppointments]) => {
+          const patientById = new Map(pts.map((patient) => [patient.id, patient]));
+          const hydratedAppointments = apiAppointments.map((appointment) => ({
+            ...appointment,
+            patientName: patientById.get(appointment.patientId)?.name ?? appointment.patientName,
+          }));
+
           setPatients(pts);
-          setAppointments(apiAppointments);
+          setAppointments(hydratedAppointments);
         })
         .catch(async () => {
           const [apts, pts] = await Promise.all([getAppointments(), getPatients()]);

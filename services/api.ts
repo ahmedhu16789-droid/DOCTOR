@@ -3,6 +3,7 @@ import { MOCK_USERS } from '../constants';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
 const TOKEN_KEY = 'afcm_api_token';
+const USER_KEY = 'afcm_current_user';
 
 interface ApiUser {
   id: string;
@@ -43,12 +44,29 @@ interface ApiPatient {
 
 const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
 
+export const getStoredUser = (): User | null => {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    localStorage.removeItem(USER_KEY);
+    return null;
+  }
+};
+
 export const clearAuthToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 };
 
 const setToken = (token: string): void => {
   localStorage.setItem(TOKEN_KEY, token);
+};
+
+const setStoredUser = (user: User): void => {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth = true): Promise<T> {
@@ -103,7 +121,7 @@ const mapAppointmentType = (status: AppointmentStatus): 'Consultation' | 'Follow
   return 'Consultation';
 };
 
-const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[]): Appointment => {
+const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[] = []): Appointment => {
   const doctor = MOCK_USERS.find((u) => u.id === appointment.doctorId);
   const patient = patients.find((p) => p.id === appointment.patientId);
 
@@ -146,7 +164,10 @@ export const loginWithApi = async (email: string, password: string): Promise<Use
   }, false);
 
   setToken(response.token);
-  return normalizeUser(response.user);
+  const user = normalizeUser(response.user);
+  setStoredUser(user);
+
+  return user;
 };
 
 export const getCurrentUser = async (): Promise<User> => {
@@ -154,7 +175,10 @@ export const getCurrentUser = async (): Promise<User> => {
   if (!token) throw new Error('No token found');
 
   const response = await apiFetch<{ user: ApiUser; clinicId: string }>('/auth/me');
-  return normalizeUser(response.user);
+  const user = normalizeUser(response.user);
+  setStoredUser(user);
+
+  return user;
 };
 
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
@@ -162,7 +186,7 @@ export const getPatientsFromApi = async (): Promise<Patient[]> => {
   return (payload.data ?? []).map(normalizePatient);
 };
 
-export const getAppointmentsFromApi = async (patients: Patient[]): Promise<Appointment[]> => {
+export const getAppointmentsFromApi = async (patients: Patient[] = []): Promise<Appointment[]> => {
   const payload = await apiFetch<{ data: ApiAppointment[] }>('/appointments');
   return (payload.data ?? []).map((apt) => normalizeAppointment(apt, patients));
 };

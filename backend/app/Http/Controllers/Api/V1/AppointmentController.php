@@ -16,11 +16,12 @@ class AppointmentController extends Controller
     public function index(Request $request)
     {
         $appointments = Appointment::query()
-            ->with('invoice')
+            ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
+            ->with(['invoice:id,appointment_id,total,paid_amount,status'])
             ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
             ->when($request->filled('doctorId'), fn ($query) => $query->where('doctor_id', $request->integer('doctorId')))
             ->latest('date')
-            ->paginate(20);
+            ->simplePaginate(20);
 
         return AppointmentResource::collection($appointments);
     }
