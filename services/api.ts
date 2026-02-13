@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus, Department, Patient, PaymentMethod, PaymentStatus, User, UserRole } from '../types';
+import { Appointment, AppointmentStatus, Branch, Department, Patient, PaymentMethod, PaymentStatus, User, UserRole } from '../types';
 import { MOCK_USERS } from '../constants';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
@@ -40,6 +40,33 @@ interface ApiPatient {
   gender: 'Male' | 'Female';
   age: number;
   medicalHistorySummary: string;
+}
+
+interface ApiBranch {
+  id: string;
+  name: string;
+  location: string;
+  contactPhone: string;
+  isActive: boolean;
+}
+
+interface ApiDoctor {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  role: UserRole;
+  specialty: Department;
+  consultationFee: number;
+  assignedBranches: string[];
+  schedule?: User['schedule'];
+  payroll?: User['payroll'];
+}
+
+export interface ApiDepartmentOption {
+  value: Department;
+  labelEn: string;
+  labelAr: string;
 }
 
 const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
@@ -104,6 +131,20 @@ const normalizeUser = (apiUser: ApiUser): User => {
     avatarUrl: fallbackUser?.avatarUrl,
   };
 };
+
+const normalizeDoctor = (doctor: ApiDoctor): User => ({
+  id: doctor.id,
+  name: doctor.name,
+  email: doctor.email,
+  phone: doctor.phone,
+  role: UserRole.DOCTOR,
+  specialty: doctor.specialty,
+  consultationFee: doctor.consultationFee,
+  assignedBranches: doctor.assignedBranches ?? [],
+  schedule: doctor.schedule ?? [],
+  payroll: doctor.payroll,
+  status: 'ACTIVE',
+});
 
 const normalizePatient = (patient: ApiPatient): Patient => ({
   id: patient.id,
@@ -179,6 +220,48 @@ export const getCurrentUser = async (): Promise<User> => {
   setStoredUser(user);
 
   return user;
+};
+
+export const getBranchesFromApi = async (): Promise<Branch[]> => {
+  const payload = await apiFetch<{ data: ApiBranch[] }>('/branches');
+  return (payload.data ?? []).map((branch) => ({
+    id: branch.id,
+    name: branch.name,
+    location: branch.location,
+    contactPhone: branch.contactPhone,
+    isActive: branch.isActive,
+  }));
+};
+
+export const getDepartmentsFromApi = async (): Promise<ApiDepartmentOption[]> => {
+  const payload = await apiFetch<{ data: ApiDepartmentOption[] }>('/departments');
+  return payload.data ?? [];
+};
+
+export const getDoctorsFromApi = async (params?: { branchId?: string; specialty?: string; name?: string }): Promise<User[]> => {
+  const query = new URLSearchParams();
+  if (params?.branchId) query.set('branchId', params.branchId);
+  if (params?.specialty) query.set('specialty', params.specialty);
+  if (params?.name) query.set('name', params.name);
+
+  const payload = await apiFetch<{ data: ApiDoctor[] }>(`/doctors${query.toString() ? `?${query.toString()}` : ''}`);
+  return (payload.data ?? []).map(normalizeDoctor);
+};
+
+export const createDoctorViaApi = async (doctor: User): Promise<User> => {
+  const payload = await apiFetch<ApiDoctor>('/doctors', {
+    method: 'POST',
+    body: JSON.stringify(doctor),
+  });
+  return normalizeDoctor(payload);
+};
+
+export const updateDoctorViaApi = async (doctor: User): Promise<User> => {
+  const payload = await apiFetch<ApiDoctor>(`/doctors/${doctor.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(doctor),
+  });
+  return normalizeDoctor(payload);
 };
 
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
