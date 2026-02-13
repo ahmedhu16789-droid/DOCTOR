@@ -57,6 +57,19 @@ export const admin = {
     "all_roles": "كل الأدوار",
     "nurse": "ممرض/ة",
     "receptionist": "موظف استقبال",
+    "all_departments": "كل الأقسام",
+    "all_branches": "كل الفروع",
+    "doctor_details": "تفاصيل الطبيب",
+    "no_doctors_match_filters": "لا يوجد أطباء مطابقين للفلاتر الحالية.",
+    "doctors_count_label": "عدد الأطباء المعروضين: {{count}}",
+    "payroll_fixed_salary": "راتب ثابت",
+    "payroll_percentage": "نسبة",
+    "payroll_hybrid": "مختلط",
+    "base_salary": "الراتب الأساسي",
+    "commission_percentage": "نسبة العمولة %",
+    "consultation_fee": "رسوم الكشف",
+    "email": "البريد الإلكتروني",
+
 
     // Modals
     "add_new_doctor": "إضافة طبيب جديد",

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { User, UserRole, Branch } from '../types';
+import { User, UserRole, Branch, Department } from '../types';
 import { MOCK_USERS, BRANCHES } from '../constants';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
-import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope } from 'lucide-react';
+import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
 
@@ -12,13 +12,16 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS'>('OVERVIEW');
     const [users, setUsers] = useState<User[]>(MOCK_USERS.filter((u) => u.role === UserRole.DOCTOR));
     const [branches, setBranches] = useState<Branch[]>(BRANCHES);
     const [departments, setDepartments] = useState<ApiDepartmentOption[]>([]);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [departmentFilter, setDepartmentFilter] = useState('ALL');
+    const [branchFilter, setBranchFilter] = useState('ALL');
 
     const isSuperAdmin = currentUser.role === UserRole.ADMIN;
     const managedBranches = currentUser.assignedBranches;
@@ -40,10 +43,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
         })();
     }, []);
 
+
+    const departmentOptions = departments.length
+        ? departments
+        : Object.values(Department).map((department) => ({ value: department, labelAr: department, labelEn: department }));
+
     const filteredUsers = useMemo(() => users.filter(u => {
-        if (isSuperAdmin) return true;
-        return u.assignedBranches.some(b => managedBranches.includes(b));
-    }), [users, isSuperAdmin, managedBranches]);
+        const branchScopedUser = isSuperAdmin || u.assignedBranches.some(b => managedBranches.includes(b));
+        if (!branchScopedUser) return false;
+
+        const matchesSearch = !searchTerm.trim() || [u.name, u.email, u.phone, u.specialty]
+            .filter(Boolean)
+            .some((value) => value!.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+        const matchesDepartment = departmentFilter === 'ALL' || u.specialty === departmentFilter;
+        const matchesBranch = branchFilter === 'ALL' || u.assignedBranches.includes(branchFilter);
+
+        return matchesSearch && matchesDepartment && matchesBranch;
+    }), [users, isSuperAdmin, managedBranches, searchTerm, departmentFilter, branchFilter]);
 
     const doctorsCount = filteredUsers.length;
     const activeBranches = branches.filter(b => b.isActive).length;
@@ -81,7 +97,84 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                     <h3 className="font-bold text-gray-900">{t('staff_directory')}</h3>
                     {isSuperAdmin && <button onClick={() => setIsCreatingUser(true)} className="flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-colors"><Plus className="w-4 h-4 mr-2" /> {t('add_doctor')}</button>}
                 </div>
-                <div className="overflow-auto"><table className="min-w-full"><tbody>{filteredUsers.map((u) => <tr key={u.id}><td className="px-6 py-4">{u.name}</td><td>{u.specialty}</td><td>{u.assignedBranches.length}</td><td>{isSuperAdmin && <button onClick={() => setEditingUser(u)}>{t('edit')}</button>}</td></tr>)}</tbody></table></div>
+                <div className="p-4 border-b border-gray-200 bg-white grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="relative">
+                        <Search className="w-4 h-4 text-gray-400 absolute top-1/2 -translate-y-1/2 left-3 rtl:right-3 rtl:left-auto" />
+                        <input
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder={t('search_employees')}
+                            className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 rtl:pr-9 rtl:pl-3 text-sm focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                    <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="rounded-lg border border-gray-300 py-2 px-3 text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="ALL">{t('all_departments')}</option>
+                        {departmentOptions.map((department) => (
+                            <option key={department.value} value={department.value}>{i18n.language === 'ar' ? department.labelAr : department.labelEn}</option>
+                        ))}
+                    </select>
+                    <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="rounded-lg border border-gray-300 py-2 px-3 text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="ALL">{t('all_branches')}</option>
+                        {branches.map((branch) => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="overflow-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left rtl:text-right text-xs font-bold text-gray-500 uppercase">{t('doctor_details')}</th>
+                                <th className="px-6 py-3 text-left rtl:text-right text-xs font-bold text-gray-500 uppercase">{t('department')}</th>
+                                <th className="px-6 py-3 text-left rtl:text-right text-xs font-bold text-gray-500 uppercase">{t('branches')}</th>
+                                <th className="px-6 py-3 text-left rtl:text-right text-xs font-bold text-gray-500 uppercase">{t('payroll_model')}</th>
+                                <th className="px-6 py-3 text-right rtl:text-left text-xs font-bold text-gray-500 uppercase">{t('actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredUsers.map((u) => (
+                                <tr key={u.id} className="hover:bg-gray-50/70">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center">{u.name.charAt(0)}</div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900">{u.name}</p>
+                                                <div className="text-xs text-gray-500 space-y-1">
+                                                    {u.phone && <p className="flex items-center gap-1"><Phone className="w-3 h-3" /> {u.phone}</p>}
+                                                    {u.email && <p className="flex items-center gap-1"><Mail className="w-3 h-3" /> {u.email}</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-700">{u.specialty || '-'}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {u.assignedBranches.map((branchId) => {
+                                                const branchName = branches.find((branch) => branch.id === branchId)?.name || branchId;
+                                                return <span key={branchId} className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-200">{branchName}</span>;
+                                            })}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-700">{u.payroll?.model?.replace('_', ' ') || '-'}</td>
+                                    <td className="px-6 py-4 text-right rtl:text-left">
+                                        {isSuperAdmin && <button onClick={() => setEditingUser(u)} className="text-primary-700 font-medium hover:text-primary-900">{t('edit')}</button>}
+                                    </td>
+                                </tr>
+                            ))}
+                            {!filteredUsers.length && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-500">
+                                        <Filter className="mx-auto mb-2 w-4 h-4 text-gray-400" />
+                                        {t('no_doctors_match_filters')}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="px-4 py-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+                    {t('doctors_count_label', { count: filteredUsers.length })}
+                </div>
             </div>}
 
             {(editingUser || isCreatingUser) && (

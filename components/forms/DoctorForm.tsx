@@ -91,8 +91,8 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
 
             <div className="flex-1 overflow-y-auto p-6">
                 {activeTab === 'BASIC' && (
-                    <div className="max-w-2xl mx-auto space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border border-gray-200 rounded-xl p-5">
                             <div className="col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">{t('full_name')}</label>
                                 <input {...register('name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
@@ -101,10 +101,12 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('phone_number')}</label>
                                 <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                                {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone.message as string}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('email')}</label>
                                 <input {...register('email')} type="email" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                                {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message as string}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('department')}</label>
@@ -115,8 +117,8 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">{t('amount')}</label>
-                                <input {...register('consultationFee', { valueAsNumber: true })} type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                                <label className="block text-sm font-medium text-gray-700">{t('consultation_fee')}</label>
+                                <input {...register('consultationFee', { valueAsNumber: true })} type="number" min={0} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
                             </div>
                         </div>
                     </div>
@@ -134,20 +136,32 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                 )}
 
                 {activeTab === 'PAYMENT' && (
-                    <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="max-w-3xl mx-auto space-y-6">
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                             <label className="block text-sm font-medium text-gray-700 mb-4">{t('payroll_model')}</label>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'].map((model) => (
                                     <label key={model} className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer ${paymentModel === model ? 'bg-primary-50 border-primary-500 text-primary-700' : 'bg-white border-gray-200'}`}>
                                         <input type="radio" {...register('payroll.model')} value={model} className="sr-only" />
-                                        <span className="text-xs font-bold">{model.replace('_', ' ')}</span>
+                                        <span className="text-xs font-bold">{t(`payroll_${model.toLowerCase()}`)}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
-                        {(paymentModel === 'FIXED_SALARY' || paymentModel === 'HYBRID') && <input {...register('payroll.baseSalary', { valueAsNumber: true })} type="number" className="block w-full rounded-md border-gray-300 border p-2" />}
-                        {(paymentModel === 'PERCENTAGE' || paymentModel === 'HYBRID') && <input {...register('payroll.commissionPercentage', { valueAsNumber: true })} type="number" className="block w-full rounded-md border-gray-300 border p-2" />}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {(paymentModel === 'FIXED_SALARY' || paymentModel === 'HYBRID') && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('base_salary')}</label>
+                                    <input {...register('payroll.baseSalary', { valueAsNumber: true })} type="number" min={0} className="block w-full rounded-md border-gray-300 border p-2" />
+                                </div>
+                            )}
+                            {(paymentModel === 'PERCENTAGE' || paymentModel === 'HYBRID') && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('commission_percentage')}</label>
+                                    <input {...register('payroll.commissionPercentage', { valueAsNumber: true })} type="number" min={0} max={100} className="block w-full rounded-md border-gray-300 border p-2" />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -155,7 +169,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
             <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">{t('cancel')}</button>
                 <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center">
-                    {isSubmitting ? t('saving') : <><Save className="w-4 h-4 mr-2" /> {t('add_doctor')}</>}
+                    {isSubmitting ? t('saving') : <><Save className="w-4 h-4 mr-2" /> {initialData ? t('save_changes') : t('add_doctor')}</>}
                 </button>
             </div>
         </form>
