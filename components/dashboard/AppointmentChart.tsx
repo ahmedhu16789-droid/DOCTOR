@@ -23,17 +23,19 @@ export const AppointmentChart: React.FC = () => {
       <div className="flex-1 w-full min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <XAxis 
-                dataKey="name" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#64748b', fontSize: 12}}
-                dy={10}
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#64748b', fontSize: 12 }}
+              dy={10}
             />
-            <Tooltip 
-                cursor={{fill: '#f1f5f9'}}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            {/* @ts-ignore */}
+            <Tooltip
+              cursor={{ fill: '#f1f5f9' }}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
+            {/* @ts-ignore */}
             <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={40}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
