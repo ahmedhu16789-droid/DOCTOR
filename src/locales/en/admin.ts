@@ -58,6 +58,19 @@ export const admin = {
     "all_roles": "All Roles",
     "nurse": "Nurse",
     "receptionist": "Receptionist",
+    "all_departments": "All Departments",
+    "all_branches": "All Branches",
+    "doctor_details": "Doctor Details",
+    "no_doctors_match_filters": "No doctors match current filters.",
+    "doctors_count_label": "Doctors shown: {{count}}",
+    "payroll_fixed_salary": "Fixed Salary",
+    "payroll_percentage": "Percentage",
+    "payroll_hybrid": "Hybrid",
+    "base_salary": "Base Salary",
+    "commission_percentage": "Commission %",
+    "consultation_fee": "Consultation Fee",
+    "email": "Email",
+
 
     // Modals
     "add_new_doctor": "Add New Doctor",
