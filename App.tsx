@@ -14,6 +14,7 @@ import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod } from './types';
 import { getAppointments, getPatients } from './services/mockData';
+import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getPatientsFromApi } from './services/api';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -32,11 +33,18 @@ export default function App() {
   useEffect(() => {
     if (user || view === 'PUBLIC') {
       setLoading(true);
-      Promise.all([getAppointments(), getPatients()]).then(([apts, pts]) => {
-        setAppointments(apts);
-        setPatients(pts);
-        setLoading(false);
-      });
+      getPatientsFromApi()
+        .then(async (pts) => {
+          const apiAppointments = await getAppointmentsFromApi(pts);
+          setPatients(pts);
+          setAppointments(apiAppointments);
+        })
+        .catch(async () => {
+          const [apts, pts] = await Promise.all([getAppointments(), getPatients()]);
+          setAppointments(apts);
+          setPatients(pts);
+        })
+        .finally(() => setLoading(false));
     }
   }, [user, view]);
 
@@ -47,6 +55,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearAuthToken();
     setUser(null);
     setView('AUTH');
     setAppointments([]);
@@ -58,7 +67,7 @@ export default function App() {
     ));
   };
 
-  const handleNewBooking = (apt: Partial<Appointment>) => {
+  const handleNewBooking = async (apt: Partial<Appointment>) => {
     const baseFee = 400; 
 
     const newApt: Appointment = {
@@ -88,7 +97,13 @@ export default function App() {
     } as Appointment;
     
     setAppointments([...appointments, newApt]);
-    alert(`Appointment booked successfully for ${newApt.patientName}`);
+
+    try {
+      await createAppointmentViaApi(newApt);
+      alert(`Appointment synced successfully for ${newApt.patientName}`);
+    } catch {
+      alert(`Appointment saved locally for ${newApt.patientName} (API offline)`);
+    }
   };
   
   const handleOpenEncounter = (apt: Appointment) => {

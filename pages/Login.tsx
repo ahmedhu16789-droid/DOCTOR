@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MOCK_USERS } from '../constants';
 import { User } from '../types';
-import { Building2, Globe, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Building2, Globe, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
+import { loginWithApi } from '../services/api';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -13,59 +14,95 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
   const { t } = useTranslation();
   const { direction, toggleLanguage, language } = useLanguage();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleApiLogin = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const user = await loginWithApi(email, password);
+      onLogin(user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
-      
-      {/* Language Toggle */}
       <div className="absolute top-6 right-6">
-          <button 
-            onClick={toggleLanguage}
-            className="text-sm font-bold text-gray-500 hover:text-primary-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200"
-          >
-              {language === 'en' ? 'العربية' : 'English'}
-          </button>
+        <button
+          onClick={toggleLanguage}
+          className="text-sm font-bold text-gray-500 hover:text-primary-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200"
+        >
+          {language === 'en' ? 'العربية' : 'English'}
+        </button>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-            <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                <Building2 className="w-10 h-10" />
-            </div>
+          <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+            <Building2 className="w-10 h-10" />
+          </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {t('login_title')}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {t('login_subtitle')}
-        </p>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">{t('login_title')}</h2>
+        <p className="mt-2 text-center text-sm text-gray-600">{t('login_subtitle')}</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-lg sm:px-10 space-y-6">
-          
-          {/* Public Portal Button */}
           <button
             onClick={onPublicAccess}
             className="w-full flex items-center justify-center px-4 py-3 border-2 border-primary-100 shadow-sm text-sm font-bold rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 hover:border-primary-200 transition-all mb-6 group"
           >
-             <Globe className="w-5 h-5 me-2 group-hover:scale-110 transition-transform" />
-             {t('book_online')}
+            <Globe className="w-5 h-5 me-2 group-hover:scale-110 transition-transform" />
+            {t('book_online')}
           </button>
 
+          <form onSubmit={handleApiLogin} className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="email@example.com"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              required
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="********"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-70"
+            >
+              {loading ? <LoaderCircle className="w-4 h-4 animate-spin mx-auto" /> : 'Login with Backend API'}
+            </button>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </form>
+
           <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  {t('or_staff_login')}
-                </span>
-              </div>
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
             </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">{t('or_staff_login')}</span>
+            </div>
+          </div>
 
           <div className="space-y-3">
-            {MOCK_USERS.map(user => (
+            {MOCK_USERS.map((user) => (
               <button
                 key={user.id}
                 onClick={() => onLogin(user)}
@@ -79,7 +116,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
                   </div>
                 </div>
                 <span className="text-gray-400 group-hover:text-primary-600 transition-colors">
-                    {direction === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  {direction === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 </span>
               </button>
             ))}
