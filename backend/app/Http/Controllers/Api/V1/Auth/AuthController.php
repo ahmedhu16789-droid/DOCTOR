@@ -95,4 +95,18 @@ class AuthController extends Controller
             'clinicId' => (string) $user->clinic_id,
         ]);
     }
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'user' => [
+                'id' => (string) $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'clinicId' => (string) $user->clinic_id,
+        ]);
+    }
 }

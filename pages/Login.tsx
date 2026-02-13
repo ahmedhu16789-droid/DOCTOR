@@ -14,8 +14,8 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
   const { t } = useTranslation();
   const { direction, toggleLanguage, language } = useLanguage();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('owner@alfath-clinic.com');
+  const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

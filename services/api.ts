@@ -149,6 +149,14 @@ export const loginWithApi = async (email: string, password: string): Promise<Use
   return normalizeUser(response.user);
 };
 
+export const getCurrentUser = async (): Promise<User> => {
+  const token = getToken();
+  if (!token) throw new Error('No token found');
+
+  const response = await apiFetch<{ user: ApiUser; clinicId: string }>('/auth/me');
+  return normalizeUser(response.user);
+};
+
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
   const payload = await apiFetch<{ data: ApiPatient[] }>('/patients');
   return (payload.data ?? []).map(normalizePatient);

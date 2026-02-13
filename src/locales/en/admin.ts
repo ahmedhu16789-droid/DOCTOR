@@ -29,6 +29,12 @@ export const admin = {
     "revenue_by_branch": "Revenue by Branch",
     "recent_transactions": "Recent Transactions",
     "export_csv": "Export CSV",
+    "recent_appointments": "Recent Appointments",
+    "revenue_analytics": "Revenue Analytics",
+    "weekly_income": "Weekly Income",
+    "last_7_days": "Last 7 Days",
+    "visits_by_dept": "Visits by Department",
+    "patient_distribution": "Patient Distribution",
 
     // Staff Table
     "staff_directory": "Staff Directory",

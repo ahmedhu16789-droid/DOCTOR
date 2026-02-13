@@ -2,11 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '../types';
 import { ChevronLeft, ChevronRight, User, Calendar as CalendarIcon } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 interface CalendarViewProps {
   appointments: Appointment[];
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
+  const { t, i18n } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -20,9 +23,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
 
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+  const monthNames = t('months', { returnObjects: true }) as string[];
+  const daysShort = t('days_short', { returnObjects: true }) as string[];
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -58,7 +60,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
     for (let d = 1; d <= daysInMonth; d++) {
       const dailyAppointments = getAppointmentsForDate(d);
       const hasAppointments = dailyAppointments.length > 0;
-      
+
       days.push(
         <button
           key={d}
@@ -73,19 +75,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
           `}>
             {d}
           </span>
-          
+
           {hasAppointments && (
             <div className="mt-2 w-full space-y-1">
-               {dailyAppointments.slice(0, 2).map((apt, i) => (
-                 <div key={i} className="text-[10px] bg-primary-100 text-primary-700 px-1 py-0.5 rounded truncate w-full text-left font-medium border border-primary-200">
-                   {apt.timeSlot} {apt.patientName.split(' ')[0]}
-                 </div>
-               ))}
-               {dailyAppointments.length > 2 && (
-                 <div className="text-[10px] text-gray-400 pl-1">
-                   + {dailyAppointments.length - 2} more
-                 </div>
-               )}
+              {dailyAppointments.slice(0, 2).map((apt, i) => (
+                <div key={i} className="text-[10px] bg-primary-100 text-primary-700 px-1 py-0.5 rounded truncate w-full text-left font-medium border border-primary-200">
+                  {apt.timeSlot} {apt.patientName.split(' ')[0]}
+                </div>
+              ))}
+              {dailyAppointments.length > 2 && (
+                <div className="text-[10px] text-gray-400 pl-1">
+                  + {dailyAppointments.length - 2} more
+                </div>
+              )}
             </div>
           )}
         </button>
@@ -99,12 +101,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-primary-600" />
-            {monthNames[month]} {year}
+          <CalendarIcon className="w-5 h-5 text-primary-600" />
+          {monthNames[month]} {year}
         </h2>
         <div className="flex items-center space-x-2">
           <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full text-gray-600 border border-gray-200"><ChevronLeft className="w-5 h-5" /></button>
-          <button onClick={() => setCurrentDate(new Date())} className="text-sm font-medium text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md border border-primary-200">Today</button>
+          <button onClick={() => setCurrentDate(new Date())} className="text-sm font-medium text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-md border border-primary-200">{t('today')}</button>
           <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full text-gray-600 border border-gray-200"><ChevronRight className="w-5 h-5" /></button>
         </div>
       </div>
@@ -113,7 +115,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
         {/* Calendar Grid */}
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50 text-center sticky top-0 z-10">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            {daysShort.map(day => (
               <div key={day} className="py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 {day}
               </div>
@@ -126,42 +128,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
 
         {/* Selected Day Agenda */}
         <div className="w-full lg:w-80 bg-gray-50 border-l border-gray-200 flex flex-col h-full lg:max-h-full max-h-[300px]">
-           <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-              <h3 className="font-bold text-gray-900">
-                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {selectedDateAppointments.length} Appointment{selectedDateAppointments.length !== 1 ? 's' : ''}
-              </p>
-           </div>
-           
-           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {selectedDateAppointments.length === 0 ? (
-                <div className="text-center py-10 text-gray-400 text-sm">
-                   No appointments for this day.
-                </div>
-              ) : (
-                selectedDateAppointments.map(apt => (
-                  <div key={apt.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm border-l-4 border-l-primary-500 hover:shadow-md transition-shadow">
-                     <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-gray-900 text-sm">{apt.timeSlot}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium
+          <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+            <h3 className="font-bold text-gray-900">
+              {selectedDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {selectedDateAppointments.length} {t('appointment')}{selectedDateAppointments.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {selectedDateAppointments.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 text-sm">
+                {t('no_appointments')}
+              </div>
+            ) : (
+              selectedDateAppointments.map(apt => (
+                <div key={apt.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm border-l-4 border-l-primary-500 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-gray-900 text-sm">{apt.timeSlot}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium
                           ${apt.status === AppointmentStatus.SCHEDULED ? 'bg-blue-100 text-blue-700' : ''}
                           ${apt.status === AppointmentStatus.IN_PROGRESS ? 'bg-amber-100 text-amber-700' : ''}
                           ${apt.status === AppointmentStatus.COMPLETED ? 'bg-green-100 text-green-700' : ''}
                           ${apt.status === AppointmentStatus.WAITING ? 'bg-purple-100 text-purple-700' : ''}
                         `}>
-                          {apt.status}
-                        </span>
-                     </div>
-                     <div className="font-medium text-gray-800 text-sm mb-0.5">{apt.patientName}</div>
-                     <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <User className="w-3 h-3" /> {apt.doctorName}
-                     </div>
+                      {apt.status}
+                    </span>
                   </div>
-                ))
-              )}
-           </div>
+                  <div className="font-medium text-gray-800 text-sm mb-0.5">{apt.patientName}</div>
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <User className="w-3 h-3" /> {apt.doctorName}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

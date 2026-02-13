@@ -28,6 +28,12 @@ export const admin = {
     "revenue_by_branch": "الإيرادات حسب الفرع",
     "recent_transactions": "المعاملات الأخيرة",
     "export_csv": "تصدير CSV",
+    "recent_appointments": "المواعيد الأخيرة",
+    "revenue_analytics": "تحليلات الإيرادات",
+    "weekly_income": "الدخل الأسبوعي",
+    "last_7_days": "آخر 7 أيام",
+    "visits_by_dept": "الزيارات حسب القسم",
+    "patient_distribution": "توزيع المرضى",
 
     // Staff Table
     "staff_directory": "دليل الموظفين",

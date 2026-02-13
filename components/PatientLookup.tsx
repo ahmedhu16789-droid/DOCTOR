@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Patient } from '../types';
 import { Search, UserPlus, Phone, User, History } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 interface PatientLookupProps {
   patients: Patient[];
   onSelectPatient: (patient: Patient) => void;
@@ -9,10 +11,11 @@ interface PatientLookupProps {
 }
 
 export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelectPatient, onAddNewPatient }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Patient[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-  
+
   // New Patient Form State
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -22,8 +25,8 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
   useEffect(() => {
     if (searchQuery.length >= 2) {
       const lowerQuery = searchQuery.toLowerCase();
-      const filtered = patients.filter(p => 
-        p.phone.includes(searchQuery) || 
+      const filtered = patients.filter(p =>
+        p.phone.includes(searchQuery) ||
         p.name.toLowerCase().includes(lowerQuery)
       );
       setResults(filtered);
@@ -37,7 +40,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
     // Auto-fill logic: if mostly numeric, assume phone, else assume name
     const cleanQuery = searchQuery.replace(/[\s\-\(\)]/g, '');
     const isNumeric = /^\d+$/.test(cleanQuery);
-    
+
     if (isNumeric && cleanQuery.length > 3) {
       setNewPhone(searchQuery);
       setNewName('');
@@ -78,8 +81,8 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
             placeholder="Search by name or phone..."
             value={searchQuery}
             onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setIsCreating(false); 
+              setSearchQuery(e.target.value);
+              setIsCreating(false);
             }}
             autoFocus
           />
@@ -95,7 +98,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
               Found {results.length} profile{results.length !== 1 ? 's' : ''}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {results.map(patient => (
               <button
@@ -115,10 +118,10 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                     <span>•</span>
                     <span className="capitalize">{patient.gender}</span>
                   </div>
-                   <div className="flex items-center text-xs text-gray-400 mt-1">
-                      <Phone className="w-3 h-3 mr-1" />
-                      {patient.phone}
-                   </div>
+                  <div className="flex items-center text-xs text-gray-400 mt-1">
+                    <Phone className="w-3 h-3 mr-1" />
+                    {patient.phone}
+                  </div>
                   {patient.lastVisit && (
                     <div className="flex items-center text-xs text-gray-400 mt-2">
                       <History className="w-3 h-3 mr-1" />
@@ -138,7 +141,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                 <UserPlus className="w-8 h-8 mb-2" />
                 <span className="font-medium">Create New Profile</span>
                 <span className="text-xs text-gray-400 mt-1">
-                    {/^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, '')) ? `Use number ${searchQuery}` : `Add "${searchQuery}"`}
+                  {/^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, '')) ? `Use number ${searchQuery}` : `Add "${searchQuery}"`}
                 </span>
               </button>
             )}
@@ -155,7 +158,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
               Creating New Record
             </span>
           </div>
-          
+
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Full Name</label>
@@ -180,7 +183,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                 placeholder="01xxxxxxxxx"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Age</label>
