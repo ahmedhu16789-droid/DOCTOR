@@ -35,7 +35,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       
       <div className={clsx(
           "flex-1 flex flex-col min-h-screen transition-all duration-300",
-          collapsed ? "md:ml-20" : "md:ml-64"
+          collapsed ? "md:ms-20" : "md:ms-64" // Changed ml to ms (margin-start)
       )}>
          <Header 
             user={user}

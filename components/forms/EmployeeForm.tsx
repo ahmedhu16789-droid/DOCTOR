@@ -73,7 +73,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ initialData, onSave,
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Full Name</label>
                     <input {...register('name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
-                    {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+                    {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
@@ -101,7 +101,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ initialData, onSave,
                           branches={BRANCHES}
                           selectedIds={field.value}
                           onChange={field.onChange}
-                          error={errors.assignedBranches?.message}
+                          error={errors.assignedBranches?.message as string}
                         />
                       )}
                     />

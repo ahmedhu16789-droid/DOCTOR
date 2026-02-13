@@ -61,7 +61,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
                 placeholder="e.g. Al-Fath Downtown"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
               />
-              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
             </div>
 
             <div>
@@ -75,7 +75,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
                   className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
                 />
               </div>
-              {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location.message}</p>}
+              {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location.message as string}</p>}
             </div>
 
             <div>
@@ -89,7 +89,7 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
                   className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
                 />
               </div>
-              {errors.contactPhone && <p className="mt-1 text-xs text-red-600">{errors.contactPhone.message}</p>}
+              {errors.contactPhone && <p className="mt-1 text-xs text-red-600">{errors.contactPhone.message as string}</p>}
             </div>
 
             <div className="flex items-center space-x-3 bg-gray-50 p-4 rounded-lg">

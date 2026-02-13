@@ -111,13 +111,13 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
                     <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700">Full Name</label>
                         <input {...register('name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" />
-                        {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+                        {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
                     </div>
                     
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                         <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" />
-                        {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone.message}</p>}
+                        {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone.message as string}</p>}
                     </div>
 
                     <div>
@@ -165,7 +165,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
                           branches={BRANCHES}
                           selectedIds={field.value}
                           onChange={field.onChange}
-                          error={errors.assignedBranches?.message}
+                          error={errors.assignedBranches?.message as string}
                         />
                       )}
                     />

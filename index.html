@@ -1,18 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Al-Fath Clinic Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['Inter', 'Cairo', 'sans-serif'],
+              cairo: ['Cairo', 'sans-serif'],
             },
             colors: {
               primary: {
@@ -38,13 +39,17 @@
     </script>
     <style>
       body { font-family: 'Inter', sans-serif; }
+      
+      /* Apply Cairo font when RTL is active */
+      html[dir="rtl"] body { font-family: 'Cairo', sans-serif; }
+
       /* Custom scrollbar for better UX */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       
-      .recharts-wrapper { font-family: 'Inter', sans-serif; }
+      .recharts-wrapper { font-family: inherit; }
     </style>
   <script type="importmap">
 {
@@ -58,7 +63,9 @@
     "@hookform/resolvers/": "https://esm.sh/@hookform/resolvers@^5.2.2/",
     "zod": "https://esm.sh/zod@^4.3.6",
     "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom",
-    "clsx": "https://esm.sh/clsx@^2.1.0"
+    "clsx": "https://esm.sh/clsx@^2.1.0",
+    "i18next": "https://esm.sh/i18next@23.10.0",
+    "react-i18next": "https://esm.sh/react-i18next@14.0.5?external=react,i18next"
   }
 }
 </script>

@@ -15,6 +15,7 @@ import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod } from './types';
 import { getAppointments, getPatients } from './services/mockData';
 import { Users } from 'lucide-react';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 export default function App() {
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
@@ -188,130 +189,138 @@ export default function App() {
   
   const currentActiveApt = activeEncounter ? appointments.find(a => a.id === activeEncounter.apt.id) : null;
 
-  if (view === 'PUBLIC') {
-    return <PublicBooking onBackToLogin={() => setView('AUTH')} />;
-  }
+  const MainContent = () => {
+    if (view === 'PUBLIC') {
+      return <PublicBooking onBackToLogin={() => setView('AUTH')} />;
+    }
 
-  if (view === 'AUTH') {
-    return <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />;
-  }
-  
-  if (activeEncounter && user && currentActiveApt) {
-      return (
-          <DoctorWorkspace 
-              appointment={currentActiveApt}
-              patient={activeEncounter.patient}
-              userRole={user.role}
-              onClose={handleCloseEncounter}
-              onComplete={handleCompleteEncounter}
-              onAddService={handleAddService}
-              onRemoveService={handleRemoveService}
-          />
-      );
+    if (view === 'AUTH') {
+      return <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />;
+    }
+    
+    if (activeEncounter && user && currentActiveApt) {
+        return (
+            <DoctorWorkspace 
+                appointment={currentActiveApt}
+                patient={activeEncounter.patient}
+                userRole={user.role}
+                onClose={handleCloseEncounter}
+                onComplete={handleCompleteEncounter}
+                onAddService={handleAddService}
+                onRemoveService={handleRemoveService}
+            />
+        );
+    }
+
+    return (
+      <DashboardLayout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'dashboard' && user && (
+              <Dashboard 
+                  user={user} 
+                  appointments={appointments} 
+                  onStatusChange={handleStatusChange} 
+              />
+            )}
+            
+            {activeTab === 'appointments' && (
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
+                  <div className="lg:col-span-2 h-full">
+                     <CalendarView appointments={appointments} />
+                  </div>
+                  <div className="h-full">
+                     <AppointmentBooking onBook={handleNewBooking} patients={patients} />
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'queue' && user && (
+               <div className="h-full">
+                  <div className="mb-4 flex justify-between items-center">
+                     <h2 className="text-xl font-bold">Live Branch Queue</h2>
+                  </div>
+                  <ReceptionQueue 
+                      appointments={appointments} 
+                      onUpdateStatus={handleStatusChange} 
+                      onOpenEncounter={handleOpenEncounter}
+                      onProcessPayment={handleProcessPayment}
+                      userRole={user.role}
+                  />
+               </div>
+            )}
+            
+            {activeTab === 'doctors' && user && (
+               <AdminDashboard currentUser={user} />
+            )}
+
+            {activeTab === 'employees' && user && (
+               <EmployeeManagement currentUser={user} />
+            )}
+
+            {activeTab === 'branches' && user && (
+                <BranchManagement />
+            )}
+
+            {activeTab === 'settings' && user && (
+                <ClinicSettings />
+            )}
+
+            {activeTab === 'finance' && user && (
+                <FinancialReports />
+            )}
+
+            {activeTab === 'patients' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                   <h2 className="text-lg font-bold">Patient Records</h2>
+                   <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700">Add Patient</button>
+                </div>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">History</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {patients.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                              <Users className="w-4 h-4" />
+                            </div>
+                            <div className="ms-4">
+                              <div className="text-sm font-medium text-gray-900">{p.name}</div>
+                              <div className="text-sm text-gray-500">Age: {p.age}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.phone}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.lastVisit}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{p.medicalHistorySummary}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </DashboardLayout>
+    );
   }
 
   return (
-    <DashboardLayout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
-      {loading ? (
-        <div className="flex items-center justify-center h-full">
-           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : (
-        <>
-          {activeTab === 'dashboard' && user && (
-            <Dashboard 
-                user={user} 
-                appointments={appointments} 
-                onStatusChange={handleStatusChange} 
-            />
-          )}
-          
-          {activeTab === 'appointments' && (
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
-                <div className="lg:col-span-2 h-full">
-                   <CalendarView appointments={appointments} />
-                </div>
-                <div className="h-full">
-                   <AppointmentBooking onBook={handleNewBooking} patients={patients} />
-                </div>
-             </div>
-          )}
-
-          {activeTab === 'queue' && user && (
-             <div className="h-full">
-                <div className="mb-4 flex justify-between items-center">
-                   <h2 className="text-xl font-bold">Live Branch Queue</h2>
-                </div>
-                <ReceptionQueue 
-                    appointments={appointments} 
-                    onUpdateStatus={handleStatusChange} 
-                    onOpenEncounter={handleOpenEncounter}
-                    onProcessPayment={handleProcessPayment}
-                    userRole={user.role}
-                />
-             </div>
-          )}
-          
-          {activeTab === 'doctors' && user && (
-             <AdminDashboard currentUser={user} />
-          )}
-
-          {activeTab === 'employees' && user && (
-             <EmployeeManagement currentUser={user} />
-          )}
-
-          {activeTab === 'branches' && user && (
-              <BranchManagement />
-          )}
-
-          {activeTab === 'settings' && user && (
-              <ClinicSettings />
-          )}
-
-          {activeTab === 'finance' && user && (
-              <FinancialReports />
-          )}
-
-          {activeTab === 'patients' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                 <h2 className="text-lg font-bold">Patient Records</h2>
-                 <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700">Add Patient</button>
-              </div>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">History</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {patients.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                            <Users className="w-4 h-4" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{p.name}</div>
-                            <div className="text-sm text-gray-500">Age: {p.age}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.phone}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.lastVisit}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{p.medicalHistorySummary}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-    </DashboardLayout>
+    <LanguageProvider>
+      <MainContent />
+    </LanguageProvider>
   );
 }

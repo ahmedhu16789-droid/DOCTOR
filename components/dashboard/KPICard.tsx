@@ -1,6 +1,7 @@
 import React from 'react';
 import { LucideIcon, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface KPICardProps {
   title: string;
@@ -25,6 +26,7 @@ export const KPICard: React.FC<KPICardProps> = ({
   color = 'blue',
   className
 }) => {
+  const { t } = useTranslation();
   
   const colorStyles = {
     blue: 'bg-blue-50 text-blue-600',
@@ -49,8 +51,8 @@ export const KPICard: React.FC<KPICardProps> = ({
             trendNeutral ? "bg-gray-100 text-gray-600" :
             trendUp ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
           )}>
-            {trendNeutral ? <Minus className="w-3 h-3 mr-1" /> : 
-             trendUp ? <ArrowUp className="w-3 h-3 mr-1" /> : <ArrowDown className="w-3 h-3 mr-1" />}
+            {trendNeutral ? <Minus className="w-3 h-3 me-1" /> : 
+             trendUp ? <ArrowUp className="w-3 h-3 me-1" /> : <ArrowDown className="w-3 h-3 me-1" />}
             {trend}
           </div>
         )}
@@ -58,8 +60,8 @@ export const KPICard: React.FC<KPICardProps> = ({
       
       <div>
         <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{value}</h3>
-        <p className="text-sm font-medium text-gray-500 mt-1">{title}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+        <p className="text-sm font-medium text-gray-500 mt-1">{t(title as any) || title}</p>
+        {subtitle && <p className="text-xs text-gray-400 mt-1">{t(subtitle as any) || subtitle}</p>}
       </div>
     </div>
   );

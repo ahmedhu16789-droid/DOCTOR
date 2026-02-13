@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 const data = [
   { name: 'Ortho', count: 12 },
@@ -12,10 +13,12 @@ const data = [
 const COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e'];
 
 export const AppointmentChart: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-full flex flex-col">
-      <h3 className="font-bold text-gray-900 text-lg mb-1">Visits by Department</h3>
-      <p className="text-sm text-gray-500 mb-6">Patient distribution today</p>
+      <h3 className="font-bold text-gray-900 text-lg mb-1">{t('visits_by_dept')}</h3>
+      <p className="text-sm text-gray-500 mb-6">{t('patient_distribution')}</p>
 
       <div className="flex-1 w-full min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
