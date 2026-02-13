@@ -1,0 +1,73 @@
+export const booking = {
+    // Appointment Status
+    "SCHEDULED": "Scheduled",
+    "WAITING": "Waiting",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "NO_SHOW": "No Show",
+    "CALLED": "Called",
+
+    // Steps
+    "steps": {
+        "service": "Service",
+        "doctor_time": "Doctor & Time",
+        "your_info": "Your Info",
+        "done": "Done"
+    },
+    "identification": "Identification",
+    "select_slot": "Select Slot",
+    "confirmation": "Confirmation",
+    "cancel": "Cancel",
+    "back": "Back",
+    "confirm_booking": "Confirm Booking",
+
+    // Labels
+    "patient": "Patient",
+    "branch": "Branch",
+    "department": "Department",
+    "date": "Date",
+    "available_doctors": "Available Doctors & Slots",
+    "no_slots": "No slots available",
+    "no_doctors": "No doctors found in this department.",
+    "service": "Service",
+    "time": "Time",
+
+    // Messages
+    "confirm_title": "Confirm Booking",
+    "confirm_subtitle": "Please verify details below",
+    "change": "Change",
+
+    // Public Booking Flow
+    "staff_login": "Staff Login",
+    "book_your_appointment": "Book Your Appointment",
+    "select_branch": "Select Branch",
+    "select_department": "Select Department",
+    "find_doctors": "Find Doctors",
+    "back_to_filters": "Back to filters",
+    "consultation_fee": "Consultation Fee",
+    "available_times_today": "Available Times Today",
+    "no_slots_today": "No slots available today",
+    "change_time": "Change Time",
+    "doctor": "Doctor",
+    "visit_fee": "Visit Fee",
+    "enter_mobile": "Enter Mobile Number",
+    "verification_code_sent": "We will send you a verification code.",
+    "send_code": "Send Code",
+    "verify_phone": "Verify Phone",
+    "enter_code_sent_to": "Enter the code sent to",
+    "verify": "Verify",
+    "who_is_patient": "Who is the patient?",
+    "new_family_member": "New Family Member",
+    "full_name": "Full Name",
+    "age": "Age",
+    "save": "Save",
+    "booking_confirmed": "Booking Confirmed!",
+    "details_sent_to": "We have sent the details to",
+    "amount_due": "Amount Due",
+    "note": "Note:",
+    "additional_fees_notice": "Additional fees may apply if any medical procedures or tests are performed during the visit.",
+    "pay_online": "Pay Online Now",
+    "pay_at_clinic": "Pay at Clinic",
+    "book_another": "Book Another Appointment",
+};

@@ -1,0 +1,73 @@
+export const booking = {
+    // Appointment Status
+    "SCHEDULED": "مجدول",
+    "WAITING": "في الانتظار",
+    "IN_PROGRESS": "مع الطبيب",
+    "COMPLETED": "مكتمل",
+    "CANCELLED": "ملغي",
+    "NO_SHOW": "لم يحضر",
+    "CALLED": "تم الاستدعاء",
+
+    // Steps
+    "steps": {
+        "service": "الخدمة",
+        "doctor_time": "الطبيب والوقت",
+        "your_info": "بياناتك",
+        "done": "تم"
+    },
+    "identification": "التعريف",
+    "select_slot": "اختيار الموعد",
+    "confirmation": "التأكيد",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "confirm_booking": "تأكيد الحجز",
+
+    // Labels
+    "patient": "المريض",
+    "branch": "الفرع",
+    "department": "القسم",
+    "date": "التاريخ",
+    "available_doctors": "الأطباء والمواعيد المتاحة",
+    "no_slots": "لا توجد مواعيد متاحة",
+    "no_doctors": "لا يوجد أطباء في هذا القسم",
+    "service": "الخدمة",
+    "time": "الوقت",
+
+    // Messages
+    "confirm_title": "تأكيد الحجز",
+    "confirm_subtitle": "يرجى مراجعة التفاصيل أدناه",
+    "change": "تغيير",
+
+    // Public Booking Flow
+    "staff_login": "دخول الموظفين",
+    "book_your_appointment": "احجز موعدك",
+    "select_branch": "اختر الفرع",
+    "select_department": "اختر القسم",
+    "find_doctors": "البحث عن أطباء",
+    "back_to_filters": "العودة للفلاتر",
+    "consultation_fee": "رسوم الكشف",
+    "available_times_today": "المواعيد المتاحة اليوم",
+    "no_slots_today": "لا توجد مواعيد متاحة اليوم",
+    "change_time": "تغيير الوقت",
+    "doctor": "الطبيب",
+    "visit_fee": "رسوم الزيارة",
+    "enter_mobile": "أدخل رقم الجوال",
+    "verification_code_sent": "سنرسل لك رمز التحقق.",
+    "send_code": "إرسال الرمز",
+    "verify_phone": "تحقق من الهاتف",
+    "enter_code_sent_to": "أدخل الرمز المرسل إلى",
+    "verify": "تحقق",
+    "who_is_patient": "من هو المريض؟",
+    "new_family_member": "فرد عائلة جديد",
+    "full_name": "الاسم الكامل",
+    "age": "العمر",
+    "save": "حفظ",
+    "booking_confirmed": "تم تأكيد الحجز!",
+    "details_sent_to": "لقد أرسلنا التفاصيل إلى",
+    "amount_due": "المبلغ المستحق",
+    "note": "ملاحظة:",
+    "additional_fees_notice": "قد يتم تطبيق رسوم إضافية في حالة إجراء أي إجراءات طبية أو تحاليل أثناء الزيارة.",
+    "pay_online": "ادفع أونلاين الآن",
+    "pay_at_clinic": "ادفع في العيادة",
+    "book_another": "حجز موعد آخر",
+};
