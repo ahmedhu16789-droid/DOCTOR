@@ -88,4 +88,6 @@ export const admin = {
     "default_currency": "العملة الافتراضية",
     "saving": "جاري الحفظ...",
     "save_changes": "حفظ التغييرات",
+    "basic_info": "البيانات الأساسية",
+    "schedule": "الجدول",
 };
