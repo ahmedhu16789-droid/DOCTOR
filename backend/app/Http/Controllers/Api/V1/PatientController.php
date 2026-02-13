@@ -10,6 +10,11 @@ class PatientController extends Controller
 {
     public function index()
     {
-        return PatientResource::collection(Patient::query()->latest()->paginate(50));
+        return PatientResource::collection(
+            Patient::query()
+                ->select(['id', 'clinic_id', 'name', 'phone', 'gender', 'age', 'medical_history_summary', 'created_at'])
+                ->latest('created_at')
+                ->simplePaginate(50)
+        );
     }
 }
