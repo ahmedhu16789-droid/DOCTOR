@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BRANCHES } from '../../constants';
 import { ScheduleGrid } from './ScheduleGrid';
 import { BranchSelector } from './BranchSelector';
-import { User, UserRole, Department } from '../../types';
-import { Save, Stethoscope, Building2, Wallet, XCircle } from 'lucide-react';
+import { User, UserRole, Department, Branch } from '../../types';
+import { Save, Stethoscope, Building2, Wallet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ApiDepartmentOption } from '../../services/api';
 
-// --- Validation Schema ---
 const doctorSchema = z.object({
     name: z.string().min(3, 'Name is required'),
     phone: z.string().min(10, 'Valid phone required'),
@@ -36,11 +36,14 @@ type DoctorFormValues = z.infer<typeof doctorSchema>;
 
 interface DoctorFormProps {
     initialData?: User;
-    onSave: (data: User) => void;
+    branches: Branch[];
+    departments: ApiDepartmentOption[];
+    onSave: (data: User) => Promise<void> | void;
     onCancel: () => void;
 }
 
-export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onCancel }) => {
+export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, departments, onSave, onCancel }) => {
+    const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<'BASIC' | 'SCHEDULE' | 'PAYMENT'>('BASIC');
 
     const { register, control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<DoctorFormValues>({
@@ -61,109 +64,104 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
     const paymentModel = watch('payroll.model');
     const assignedBranchIds = watch('assignedBranches');
 
+    const selectedBranchesCount = assignedBranchIds?.length ?? 0;
+    const specialtyOptions = useMemo(
+        () => departments.length
+            ? departments
+            : Object.values(Department).map((value) => ({ value, labelEn: value, labelAr: value })),
+        [departments]
+    );
+
     const onSubmit = async (data: DoctorFormValues) => {
-        // In a real app, you would inject the ID here or in the backend
         const userPayload: User = {
             id: initialData?.id || Math.random().toString(),
             status: 'ACTIVE',
             ...data,
-            // Ensure schedule items have IDs
-            schedule: data.schedule?.map(s => ({ ...s, id: s.id || Math.random().toString(), branchId: s.branchId || assignedBranchIds[0] }))
+            schedule: data.schedule?.map((shift) => ({ ...shift, id: shift.id || Math.random().toString(), branchId: shift.branchId || assignedBranchIds[0] }))
         } as User;
 
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        onSave(userPayload);
+        await onSave(userPayload);
     };
 
+    const tabClass = (tab: 'BASIC' | 'SCHEDULE' | 'PAYMENT') => (
+        `py-4 px-5 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${activeTab === tab ? 'border-primary-600 text-primary-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`
+    );
+
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 bg-gray-50 px-6">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('BASIC')}
-                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'BASIC' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                >
-                    <Stethoscope className="w-4 h-4" /> Basic Info
+        <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col bg-gray-50/60">
+            <div className="flex border-b border-gray-200 bg-gray-100 px-6 overflow-x-auto">
+                <button type="button" onClick={() => setActiveTab('BASIC')} className={tabClass('BASIC')}>
+                    <Stethoscope className="w-4 h-4" /> {t('basic_info')}
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('SCHEDULE')}
-                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'SCHEDULE' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                >
-                    <Building2 className="w-4 h-4" /> Branches & Schedule
+                <button type="button" onClick={() => setActiveTab('SCHEDULE')} className={tabClass('SCHEDULE')}>
+                    <Building2 className="w-4 h-4" /> {t('branches')} & {t('schedule')}
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('PAYMENT')}
-                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'PAYMENT' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                >
-                    <Wallet className="w-4 h-4" /> Financials
+                <button type="button" onClick={() => setActiveTab('PAYMENT')} className={tabClass('PAYMENT')}>
+                    <Wallet className="w-4 h-4" /> {t('financial_reports')}
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-
-                {/* Basic Info Section */}
                 {activeTab === 'BASIC' && (
-                    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                                <input {...register('name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" />
-                                {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="rounded-xl bg-white border border-gray-200 p-4">
+                                <p className="text-xs text-gray-500">{t('department')}</p>
+                                <p className="text-sm font-bold text-gray-900">{watch('specialty')}</p>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                                <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" />
-                                {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone.message as string}</p>}
+                            <div className="rounded-xl bg-white border border-gray-200 p-4">
+                                <p className="text-xs text-gray-500">{t('branches')}</p>
+                                <p className="text-sm font-bold text-gray-900">{selectedBranchesCount}</p>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
-                                <input {...register('email')} type="email" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" />
+                            <div className="rounded-xl bg-white border border-gray-200 p-4">
+                                <p className="text-xs text-gray-500">{t('amount')}</p>
+                                <p className="text-sm font-bold text-gray-900">{watch('consultationFee') || 0} EGP</p>
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Specialty</label>
-                                <select {...register('specialty')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2">
-                                    {Object.values(Department).map(d => (
-                                        <option key={d} value={d}>{d}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Standard Consultation Fee</label>
-                                <div className="relative mt-1 rounded-md shadow-sm">
-                                    <input
-                                        {...register('consultationFee', { valueAsNumber: true })}
-                                        type="number"
-                                        className="block w-full rounded-md border-gray-300 pl-3 pr-12 focus:border-primary-500 focus:ring-primary-500 border p-2"
-                                    />
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <span className="text-gray-500 sm:text-sm">EGP</span>
-                                    </div>
+                        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">{t('full_name')}</label>
+                                    <input {...register('name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
+                                    {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">{t('phone_number')}</label>
+                                    <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="01xxxxxxxxx" />
+                                    {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone.message as string}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                    <input {...register('email')} type="email" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="doctor@clinic.com" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">{t('department')}</label>
+                                    <select {...register('specialty')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+                                        {specialtyOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>{i18n.language === 'ar' ? option.labelAr : option.labelEn}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">{t('consultation_fee')}</label>
+                                    <input {...register('consultationFee', { valueAsNumber: true })} type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Schedule Section */}
                 {activeTab === 'SCHEDULE' && (
-                    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                        <div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Branch Assignment</h3>
-
+                    <div className="max-w-5xl mx-auto space-y-6">
+                        <div className="bg-white rounded-xl border border-gray-200 p-5">
+                            <h3 className="text-sm font-bold text-gray-800 mb-3">{t('branch_assignment')}</h3>
                             <Controller
                                 name="assignedBranches"
                                 control={control}
                                 render={({ field }) => (
                                     <BranchSelector
-                                        branches={BRANCHES}
+                                        branches={branches}
                                         selectedIds={field.value}
                                         onChange={field.onChange}
                                         error={errors.assignedBranches?.message as string}
@@ -172,28 +170,20 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
                             />
                         </div>
 
-                        <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Weekly Schedule</h3>
-                            <ScheduleGrid
-                                control={control}
-                                name="schedule"
-                                assignedBranchIds={assignedBranchIds}
-                            />
+                        <div className="bg-white rounded-xl border border-gray-200 p-5">
+                            <h3 className="text-sm font-bold text-gray-800 mb-3">{t('weekly_schedule')}</h3>
+                            <ScheduleGrid control={control} name="schedule" assignedBranchIds={assignedBranchIds} branches={branches} />
                         </div>
                     </div>
                 )}
 
-                {/* Payment Section */}
                 {activeTab === 'PAYMENT' && (
-                    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-medium text-gray-700 mb-4">Compensation Model</label>
-                            <div className="grid grid-cols-3 gap-3">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        <div className="bg-white rounded-xl border border-gray-200 p-5">
+                            <label className="block text-sm font-medium text-gray-700 mb-4">{t('payroll_model')}</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'].map((model) => (
-                                    <label key={model} className={`
-                                flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all
-                                ${paymentModel === model ? 'bg-primary-50 border-primary-500 text-primary-700 ring-1 ring-primary-500' : 'bg-white border-gray-200 hover:bg-gray-50'}
-                            `}>
+                                    <label key={model} className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all ${paymentModel === model ? 'bg-primary-50 border-primary-500 text-primary-700 ring-1 ring-primary-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                                         <input type="radio" {...register('payroll.model')} value={model} className="sr-only" />
                                         <span className="text-xs font-bold">{model.replace('_', ' ')}</span>
                                     </label>
@@ -201,36 +191,18 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-xl border border-gray-200 p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                             {(paymentModel === 'FIXED_SALARY' || paymentModel === 'HYBRID') && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Monthly Base Salary</label>
-                                    <div className="relative mt-1 rounded-md shadow-sm">
-                                        <input
-                                            {...register('payroll.baseSalary', { valueAsNumber: true })}
-                                            type="number"
-                                            className="block w-full rounded-md border-gray-300 pl-3 pr-12 focus:border-primary-500 focus:ring-primary-500 border p-2"
-                                        />
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                            <span className="text-gray-500 sm:text-sm">EGP</span>
-                                        </div>
-                                    </div>
+                                    <label className="block text-sm font-medium text-gray-700">{t('monthly_base_salary')}</label>
+                                    <input {...register('payroll.baseSalary', { valueAsNumber: true })} type="number" className="mt-1 block w-full rounded-md border-gray-300 border p-2" />
                                 </div>
                             )}
 
                             {(paymentModel === 'PERCENTAGE' || paymentModel === 'HYBRID') && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Commission Rate</label>
-                                    <div className="relative mt-1 rounded-md shadow-sm">
-                                        <input
-                                            {...register('payroll.commissionPercentage', { valueAsNumber: true })}
-                                            type="number"
-                                            className="block w-full rounded-md border-gray-300 pl-3 pr-12 focus:border-primary-500 focus:ring-primary-500 border p-2"
-                                        />
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                            <span className="text-gray-500 sm:text-sm">%</span>
-                                        </div>
-                                    </div>
+                                    <label className="block text-sm font-medium text-gray-700">{t('commission_rate')}</label>
+                                    <input {...register('payroll.commissionPercentage', { valueAsNumber: true })} type="number" className="mt-1 block w-full rounded-md border-gray-300 border p-2" />
                                 </div>
                             )}
                         </div>
@@ -238,21 +210,10 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, onSave, onC
                 )}
             </div>
 
-            {/* Footer Actions */}
-            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 flex items-center"
-                >
-                    {isSubmitting ? (
-                        <>Saving...</>
-                    ) : (
-                        <><Save className="w-4 h-4 mr-2" /> Save Doctor</>
-                    )}
+            <div className="border-t border-gray-200 px-6 py-4 bg-white flex justify-end gap-3">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">{t('cancel')}</button>
+                <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center">
+                    {isSubmitting ? t('saving') : <><Save className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" /> {initialData ? t('save_changes') : t('add_doctor')}</>}
                 </button>
             </div>
         </form>
