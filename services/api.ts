@@ -10,6 +10,9 @@ interface ApiUser {
   name: string;
   email?: string;
   role: UserRole;
+  assignedBranches?: string[];
+  schedule?: User['schedule'];
+  activeBranchId?: string | null;
 }
 
 interface ApiLoginResponse {
@@ -198,10 +201,11 @@ const normalizeUser = (apiUser: ApiUser): User => {
     name: apiUser.name,
     role: apiUser.role,
     email: apiUser.email,
-    assignedBranches: fallbackUser?.assignedBranches ?? [],
+    assignedBranches: apiUser.assignedBranches ?? fallbackUser?.assignedBranches ?? [],
     specialty: fallbackUser?.specialty,
     consultationFee: fallbackUser?.consultationFee,
-    schedule: fallbackUser?.schedule,
+    schedule: apiUser.schedule ?? fallbackUser?.schedule,
+    activeBranchId: apiUser.activeBranchId ?? undefined,
     avatarUrl: fallbackUser?.avatarUrl,
   };
 };
@@ -418,6 +422,35 @@ export const updateEmployeeViaApi = async (employee: User): Promise<User> => {
     body: JSON.stringify(employee),
   });
   return normalizeEmployee(payload);
+};
+
+
+export const lookupPatientsByPhoneFromApi = async (phone: string): Promise<Patient[]> => {
+  const query = new URLSearchParams();
+  if (phone.trim()) query.set('phone', phone.trim());
+
+  const payload = await apiFetch<{ data: ApiPatient[] }>(`/patients${query.toString() ? `?${query.toString()}` : ''}`);
+  return (payload.data ?? []).map(normalizePatient);
+};
+
+export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone' | 'age' | 'gender'> & { medicalHistorySummary?: string }): Promise<Patient> => {
+  const payload = await apiFetch<ApiPatient>('/patients', {
+    method: 'POST',
+    body: JSON.stringify(patient),
+  });
+
+  return normalizePatient(payload);
+};
+
+export const getAvailableSlotsFromApi = async (params: { doctorId: string; branchId: string; date: string }): Promise<{ time: string; available: boolean }[]> => {
+  const query = new URLSearchParams({
+    doctorId: params.doctorId,
+    branchId: params.branchId,
+    date: params.date,
+  });
+
+  const payload = await apiFetch<{ data: { time: string; available: boolean }[] }>(`/appointments/available-slots?${query.toString()}`);
+  return payload.data ?? [];
 };
 
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
