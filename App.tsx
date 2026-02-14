@@ -12,9 +12,9 @@ import { EmployeeManagement } from './pages/EmployeeManagement';
 import { FinancialReports } from './pages/FinancialReports';
 import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
-import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod } from './types';
+import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
+import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -31,6 +31,7 @@ export default function App() {
   });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Workspace State
@@ -94,8 +95,9 @@ export default function App() {
       Promise.all([
         getPatientsFromApi(),
         getAppointmentsFromApi([]),
+        getBranchesFromApi(),
       ])
-        .then(([pts, apiAppointments]) => {
+        .then(([pts, apiAppointments, apiBranches]) => {
           if (abortController.signal.aborted) return;
 
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
@@ -106,6 +108,7 @@ export default function App() {
 
           setPatients(pts);
           setAppointments(hydratedAppointments);
+          setBranches(apiBranches);
         })
         .catch(async (error) => {
           if (abortController.signal.aborted) return;
@@ -151,7 +154,6 @@ export default function App() {
     const newApt: Appointment = {
       id: Math.random().toString(36).substr(2, 9),
       status: AppointmentStatus.SCHEDULED,
-      branchId: 'b1',
       ...apt,
       createdAt: new Date().toISOString(),
       billing: {
@@ -321,13 +323,13 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'appointments' && (
+            {activeTab === 'appointments' && user && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
                 <div className="lg:col-span-2 h-full">
                   <CalendarView appointments={appointments} />
                 </div>
                 <div className="h-full">
-                  <AppointmentBooking onBook={handleNewBooking} patients={patients} />
+                  <AppointmentBooking onBook={handleNewBooking} patients={patients} currentUser={user} branches={branches} onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])} />
                 </div>
               </div>
             )}

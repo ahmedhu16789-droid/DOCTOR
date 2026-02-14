@@ -21,6 +21,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/access-links', [AccessLinkController::class, 'create']);
         Route::get('patients', [PatientController::class, 'index']);
+        Route::post('patients', [PatientController::class, 'store']);
         Route::get('branches', [BranchController::class, 'index']);
         Route::post('branches', [BranchController::class, 'store']);
         Route::put('branches/{branch}', [BranchController::class, 'update']);
@@ -34,6 +35,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
         Route::get('appointments', [AppointmentController::class, 'index']);
+        Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::post('appointments', [AppointmentController::class, 'store']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);

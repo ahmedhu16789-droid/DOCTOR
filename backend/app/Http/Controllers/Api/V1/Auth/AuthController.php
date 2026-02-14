@@ -78,7 +78,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::where('email', $validated['email'])->with('branches:id')->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 422);
@@ -93,13 +93,14 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
     }
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user()->loadMissing('branches:id');
 
         return response()->json([
             'user' => [
@@ -107,6 +108,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
