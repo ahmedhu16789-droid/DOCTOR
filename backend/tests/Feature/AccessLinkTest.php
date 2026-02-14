@@ -39,6 +39,34 @@ class AccessLinkTest extends TestCase
         $this->assertNull($links->last()->used_at);
     }
 
+
+
+    public function test_consume_is_rejected_when_email_does_not_match_link_owner(): void
+    {
+        [$actor, $target] = $this->createUsersInSameClinic();
+
+        Sanctum::actingAs($actor);
+
+        $payload = $this->postJson('/api/v1/auth/access-links', [
+            'userId' => $target->id,
+        ])->assertCreated()->json();
+
+        $oldPasswordHash = $target->password;
+
+        $this->postJson('/api/v1/auth/access-links/consume', [
+            'token' => $payload['token'],
+            'email' => 'another-user@example.com',
+            'password' => 'newStrongPass123',
+            'password_confirmation' => 'newStrongPass123',
+        ])->assertStatus(422);
+
+        $target->refresh();
+        $this->assertSame($oldPasswordHash, $target->password);
+
+        $link = OneTimeAccessLink::query()->where('user_id', $target->id)->latest('id')->firstOrFail();
+        $this->assertNull($link->used_at);
+    }
+
     public function test_user_can_consume_link_once_and_password_is_updated(): void
     {
         [$actor, $target] = $this->createUsersInSameClinic();
