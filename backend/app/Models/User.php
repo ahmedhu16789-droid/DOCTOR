@@ -26,6 +26,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'job_title',
         'specialty',
         'consultation_fee',
         'schedule',

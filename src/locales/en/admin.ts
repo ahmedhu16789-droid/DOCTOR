@@ -103,4 +103,16 @@ export const admin = {
     "save_changes": "Save Changes",
     "basic_info": "Basic Info",
     "schedule": "Schedule",
+
+    "employee_information": "Employee Information",
+    "full_name": "Full Name",
+    "phone": "Phone",
+    "job_title": "Job Title",
+    "system_role": "System Role",
+    "compensation": "Compensation",
+    "monthly_salary": "Monthly Salary (EGP)",
+    "shift_configuration": "Shift Configuration",
+    "save_employee": "Save Employee",
+    "pharmacy_manager": "Pharmacy Manager",
+    "branch_manager": "Branch Manager",
 };

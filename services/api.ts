@@ -63,6 +63,24 @@ interface ApiDoctor {
   payroll?: User['payroll'];
 }
 
+
+interface ApiEmployee {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  role: UserRole;
+  jobTitle: string;
+  assignedBranches: string[];
+  schedule?: User['schedule'];
+  payroll?: User['payroll'];
+}
+
+interface ApiRoleOption {
+  value: UserRole;
+  label: string;
+}
+
 export interface ApiDepartmentOption {
   value: Department;
   labelEn: string;
@@ -145,6 +163,20 @@ const normalizeDoctor = (doctor: ApiDoctor): User => ({
   payroll: doctor.payroll,
   status: 'ACTIVE',
 });
+
+
+const normalizeEmployee = (employee: ApiEmployee): User => ({
+  id: employee.id,
+  name: employee.name,
+  email: employee.email,
+  phone: employee.phone,
+  role: employee.role,
+  jobTitle: employee.jobTitle,
+  assignedBranches: employee.assignedBranches ?? [],
+  schedule: employee.schedule ?? [],
+  payroll: employee.payroll,
+  status: 'ACTIVE',
+} as User);
 
 const normalizePatient = (patient: ApiPatient): Patient => ({
   id: patient.id,
@@ -262,6 +294,37 @@ export const updateDoctorViaApi = async (doctor: User): Promise<User> => {
     body: JSON.stringify(doctor),
   });
   return normalizeDoctor(payload);
+};
+
+export const getRolesFromApi = async (): Promise<ApiRoleOption[]> => {
+  const payload = await apiFetch<{ data: string[] }>('/roles');
+  return (payload.data ?? []).map((roleName) => ({ value: roleName as UserRole, label: roleName }));
+};
+
+export const getEmployeesFromApi = async (params?: { branchId?: string; role?: string; name?: string }): Promise<User[]> => {
+  const query = new URLSearchParams();
+  if (params?.branchId) query.set('branchId', params.branchId);
+  if (params?.role) query.set('role', params.role);
+  if (params?.name) query.set('name', params.name);
+
+  const payload = await apiFetch<{ data: ApiEmployee[] }>(`/employees${query.toString() ? `?${query.toString()}` : ''}`);
+  return (payload.data ?? []).map(normalizeEmployee);
+};
+
+export const createEmployeeViaApi = async (employee: User): Promise<User> => {
+  const payload = await apiFetch<ApiEmployee>('/employees', {
+    method: 'POST',
+    body: JSON.stringify(employee),
+  });
+  return normalizeEmployee(payload);
+};
+
+export const updateEmployeeViaApi = async (employee: User): Promise<User> => {
+  const payload = await apiFetch<ApiEmployee>(`/employees/${employee.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(employee),
+  });
+  return normalizeEmployee(payload);
 };
 
 export const getPatientsFromApi = async (): Promise<Patient[]> => {

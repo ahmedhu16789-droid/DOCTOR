@@ -103,4 +103,16 @@ export const admin = {
     "save_changes": "حفظ التغييرات",
     "basic_info": "البيانات الأساسية",
     "schedule": "الجدول",
+
+    "employee_information": "بيانات الموظف",
+    "full_name": "الاسم الكامل",
+    "phone": "الهاتف",
+    "job_title": "المسمى الوظيفي",
+    "system_role": "الدور بالنظام",
+    "compensation": "التعويضات",
+    "monthly_salary": "الراتب الشهري (ج.م)",
+    "shift_configuration": "إعداد الشِفتات",
+    "save_employee": "حفظ الموظف",
+    "pharmacy_manager": "مدير الصيدلية",
+    "branch_manager": "مدير الفرع",
 };
