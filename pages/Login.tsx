@@ -4,8 +4,7 @@ import { User } from '../types';
 import { Building2, Globe, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
-import { loginWithApi } from '../services/api';
-import { authenticateWithLocalCredentials, consumeOneTimeAccessLink, hasValidAccessToken } from '../services/authLinks';
+import { consumeAccessLinkViaApi, loginWithApi } from '../services/api';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -26,15 +25,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('accessToken');
-    if (!token) return;
-
-    if (!hasValidAccessToken(token)) {
-      setError(t('access_link_invalid'));
-      return;
+    if (token) {
+      setResetToken(token);
     }
-
-    setResetToken(token);
-  }, [t]);
+  }, []);
 
   const handleApiLogin = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
@@ -56,7 +50,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
     }
   };
 
-  const handleSetPassword = (event: React.FormEvent): void => {
+  const handleSetPassword = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     setError(null);
     setResetMessage(null);
@@ -67,12 +61,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
     }
 
     try {
-      consumeOneTimeAccessLink({
+      await consumeAccessLinkViaApi({
         token: resetToken,
         email,
         password: newPassword,
       });
       setResetMessage(t('access_link_success'));
+      setPassword(newPassword);
       setResetToken(null);
       setNewPassword('');
       window.history.replaceState({}, '', window.location.pathname);

@@ -3,8 +3,7 @@ import { User, Employee, UserRole, Branch } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
 import { UserPlus, Search, MapPin, DollarSign, Clock, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
-import { generateOneTimeAccessLink } from '../services/authLinks';
+import { createAccessLinkViaApi, createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
 
 interface EmployeeManagementProps {
   currentUser: User;
@@ -70,7 +69,8 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
 
   const handleGenerateAccessLink = async (employee: Employee): Promise<void> => {
     try {
-      const link = generateOneTimeAccessLink(employee);
+      const { token } = await createAccessLinkViaApi(employee.id);
+      const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
       await navigator.clipboard.writeText(link);
       alert(t('copy_link_done'));
     } catch (error) {

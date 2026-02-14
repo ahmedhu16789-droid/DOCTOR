@@ -5,8 +5,7 @@ import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
 import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
-import { generateOneTimeAccessLink } from '../services/authLinks';
+import { createAccessLinkViaApi, createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
 
 interface AdminDashboardProps {
     currentUser: User;
@@ -69,7 +68,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
 
     const handleGenerateAccessLink = async (user: User): Promise<void> => {
         try {
-            const link = generateOneTimeAccessLink(user);
+            const { token } = await createAccessLinkViaApi(user.id);
+            const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
             await navigator.clipboard.writeText(link);
             alert(t('copy_link_done'));
         } catch (error) {
