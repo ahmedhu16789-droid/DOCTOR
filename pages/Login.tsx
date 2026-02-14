@@ -39,7 +39,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
       const user = await loginWithApi(email, password);
       onLogin(user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const localUser = authenticateWithLocalCredentials(email, password);
+      if (localUser) {
+        onLogin(localUser);
+      } else {
+        setError(err instanceof Error ? err.message : 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
