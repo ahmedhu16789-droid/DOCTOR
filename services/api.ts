@@ -11,6 +11,8 @@ interface ApiUser {
   email?: string;
   role: UserRole;
   assignedBranches?: string[];
+  schedule?: User['schedule'];
+  activeBranchId?: string | null;
 }
 
 interface ApiLoginResponse {
@@ -202,7 +204,8 @@ const normalizeUser = (apiUser: ApiUser): User => {
     assignedBranches: apiUser.assignedBranches ?? fallbackUser?.assignedBranches ?? [],
     specialty: fallbackUser?.specialty,
     consultationFee: fallbackUser?.consultationFee,
-    schedule: fallbackUser?.schedule,
+    schedule: apiUser.schedule ?? fallbackUser?.schedule,
+    activeBranchId: apiUser.activeBranchId ?? undefined,
     avatarUrl: fallbackUser?.avatarUrl,
   };
 };

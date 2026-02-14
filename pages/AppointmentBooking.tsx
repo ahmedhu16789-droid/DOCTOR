@@ -19,7 +19,18 @@ type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, currentUser, branches, onPatientCreated }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
-  const activeBranchId = currentUser.assignedBranches[0] ?? branches[0]?.id ?? '';
+  const activeBranchId = useMemo(() => {
+    if (currentUser.activeBranchId) return currentUser.activeBranchId;
+
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const currentTime = now.toTimeString().slice(0, 5);
+    const shiftBranchId = currentUser.schedule?.find((shift) =>
+      shift.dayOfWeek === dayOfWeek && shift.startTime <= currentTime && currentTime <= shift.endTime
+    )?.branchId;
+
+    return shiftBranchId ?? currentUser.assignedBranches[0] ?? '';
+  }, [currentUser]);
 
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedDept, setSelectedDept] = useState<Department>(Department.INTERNAL_MEDICINE);
@@ -157,6 +168,11 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
 
         {step === 'SELECTION' && (
           <div className="space-y-6">
+            {!activeBranchId && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-700 text-sm">
+                لا يوجد فرع فعال لهذا المستخدم في الشيفت الحالي. برجاء ربط موظف الاستقبال بفرع/شيفت قبل الحجز.
+              </div>
+            )}
             <div className="flex flex-col md:flex-row gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('patient')}</label>
@@ -164,7 +180,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
               </div>
               <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('branch')}</label>
-                <div className="font-bold text-gray-900">{activeBranch?.name ?? '-'}</div>
+                <div className="font-bold text-gray-900">{activeBranch?.name ?? activeBranchId ?? '-'}</div>
               </div>
               <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('department')}</label>
@@ -180,7 +196,9 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
 
             <div>
               <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('available_doctors')}</h3>
-              {doctors.length === 0 ? (
+              {!activeBranchId ? (
+                <div className="text-center py-8 text-amber-600 bg-amber-50 rounded-lg border border-dashed border-amber-300">لا يمكن تحميل الأطباء بدون فرع فعال.</div>
+              ) : doctors.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">{t('no_doctors')}</div>
               ) : doctors.map(renderDoctorRow)}
             </div>
