@@ -5,6 +5,8 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 const TOKEN_KEY = 'afcm_api_token';
 const USER_KEY = 'afcm_current_user';
 const patientLookupCache = new Map<string, { ts: number; data: Patient[] }>();
+const doctorsCache = new Map<string, { ts: number; data: User[] }>();
+const slotsBulkCache = new Map<string, { ts: number; data: Record<string, { time: string; available: boolean }[]> }>();
 
 interface ApiUser {
   id: string;
@@ -374,8 +376,17 @@ export const getDoctorsFromApi = async (params?: { branchId?: string; specialty?
   if (params?.specialty) query.set('specialty', params.specialty);
   if (params?.name) query.set('name', params.name);
 
+  const cacheKey = query.toString();
+  const cached = doctorsCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 30_000) {
+    return cached.data;
+  }
+
   const payload = await apiFetch<{ data: ApiDoctor[] }>(`/doctors${query.toString() ? `?${query.toString()}` : ''}`);
-  return (payload.data ?? []).map(normalizeDoctor);
+  const doctors = (payload.data ?? []).map(normalizeDoctor);
+  doctorsCache.set(cacheKey, { ts: Date.now(), data: doctors });
+
+  return doctors;
 };
 
 export const createDoctorViaApi = async (doctor: User): Promise<User> => {
@@ -455,16 +466,26 @@ export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone
 
 
 export const getAvailableSlotsBulkFromApi = async (params: { doctorIds: string[]; branchId: string; date: string }): Promise<Record<string, { time: string; available: boolean }[]>> => {
+  const sortedDoctorIds = [...params.doctorIds].sort();
+  const cacheKey = `${params.branchId}|${params.date}|${sortedDoctorIds.join(',')}`;
+  const cached = slotsBulkCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 20_000) {
+    return cached.data;
+  }
+
   const payload = await apiFetch<{ data: Record<string, { time: string; available: boolean }[]> }>('/appointments/available-slots/bulk', {
     method: 'POST',
     body: JSON.stringify({
-      doctorIds: params.doctorIds.map((id) => Number(id)),
+      doctorIds: sortedDoctorIds.map((id) => Number(id)),
       branchId: Number(params.branchId),
       date: params.date,
     }),
   });
 
-  return payload.data ?? {};
+  const data = payload.data ?? {};
+  slotsBulkCache.set(cacheKey, { ts: Date.now(), data });
+
+  return data;
 };
 
 export const getAvailableSlotsFromApi = async (params: { doctorId: string; branchId: string; date: string }): Promise<{ time: string; available: boolean }[]> => {
@@ -501,7 +522,7 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
     throw new Error('Booking requires backend-synced patient/doctor/branch IDs.');
   }
 
-  return apiFetch<ApiAppointment>('/appointments', {
+  const created = await apiFetch<ApiAppointment>('/appointments', {
     method: 'POST',
     body: JSON.stringify({
       patientId,
@@ -517,6 +538,10 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
       },
     }),
   });
+
+  slotsBulkCache.clear();
+
+  return created;
 };
 
 export const getFinancialReportFromApi = async (params?: { from?: string; to?: string }): Promise<FinancialReportPayload> => {

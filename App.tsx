@@ -101,16 +101,27 @@ export default function App() {
 
       const abortController = new AbortController();
 
-      Promise.all([
+      Promise.allSettled([
         getPatientsFromApi(),
         getAppointmentsFromApi([]),
         getBranchesFromApi(),
       ])
-        .then(([pts, apiAppointments, apiBranches]) => {
+        .then(async ([patientsResult, appointmentsResult, branchesResult]) => {
           if (abortController.signal.aborted) return;
 
+          let fallbackAppointments: Appointment[] = [];
+          let fallbackPatients: Patient[] = [];
+
+          if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
+            [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+          }
+
+          const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
+          const rawAppointments = appointmentsResult.status === 'fulfilled' ? appointmentsResult.value : fallbackAppointments;
+          const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : [];
+
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
-          const hydratedAppointments = apiAppointments.map((appointment) => ({
+          const hydratedAppointments = rawAppointments.map((appointment) => ({
             ...appointment,
             patientName: patientById.get(appointment.patientId)?.name ?? appointment.patientName,
           }));
@@ -118,13 +129,6 @@ export default function App() {
           setPatients(pts);
           setAppointments(hydratedAppointments);
           setBranches(apiBranches);
-        })
-        .catch(async (error) => {
-          if (abortController.signal.aborted) return;
-
-          const [apts, pts] = await Promise.all([getAppointments(), getPatients()]);
-          setAppointments(apts);
-          setPatients(pts);
         })
         .finally(() => {
           if (!abortController.signal.aborted) {

@@ -15,7 +15,7 @@ class DoctorController extends Controller
     {
         $doctors = User::query()
             ->select(['id', 'clinic_id', 'name', 'email', 'phone', 'role', 'specialty', 'consultation_fee', 'schedule', 'payroll'])
-            ->with(['branches:id,name,location,contact_phone,is_active'])
+            ->with(['branches:id'])
             ->where('role', 'DOCTOR')
             ->when($request->filled('name'), fn ($query) => $query->where('name', 'like', '%'.$request->string('name')->value().'%'))
             ->when($request->filled('specialty'), fn ($query) => $query->where('specialty', $request->string('specialty')->value()))
