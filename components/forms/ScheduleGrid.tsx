@@ -267,23 +267,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                           </div>
                         </div>
 
-                        <div className="h-8 w-px bg-gray-100 mx-2 hidden sm:block"></div>
-
-                        <div className="flex flex-col">
-                          <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Slot Duration</label>
-                          <select
-                            {...control.register(`${name}.${field.index}.slotDuration`, { valueAsNumber: true })}
-                            className="p-1.5 border border-gray-300 rounded-md text-sm text-gray-700 focus:ring-2 focus:ring-primary-500 bg-white"
-                          >
-                            <option value={10}>10 min</option>
-                            <option value={15}>15 min</option>
-                            <option value={20}>20 min</option>
-                            <option value={30}>30 min</option>
-                            <option value={45}>45 min</option>
-                            <option value={60}>60 min</option>
-                          </select>
-                        </div>
-
                         {/* Conflict Message */}
                         {conflict && (
                           <div className="flex items-center text-xs text-red-600 font-bold bg-white px-2 py-1 rounded border border-red-100 ml-2 shadow-sm">

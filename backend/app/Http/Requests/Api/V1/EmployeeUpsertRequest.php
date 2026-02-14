@@ -30,7 +30,7 @@ class EmployeeUpsertRequest extends FormRequest
             'schedule.*.dayOfWeek' => ['required', 'integer', 'between:0,6'],
             'schedule.*.startTime' => ['required', 'date_format:H:i'],
             'schedule.*.endTime' => ['required', 'date_format:H:i'],
-            'schedule.*.slotDuration' => ['required', 'integer', 'min:5', 'max:120'],
+            'schedule.*.slotDuration' => ['nullable', 'integer', 'min:5', 'max:120'],
             'schedule.*.branchId' => ['nullable', 'integer', 'exists:branches,id'],
         ];
     }

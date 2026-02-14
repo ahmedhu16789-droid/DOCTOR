@@ -35,8 +35,9 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
         setEmployees(empData as Employee[]);
         setBranches(branchData);
 
-        const apiRoles = roleData.map((r) => r.value).filter((role) => Object.values(UserRole).includes(role));
-        setRoleOptions(apiRoles.length > 0 ? Array.from(new Set(apiRoles)) : DEFAULT_ROLES);
+        // Filter out DOCTOR role - doctors have their own DoctorForm
+        const apiRoles = roleData.map((r) => r.value).filter((role) => Object.values(UserRole).includes(role) && role !== 'DOCTOR');
+        setRoleOptions(apiRoles.length > 0 ? Array.from(new Set(apiRoles)) : DEFAULT_ROLES.filter(r => r !== UserRole.DOCTOR));
       } finally {
         setLoading(false);
       }
