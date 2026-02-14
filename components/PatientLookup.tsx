@@ -7,14 +7,16 @@ import { useTranslation } from 'react-i18next';
 interface PatientLookupProps {
   patients: Patient[];
   onSelectPatient: (patient: Patient) => void;
-  onAddNewPatient: (patient: Partial<Patient>) => void;
+  onAddNewPatient: (patient: Partial<Patient>) => Promise<void> | void;
+  onSearchByPhone?: (phone: string) => Promise<Patient[]>;
 }
 
-export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelectPatient, onAddNewPatient }) => {
+export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelectPatient, onAddNewPatient, onSearchByPhone }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Patient[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // New Patient Form State
   const [newName, setNewName] = useState('');
@@ -23,21 +25,36 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
   const [newGender, setNewGender] = useState<'Male' | 'Female'>('Male');
 
   useEffect(() => {
-    if (searchQuery.length >= 2) {
+    const timeout = window.setTimeout(async () => {
+      if (searchQuery.length < 2) {
+        setResults([]);
+        return;
+      }
+
+      if (onSearchByPhone && /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''))) {
+        setIsSearching(true);
+        try {
+          const remoteResults = await onSearchByPhone(searchQuery);
+          setResults(remoteResults);
+          return;
+        } finally {
+          setIsSearching(false);
+        }
+      }
+
       const lowerQuery = searchQuery.toLowerCase();
       const filtered = patients.filter(p =>
         p.phone.includes(searchQuery) ||
         p.name.toLowerCase().includes(lowerQuery)
       );
       setResults(filtered);
-    } else {
-      setResults([]);
-    }
-  }, [searchQuery, patients]);
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery, patients, onSearchByPhone]);
 
   const startCreating = () => {
     setIsCreating(true);
-    // Auto-fill logic: if mostly numeric, assume phone, else assume name
     const cleanQuery = searchQuery.replace(/[\s\-\(\)]/g, '');
     const isNumeric = /^\d+$/.test(cleanQuery);
 
@@ -50,9 +67,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
     }
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAddNewPatient({
+    await onAddNewPatient({
       name: newName,
       phone: newPhone,
       age: parseInt(newAge),
@@ -60,7 +77,6 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
       medicalHistorySummary: 'New Patient'
     });
     setIsCreating(false);
-    // Reset form
     setNewName('');
     setNewPhone('');
     setNewAge('');
@@ -68,7 +84,6 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
 
   return (
     <div className="space-y-6">
-      {/* Search Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">{t('patient_search')}</label>
         <div className="relative">
@@ -90,7 +105,6 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
         <p className="mt-2 text-xs text-gray-500">{t('search_hint')}</p>
       </div>
 
-      {/* Results Area */}
       {!isCreating && (
         <div className="space-y-3">
           {results.length > 0 && (
@@ -98,6 +112,8 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
               {t('found_profiles', { count: results.length })}
             </div>
           )}
+
+          {isSearching && <div className="text-xs text-gray-400">Loading profiles...</div>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {results.map(patient => (
@@ -132,7 +148,6 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
               </button>
             ))}
 
-            {/* Add New Profile Card (Always visible if query has length) */}
             {searchQuery.length > 1 && (
               <button
                 onClick={startCreating}
@@ -149,7 +164,6 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
         </div>
       )}
 
-      {/* Create New Profile Form */}
       {isCreating && (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex justify-between items-center mb-4">
@@ -162,47 +176,22 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">{t('full_name')}</label>
-              <input
-                required
-                type="text"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder={t('patient_full_name')}
-              />
+              <input required type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('patient_full_name')} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">{t('phone_number')}</label>
-              <input
-                required
-                type="tel"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                placeholder={t('phone_placeholder')}
-              />
+              <input required type="tel" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder={t('phone_placeholder')} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">{t('age')}</label>
-                <input
-                  required
-                  type="number"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
-                  value={newAge}
-                  onChange={(e) => setNewAge(e.target.value)}
-                  placeholder="e.g. 30"
-                />
+                <input required type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" value={newAge} onChange={(e) => setNewAge(e.target.value)} placeholder="e.g. 30" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">{t('gender')}</label>
-                <select
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2"
-                  value={newGender}
-                  onChange={(e) => setNewGender(e.target.value as 'Male' | 'Female')}
-                >
+                <select className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 border p-2" value={newGender} onChange={(e) => setNewGender(e.target.value as 'Male' | 'Female')}>
                   <option value="Male">{t('male')}</option>
                   <option value="Female">{t('female')}</option>
                 </select>
@@ -210,17 +199,10 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
             </div>
 
             <div className="flex space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setIsCreating(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
+              <button type="button" onClick={() => setIsCreating(false)} className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                 {t('cancel')}
               </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-              >
+              <button type="submit" className="flex-1 px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
                 {t('create_select')}
               </button>
             </div>
