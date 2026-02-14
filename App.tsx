@@ -33,6 +33,7 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Workspace State
   const [activeEncounter, setActiveEncounter] = useState<{ apt: Appointment, patient: Patient } | null>(null);
@@ -41,6 +42,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timeout = window.setTimeout(() => setToast(null), 2500);
+
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
 
   // Initial Session Check
   const sessionInitializedRef = React.useRef(false);
@@ -176,13 +185,17 @@ export default function App() {
       }
     } as Appointment;
 
-    setAppointments([...appointments, newApt]);
-
     try {
       await createAppointmentViaApi(newApt);
-      alert(`Appointment synced successfully for ${newApt.patientName}`);
-    } catch {
-      alert(`Appointment saved locally for ${newApt.patientName} (API offline)`);
+      const refreshedAppointments = await getAppointmentsFromApi(patients);
+      setAppointments(refreshedAppointments);
+      setToast({ type: 'success', message: `تم حفظ الحجز لـ ${newApt.patientName}` });
+    } catch (error) {
+      setAppointments((prev) => [...prev, newApt]);
+      setToast({
+        type: 'error',
+        message: error instanceof Error ? error.message : `تعذر حفظ الحجز على السيرفر لـ ${newApt.patientName}`,
+      });
     }
   };
 
@@ -415,6 +428,13 @@ export default function App() {
 
   return (
     <LanguageProvider>
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+        >
+          {toast.message}
+        </div>
+      )}
       <MainContent />
     </LanguageProvider>
   );

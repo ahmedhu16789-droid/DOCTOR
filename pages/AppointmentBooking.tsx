@@ -4,7 +4,7 @@ import { DEPARTMENTS } from '../constants';
 import { PatientLookup } from '../components/PatientLookup';
 import { CheckCircle, Calendar, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createPatientViaApi, getAvailableSlotsFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
+import { createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
 
 interface AppointmentBookingProps {
   onBook: (apt: Partial<Appointment>) => void;
@@ -57,11 +57,12 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       return;
     }
 
-    Promise.all(doctors.map(async (doctor) => {
-      const slots = await getAvailableSlotsFromApi({ doctorId: doctor.id, branchId: activeBranchId, date: selectedDate });
-      return [doctor.id, slots] as const;
-    }))
-      .then((entries) => setSlotsByDoctor(Object.fromEntries(entries)))
+    getAvailableSlotsBulkFromApi({
+      doctorIds: doctors.map((doctor) => doctor.id),
+      branchId: activeBranchId,
+      date: selectedDate,
+    })
+      .then((payload) => setSlotsByDoctor(payload))
       .catch(() => setSlotsByDoctor({}));
   }, [doctors, activeBranchId, selectedDate]);
 

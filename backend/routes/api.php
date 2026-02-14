@@ -36,6 +36,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
         Route::get('appointments', [AppointmentController::class, 'index']);
         Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
+        Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
         Route::post('appointments', [AppointmentController::class, 'store']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);

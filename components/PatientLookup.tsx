@@ -25,7 +25,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
   const [newGender, setNewGender] = useState<'Male' | 'Female'>('Male');
 
   useEffect(() => {
-    const doLookup = async () => {
+    const timeout = window.setTimeout(async () => {
       if (searchQuery.length < 2) {
         setResults([]);
         return;
@@ -48,9 +48,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
         p.name.toLowerCase().includes(lowerQuery)
       );
       setResults(filtered);
-    };
+    }, 350);
 
-    doLookup();
+    return () => window.clearTimeout(timeout);
   }, [searchQuery, patients, onSearchByPhone]);
 
   const startCreating = () => {
