@@ -1,9 +1,8 @@
 import { Appointment, AppointmentStatus, Branch, Department, Patient, PaymentMethod, PaymentStatus, User, UserRole } from '../types';
 import { MOCK_USERS } from '../constants';
+import { apiFetch } from './core/httpClient';
+import { clearAuthSession, getStoredUser, getToken, setStoredUser, setToken } from './core/authSession';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
-const TOKEN_KEY = 'afcm_api_token';
-const USER_KEY = 'afcm_current_user';
 const patientLookupCache = new Map<string, { ts: number; data: Patient[] }>();
 const doctorsCache = new Map<string, { ts: number; data: User[] }>();
 const slotsBulkCache = new Map<string, { ts: number; data: Record<string, { time: string; available: boolean }[]> }>();
@@ -145,56 +144,11 @@ export interface AccessLinkResponse {
   email: string;
 }
 
-const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
-
-export const getStoredUser = (): User | null => {
-  const raw = localStorage.getItem(USER_KEY);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    localStorage.removeItem(USER_KEY);
-    return null;
-  }
-};
+export { getStoredUser };
 
 export const clearAuthToken = (): void => {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  clearAuthSession();
 };
-
-const setToken = (token: string): void => {
-  localStorage.setItem(TOKEN_KEY, token);
-};
-
-const setStoredUser = (user: User): void => {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-};
-
-async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth = true): Promise<T> {
-  const token = getToken();
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(withAuth && token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.message ?? 'API request failed');
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-}
 
 const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
   // If fallbackUser is not provided, try to find it from MOCK_USERS
