@@ -16,6 +16,11 @@ export const common = {
     "book_online": "Book Appointment Online (Patient Portal)",
     "or_staff_login": "Or Staff Login",
     "login_as": "Login as",
+    "login_action": "Login",
+    "access_link_title": "Set password for first login / password recovery",
+    "set_new_password": "Save New Password",
+    "access_link_invalid": "This link is invalid or already used.",
+    "access_link_success": "Password updated successfully. You can login now.",
 
     // Navigation
     "dashboard": "Dashboard",
