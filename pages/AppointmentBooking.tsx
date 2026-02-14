@@ -9,29 +9,16 @@ import { createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, l
 interface AppointmentBookingProps {
   onBook: (apt: Partial<Appointment>) => void;
   patients: Patient[];
-  currentUser: User;
   branches: Branch[];
+  activeBranchId: string;
   onPatientCreated: (patient: Patient) => void;
 }
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
-export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, currentUser, branches, onPatientCreated }) => {
+export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
-  const activeBranchId = useMemo(() => {
-    if (currentUser.activeBranchId) return currentUser.activeBranchId;
-
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const currentTime = now.toTimeString().slice(0, 5);
-    const shiftBranchId = currentUser.schedule?.find((shift) =>
-      shift.dayOfWeek === dayOfWeek && shift.startTime <= currentTime && currentTime <= shift.endTime
-    )?.branchId;
-
-    return shiftBranchId ?? currentUser.assignedBranches[0] ?? '';
-  }, [currentUser]);
-
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedDept, setSelectedDept] = useState<Department>(Department.INTERNAL_MEDICINE);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
