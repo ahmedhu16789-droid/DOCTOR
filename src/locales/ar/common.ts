@@ -16,6 +16,11 @@ export const common = {
     "book_online": "حجز موعد أونلاين (بوابة المرضى)",
     "or_staff_login": "أو دخول الطاقم الطبي والإداري",
     "login_as": "الدخول بصفة",
+    "login_action": "تسجيل الدخول",
+    "access_link_title": "إعداد كلمة المرور لأول تسجيل دخول / استرجاع الحساب",
+    "set_new_password": "حفظ كلمة المرور الجديدة",
+    "access_link_invalid": "الرابط غير صالح أو تم استخدامه بالفعل.",
+    "access_link_success": "تم ضبط كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.",
 
     // Navigation
     "dashboard": "لوحة التحكم",

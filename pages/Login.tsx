@@ -5,6 +5,7 @@ import { Building2, Globe, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-re
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
 import { loginWithApi } from '../services/api';
+import { authenticateWithLocalCredentials, consumeOneTimeAccessLink, hasValidAccessToken } from '../services/authLinks';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -18,6 +19,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
   const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('accessToken');
+    if (!token) return;
+
+    if (!hasValidAccessToken(token)) {
+      setError(t('access_link_invalid'));
+      return;
+    }
+
+    setResetToken(token);
+  }, [t]);
 
   const handleApiLogin = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
@@ -28,9 +45,39 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
       const user = await loginWithApi(email, password);
       onLogin(user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const localUser = authenticateWithLocalCredentials(email, password);
+      if (localUser) {
+        onLogin(localUser);
+      } else {
+        setError(err instanceof Error ? err.message : 'Login failed');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetPassword = (event: React.FormEvent): void => {
+    event.preventDefault();
+    setError(null);
+    setResetMessage(null);
+
+    if (!resetToken) {
+      setError(t('access_link_invalid'));
+      return;
+    }
+
+    try {
+      consumeOneTimeAccessLink({
+        token: resetToken,
+        email,
+        password: newPassword,
+      });
+      setResetMessage(t('access_link_success'));
+      setResetToken(null);
+      setNewPassword('');
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('access_link_invalid'));
     }
   };
 
@@ -65,32 +112,62 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
             {t('book_online')}
           </button>
 
-          <form onSubmit={handleApiLogin} className="space-y-3">
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="email@example.com"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              required
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="********"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-70"
-            >
-              {loading ? <LoaderCircle className="w-4 h-4 animate-spin mx-auto" /> : 'Login with Backend API'}
-            </button>
-            {error && <p className="text-xs text-red-600">{error}</p>}
-          </form>
+          {resetToken ? (
+            <form onSubmit={handleSetPassword} className="space-y-3">
+              <p className="text-sm text-gray-700 font-medium">{t('access_link_title')}</p>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="email@example.com"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                required
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="********"
+                minLength={6}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                required
+              />
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700"
+              >
+                {t('set_new_password')}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleApiLogin} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="email@example.com"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                required
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="********"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-70"
+              >
+                {loading ? <LoaderCircle className="w-4 h-4 animate-spin mx-auto" /> : t('login_action')}
+              </button>
+            </form>
+          )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          {resetMessage && <p className="text-xs text-green-600">{resetMessage}</p>}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
