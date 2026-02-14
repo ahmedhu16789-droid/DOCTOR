@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
 
 class DirectoryController extends Controller
 {
@@ -23,6 +24,27 @@ class DirectoryController extends Controller
                     'isActive' => (bool) $branch->is_active,
                 ])
                 ->all(),
+        ]);
+    }
+
+
+    public function roles(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+
+        $roles = Role::query()
+            ->select(['name'])
+            ->where('guard_name', 'web')
+            ->where(function ($query) use ($clinicId): void {
+                $query->whereNull('clinic_id')->orWhere('clinic_id', $clinicId);
+            })
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => $roles,
         ]);
     }
 
