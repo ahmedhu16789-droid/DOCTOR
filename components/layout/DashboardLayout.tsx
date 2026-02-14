@@ -1,5 +1,5 @@
 import React, { useState, ReactNode } from 'react';
-import { User } from '../../types';
+import { Branch, User } from '../../types';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { clsx } from 'clsx';
@@ -10,10 +10,20 @@ interface DashboardLayoutProps {
   onLogout: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  availableBranches: Branch[];
+  activeBranchId: string;
+  onActiveBranchChange: (branchId: string) => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ 
-  children, user, onLogout, activeTab, setActiveTab 
+  children,
+  user,
+  onLogout,
+  activeTab,
+  setActiveTab,
+  availableBranches,
+  activeBranchId,
+  onActiveBranchChange,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,6 +52,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             collapsed={collapsed}
             setMobileOpen={setMobileOpen}
             activeTab={activeTab}
+            availableBranches={availableBranches}
+            activeBranchId={activeBranchId}
+            onActiveBranchChange={onActiveBranchChange}
          />
 
          <main className="flex-1 p-4 sm:p-6 lg:p-8 mt-16 overflow-x-hidden">

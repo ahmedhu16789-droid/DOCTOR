@@ -1,8 +1,7 @@
 import React from 'react';
 import { Menu, Bell, Search, ChevronDown, Globe } from 'lucide-react';
-import { User } from '../../types';
+import { Branch, User } from '../../types';
 import { clsx } from 'clsx';
-import { BRANCHES } from '../../constants';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 
@@ -11,9 +10,20 @@ interface HeaderProps {
   collapsed: boolean;
   setMobileOpen: (v: boolean) => void;
   activeTab: string;
+  availableBranches: Branch[];
+  activeBranchId: string;
+  onActiveBranchChange: (branchId: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, collapsed, setMobileOpen, activeTab }) => {
+export const Header: React.FC<HeaderProps> = ({
+  user,
+  collapsed,
+  setMobileOpen,
+  activeTab,
+  availableBranches,
+  activeBranchId,
+  onActiveBranchChange,
+}) => {
   const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
 
@@ -42,8 +52,12 @@ export const Header: React.FC<HeaderProps> = ({ user, collapsed, setMobileOpen, 
         {/* Branch Selector (Desktop) */}
         <div className="hidden lg:flex items-center ms-6 ps-6 border-s border-gray-200">
              <span className="text-xs font-bold text-gray-400 me-2 uppercase tracking-wider">{t('current_branch')}:</span>
-             <select className="text-sm font-semibold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer hover:text-primary-600">
-                 {BRANCHES.map(b => (
+             <select
+                value={activeBranchId}
+                onChange={(event) => onActiveBranchChange(event.target.value)}
+                className="text-sm font-semibold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer hover:text-primary-600"
+             >
+                 {availableBranches.map(b => (
                      <option key={b.id} value={b.id}>{b.name}</option>
                  ))}
              </select>

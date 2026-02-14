@@ -32,6 +32,7 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [activeBranchId, setActiveBranchId] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -118,6 +119,15 @@ export default function App() {
           setPatients(pts);
           setAppointments(hydratedAppointments);
           setBranches(apiBranches);
+
+          setActiveBranchId((prev) => {
+            if (prev) return prev;
+
+            const userBranchIds = user?.assignedBranches ?? [];
+            const defaultUserBranch = userBranchIds.find((id) => apiBranches.some((branch) => branch.id === id));
+
+            return defaultUserBranch ?? user?.activeBranchId ?? apiBranches[0]?.id ?? '';
+          });
         })
         .catch(async (error) => {
           if (abortController.signal.aborted) return;
@@ -143,6 +153,30 @@ export default function App() {
     setView('APP');
     setActiveTab('dashboard');
   };
+
+  useEffect(() => {
+    if (!user) {
+      setActiveBranchId('');
+      return;
+    }
+
+    const branchOptions = branches
+      .filter((branch) => user.assignedBranches.includes(branch.id))
+      .map((branch) => branch.id);
+
+    if (branchOptions.length === 0) {
+      return;
+    }
+
+    if (!activeBranchId || !branchOptions.includes(activeBranchId)) {
+      const fallbackBranchId = user.activeBranchId && branchOptions.includes(user.activeBranchId)
+        ? user.activeBranchId
+        : branchOptions[0];
+
+      setActiveBranchId(fallbackBranchId);
+    }
+  }, [user, activeBranchId, branches]);
+
 
   const handleLogout = () => {
     clearAuthToken();
@@ -200,6 +234,7 @@ export default function App() {
   };
 
   const handleOpenEncounter = (apt: Appointment) => {
+    setActiveBranchId(apt.branchId);
     const patient = patients.find(p => p.id === apt.patientId);
     if (patient) {
       setActiveEncounter({ apt, patient });
@@ -321,7 +356,15 @@ export default function App() {
     }
 
     return (
-      <DashboardLayout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
+      <DashboardLayout
+        user={user}
+        onLogout={handleLogout}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        availableBranches={branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
+        activeBranchId={activeBranchId}
+        onActiveBranchChange={setActiveBranchId}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -342,7 +385,13 @@ export default function App() {
                   <CalendarView appointments={appointments} />
                 </div>
                 <div className="h-full">
-                  <AppointmentBooking onBook={handleNewBooking} patients={patients} currentUser={user} branches={branches} onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])} />
+                  <AppointmentBooking
+                    onBook={handleNewBooking}
+                    patients={patients}
+                    branches={branches}
+                    activeBranchId={activeBranchId}
+                    onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])}
+                  />
                 </div>
               </div>
             )}
