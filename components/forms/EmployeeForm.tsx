@@ -123,6 +123,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ initialData, branche
             control={control}
             name="schedule"
             assignedBranchIds={assignedBranchIds}
+            branches={branches}
           />
         </div>
       </div>

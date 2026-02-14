@@ -49,7 +49,6 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
       dayOfWeek: dayIndex,
       startTime: '09:00',
       endTime: '17:00',
-      slotDuration: 20,
       branchId: activeBranchId,
       id: Math.random().toString()
     });
