@@ -24,7 +24,11 @@ export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restore active tab from localStorage on page load
+    const saved = localStorage.getItem('activeTab');
+    return saved || 'dashboard';
+  });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,8 +36,18 @@ export default function App() {
   // Workspace State
   const [activeEncounter, setActiveEncounter] = useState<{ apt: Appointment, patient: Patient } | null>(null);
 
-  // Initial Session Check
+  // Persist activeTab to localStorage
   useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  // Initial Session Check
+  const sessionInitializedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (sessionInitializedRef.current) return;
+    sessionInitializedRef.current = true;
+
     const cachedUser = getStoredUser();
 
     if (cachedUser) {
@@ -65,14 +79,25 @@ export default function App() {
   }, []);
 
   // Initial Data Fetch
+  const dataLoadedRef = React.useRef(false);
+
   useEffect(() => {
+    // Prevent duplicate loading
+    if (dataLoadedRef.current) return;
+
     if (user || view === 'PUBLIC') {
+      dataLoadedRef.current = true;
       setLoading(true);
+
+      const abortController = new AbortController();
+
       Promise.all([
         getPatientsFromApi(),
         getAppointmentsFromApi([]),
       ])
         .then(([pts, apiAppointments]) => {
+          if (abortController.signal.aborted) return;
+
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
           const hydratedAppointments = apiAppointments.map((appointment) => ({
             ...appointment,
@@ -82,12 +107,22 @@ export default function App() {
           setPatients(pts);
           setAppointments(hydratedAppointments);
         })
-        .catch(async () => {
+        .catch(async (error) => {
+          if (abortController.signal.aborted) return;
+
           const [apts, pts] = await Promise.all([getAppointments(), getPatients()]);
           setAppointments(apts);
           setPatients(pts);
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (!abortController.signal.aborted) {
+            setLoading(false);
+          }
+        });
+
+      return () => {
+        abortController.abort();
+      };
     }
   }, [user, view]);
 
