@@ -4,12 +4,18 @@ import { MOCK_USERS } from '../constants';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
 const TOKEN_KEY = 'afcm_api_token';
 const USER_KEY = 'afcm_current_user';
+const patientLookupCache = new Map<string, { ts: number; data: Patient[] }>();
+const doctorsCache = new Map<string, { ts: number; data: User[] }>();
+const slotsBulkCache = new Map<string, { ts: number; data: Record<string, { time: string; available: boolean }[]> }>();
 
 interface ApiUser {
   id: string;
   name: string;
   email?: string;
   role: UserRole;
+  assignedBranches?: string[];
+  schedule?: User['schedule'];
+  activeBranchId?: string | null;
 }
 
 interface ApiLoginResponse {
@@ -198,10 +204,11 @@ const normalizeUser = (apiUser: ApiUser): User => {
     name: apiUser.name,
     role: apiUser.role,
     email: apiUser.email,
-    assignedBranches: fallbackUser?.assignedBranches ?? [],
+    assignedBranches: apiUser.assignedBranches ?? fallbackUser?.assignedBranches ?? [],
     specialty: fallbackUser?.specialty,
     consultationFee: fallbackUser?.consultationFee,
-    schedule: fallbackUser?.schedule,
+    schedule: apiUser.schedule ?? fallbackUser?.schedule,
+    activeBranchId: apiUser.activeBranchId ?? undefined,
     avatarUrl: fallbackUser?.avatarUrl,
   };
 };
@@ -369,8 +376,17 @@ export const getDoctorsFromApi = async (params?: { branchId?: string; specialty?
   if (params?.specialty) query.set('specialty', params.specialty);
   if (params?.name) query.set('name', params.name);
 
+  const cacheKey = query.toString();
+  const cached = doctorsCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 30_000) {
+    return cached.data;
+  }
+
   const payload = await apiFetch<{ data: ApiDoctor[] }>(`/doctors${query.toString() ? `?${query.toString()}` : ''}`);
-  return (payload.data ?? []).map(normalizeDoctor);
+  const doctors = (payload.data ?? []).map(normalizeDoctor);
+  doctorsCache.set(cacheKey, { ts: Date.now(), data: doctors });
+
+  return doctors;
 };
 
 export const createDoctorViaApi = async (doctor: User): Promise<User> => {
@@ -420,6 +436,69 @@ export const updateEmployeeViaApi = async (employee: User): Promise<User> => {
   return normalizeEmployee(payload);
 };
 
+
+export const lookupPatientsByPhoneFromApi = async (phone: string): Promise<Patient[]> => {
+  const normalizedPhone = phone.trim();
+  if (!normalizedPhone) return [];
+
+  const cached = patientLookupCache.get(normalizedPhone);
+  if (cached && Date.now() - cached.ts < 30_000) {
+    return cached.data;
+  }
+
+  const query = new URLSearchParams({ phone: normalizedPhone });
+  const payload = await apiFetch<{ data: ApiPatient[] }>(`/patients?${query.toString()}`);
+  const patients = (payload.data ?? []).map(normalizePatient);
+
+  patientLookupCache.set(normalizedPhone, { ts: Date.now(), data: patients });
+
+  return patients;
+};
+
+export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone' | 'age' | 'gender'> & { medicalHistorySummary?: string }): Promise<Patient> => {
+  const payload = await apiFetch<ApiPatient>('/patients', {
+    method: 'POST',
+    body: JSON.stringify(patient),
+  });
+
+  return normalizePatient(payload);
+};
+
+
+export const getAvailableSlotsBulkFromApi = async (params: { doctorIds: string[]; branchId: string; date: string }): Promise<Record<string, { time: string; available: boolean }[]>> => {
+  const sortedDoctorIds = [...params.doctorIds].sort();
+  const cacheKey = `${params.branchId}|${params.date}|${sortedDoctorIds.join(',')}`;
+  const cached = slotsBulkCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 20_000) {
+    return cached.data;
+  }
+
+  const payload = await apiFetch<{ data: Record<string, { time: string; available: boolean }[]> }>('/appointments/available-slots/bulk', {
+    method: 'POST',
+    body: JSON.stringify({
+      doctorIds: sortedDoctorIds.map((id) => Number(id)),
+      branchId: Number(params.branchId),
+      date: params.date,
+    }),
+  });
+
+  const data = payload.data ?? {};
+  slotsBulkCache.set(cacheKey, { ts: Date.now(), data });
+
+  return data;
+};
+
+export const getAvailableSlotsFromApi = async (params: { doctorId: string; branchId: string; date: string }): Promise<{ time: string; available: boolean }[]> => {
+  const query = new URLSearchParams({
+    doctorId: params.doctorId,
+    branchId: params.branchId,
+    date: params.date,
+  });
+
+  const payload = await apiFetch<{ data: { time: string; available: boolean }[] }>(`/appointments/available-slots?${query.toString()}`);
+  return payload.data ?? [];
+};
+
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
   const payload = await apiFetch<{ data: ApiPatient[] }>('/patients');
   return (payload.data ?? []).map(normalizePatient);
@@ -430,17 +509,25 @@ export const getAppointmentsFromApi = async (patients: Patient[] = []): Promise<
   return (payload.data ?? []).map((apt) => normalizeAppointment(apt, patients));
 };
 
-export const createAppointmentViaApi = async (appointment: Partial<Appointment>): Promise<void> => {
+export const createAppointmentViaApi = async (appointment: Partial<Appointment>): Promise<ApiAppointment> => {
   if (!appointment.patientId || !appointment.doctorId || !appointment.branchId || !appointment.date || !appointment.timeSlot) {
     throw new Error('Incomplete appointment payload');
   }
 
-  await apiFetch('/appointments', {
+  const patientId = Number(appointment.patientId);
+  const doctorId = Number(appointment.doctorId);
+  const branchId = Number(appointment.branchId);
+
+  if ([patientId, doctorId, branchId].some(Number.isNaN)) {
+    throw new Error('Booking requires backend-synced patient/doctor/branch IDs.');
+  }
+
+  const created = await apiFetch<ApiAppointment>('/appointments', {
     method: 'POST',
     body: JSON.stringify({
-      patientId: Number(appointment.patientId),
-      doctorId: Number(appointment.doctorId),
-      branchId: Number(appointment.branchId),
+      patientId,
+      doctorId,
+      branchId,
       date: appointment.date,
       timeSlot: appointment.timeSlot,
       status: appointment.status ?? AppointmentStatus.SCHEDULED,
@@ -451,6 +538,10 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
       },
     }),
   });
+
+  slotsBulkCache.clear();
+
+  return created;
 };
 
 export const getFinancialReportFromApi = async (params?: { from?: string; to?: string }): Promise<FinancialReportPayload> => {

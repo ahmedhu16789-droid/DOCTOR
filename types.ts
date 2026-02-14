@@ -66,6 +66,7 @@ export interface User {
   consultationFee?: number; 
   schedule?: WeeklyShift[];
   payroll?: PayrollConfig;
+  activeBranchId?: string;
   joinDate?: string;
 }
 

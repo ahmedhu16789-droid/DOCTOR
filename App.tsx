@@ -12,9 +12,9 @@ import { EmployeeManagement } from './pages/EmployeeManagement';
 import { FinancialReports } from './pages/FinancialReports';
 import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
-import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod } from './types';
+import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
+import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -31,7 +31,9 @@ export default function App() {
   });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Workspace State
   const [activeEncounter, setActiveEncounter] = useState<{ apt: Appointment, patient: Patient } | null>(null);
@@ -40,6 +42,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timeout = window.setTimeout(() => setToast(null), 2500);
+
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
 
   // Initial Session Check
   const sessionInitializedRef = React.useRef(false);
@@ -91,28 +101,34 @@ export default function App() {
 
       const abortController = new AbortController();
 
-      Promise.all([
+      Promise.allSettled([
         getPatientsFromApi(),
         getAppointmentsFromApi([]),
+        getBranchesFromApi(),
       ])
-        .then(([pts, apiAppointments]) => {
+        .then(async ([patientsResult, appointmentsResult, branchesResult]) => {
           if (abortController.signal.aborted) return;
 
+          let fallbackAppointments: Appointment[] = [];
+          let fallbackPatients: Patient[] = [];
+
+          if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
+            [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+          }
+
+          const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
+          const rawAppointments = appointmentsResult.status === 'fulfilled' ? appointmentsResult.value : fallbackAppointments;
+          const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : [];
+
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
-          const hydratedAppointments = apiAppointments.map((appointment) => ({
+          const hydratedAppointments = rawAppointments.map((appointment) => ({
             ...appointment,
             patientName: patientById.get(appointment.patientId)?.name ?? appointment.patientName,
           }));
 
           setPatients(pts);
           setAppointments(hydratedAppointments);
-        })
-        .catch(async (error) => {
-          if (abortController.signal.aborted) return;
-
-          const [apts, pts] = await Promise.all([getAppointments(), getPatients()]);
-          setAppointments(apts);
-          setPatients(pts);
+          setBranches(apiBranches);
         })
         .finally(() => {
           if (!abortController.signal.aborted) {
@@ -151,7 +167,6 @@ export default function App() {
     const newApt: Appointment = {
       id: Math.random().toString(36).substr(2, 9),
       status: AppointmentStatus.SCHEDULED,
-      branchId: 'b1',
       ...apt,
       createdAt: new Date().toISOString(),
       billing: {
@@ -174,13 +189,17 @@ export default function App() {
       }
     } as Appointment;
 
-    setAppointments([...appointments, newApt]);
-
     try {
       await createAppointmentViaApi(newApt);
-      alert(`Appointment synced successfully for ${newApt.patientName}`);
-    } catch {
-      alert(`Appointment saved locally for ${newApt.patientName} (API offline)`);
+      const refreshedAppointments = await getAppointmentsFromApi(patients);
+      setAppointments(refreshedAppointments);
+      setToast({ type: 'success', message: `تم حفظ الحجز لـ ${newApt.patientName}` });
+    } catch (error) {
+      setAppointments((prev) => [...prev, newApt]);
+      setToast({
+        type: 'error',
+        message: error instanceof Error ? error.message : `تعذر حفظ الحجز على السيرفر لـ ${newApt.patientName}`,
+      });
     }
   };
 
@@ -321,13 +340,13 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'appointments' && (
+            {activeTab === 'appointments' && user && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
                 <div className="lg:col-span-2 h-full">
                   <CalendarView appointments={appointments} />
                 </div>
                 <div className="h-full">
-                  <AppointmentBooking onBook={handleNewBooking} patients={patients} />
+                  <AppointmentBooking onBook={handleNewBooking} patients={patients} currentUser={user} branches={branches} onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])} />
                 </div>
               </div>
             )}
@@ -413,6 +432,13 @@ export default function App() {
 
   return (
     <LanguageProvider>
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+        >
+          {toast.message}
+        </div>
+      )}
       <MainContent />
     </LanguageProvider>
   );

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Clinic;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::where('email', $validated['email'])->with('branches:id')->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 422);
@@ -93,13 +94,17 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
+                'schedule' => $user->schedule ?? [],
+                'activeBranchId' => $this->resolveActiveBranchId($user),
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
     }
+
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user()->loadMissing('branches:id');
 
         return response()->json([
             'user' => [
@@ -107,8 +112,36 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
+                'schedule' => $user->schedule ?? [],
+                'activeBranchId' => $this->resolveActiveBranchId($user),
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
+    }
+
+    private function resolveActiveBranchId(User $user): ?string
+    {
+        $now = Carbon::now();
+        $dayOfWeek = $now->dayOfWeek;
+        $currentTime = $now->format('H:i');
+
+        $activeShift = collect($user->schedule ?? [])->first(function (array $shift) use ($dayOfWeek, $currentTime): bool {
+            $start = (string) ($shift['startTime'] ?? '00:00');
+            $end = (string) ($shift['endTime'] ?? '00:00');
+
+            return (int) ($shift['dayOfWeek'] ?? -1) === $dayOfWeek
+                && isset($shift['branchId'])
+                && $start <= $currentTime
+                && $currentTime <= $end;
+        });
+
+        if (is_array($activeShift) && isset($activeShift['branchId'])) {
+            return (string) $activeShift['branchId'];
+        }
+
+        $firstAssignedBranch = $user->branches->pluck('id')->first();
+
+        return $firstAssignedBranch ? (string) $firstAssignedBranch : null;
     }
 }
