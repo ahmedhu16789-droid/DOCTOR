@@ -81,6 +81,50 @@ interface ApiRoleOption {
   label: string;
 }
 
+export interface ClinicSettingsPayload {
+  name: string;
+  email: string;
+  phone: string;
+  website: string;
+  timezone: string;
+  currency: string;
+  logoUrl: string;
+}
+
+export interface FinancialSummary {
+  totalRevenue: number;
+  cashCollected: number;
+  outstandingRevenue: number;
+  averageTicket: number;
+}
+
+export interface FinancialRevenueByDoctor {
+  doctorName: string;
+  amount: number;
+}
+
+export interface FinancialRevenueByBranch {
+  branchId: string;
+  branchName: string;
+  amount: number;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  reference: string;
+  patientName: string;
+  date: string;
+  method: string;
+  amount: number;
+}
+
+export interface FinancialReportPayload {
+  summary: FinancialSummary;
+  doctorRevenue: FinancialRevenueByDoctor[];
+  branchRevenue: FinancialRevenueByBranch[];
+  recentTransactions: FinancialTransaction[];
+}
+
 export interface ApiDepartmentOption {
   value: Department;
   labelEn: string;
@@ -399,4 +443,27 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
       },
     }),
   });
+};
+
+export const getFinancialReportFromApi = async (params?: { from?: string; to?: string }): Promise<FinancialReportPayload> => {
+  const query = new URLSearchParams();
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+
+  const payload = await apiFetch<{ data: FinancialReportPayload }>(`/reports/financial${query.toString() ? `?${query.toString()}` : ''}`);
+  return payload.data;
+};
+
+export const getClinicSettingsFromApi = async (): Promise<ClinicSettingsPayload> => {
+  const payload = await apiFetch<{ data: ClinicSettingsPayload }>('/clinic/settings');
+  return payload.data;
+};
+
+export const updateClinicSettingsViaApi = async (settings: ClinicSettingsPayload): Promise<ClinicSettingsPayload> => {
+  const payload = await apiFetch<{ data: ClinicSettingsPayload }>('/clinic/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+
+  return payload.data;
 };
