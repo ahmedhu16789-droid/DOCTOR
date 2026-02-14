@@ -131,6 +131,14 @@ export interface ApiDepartmentOption {
   labelAr: string;
 }
 
+
+export interface AccessLinkResponse {
+  token: string;
+  expiresAt: string;
+  userId: string;
+  email: string;
+}
+
 const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
 
 export const getStoredUser = (): User | null => {
@@ -466,4 +474,29 @@ export const updateClinicSettingsViaApi = async (settings: ClinicSettingsPayload
   });
 
   return payload.data;
+};
+
+
+export const createAccessLinkViaApi = async (userId: string): Promise<AccessLinkResponse> => {
+  const numericId = Number(userId);
+  if (Number.isNaN(numericId)) {
+    throw new Error('User must be synced with backend before generating access links.');
+  }
+
+  return apiFetch<AccessLinkResponse>('/auth/access-links', {
+    method: 'POST',
+    body: JSON.stringify({ userId: numericId }),
+  });
+};
+
+export const consumeAccessLinkViaApi = async (payload: { token: string; email: string; password: string }): Promise<void> => {
+  await apiFetch('/auth/access-links/consume', {
+    method: 'POST',
+    body: JSON.stringify({
+      token: payload.token,
+      email: payload.email,
+      password: payload.password,
+      password_confirmation: payload.password,
+    }),
+  }, false);
 };

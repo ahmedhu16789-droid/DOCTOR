@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Employee, UserRole, Branch } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
-import { UserPlus, Search, MapPin, DollarSign, Clock } from 'lucide-react';
+import { UserPlus, Search, MapPin, DollarSign, Clock, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
+import { createAccessLinkViaApi, createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
 
 interface EmployeeManagementProps {
   currentUser: User;
@@ -63,6 +63,22 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
 
   const getBranchNames = (ids: string[]) => {
     return ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean).join(', ');
+  };
+
+
+
+  const handleGenerateAccessLink = async (employee: Employee): Promise<void> => {
+    try {
+      const { token } = await createAccessLinkViaApi(employee.id);
+      const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
+      await navigator.clipboard.writeText(link);
+      alert(t('copy_link_done'));
+    } catch (error) {
+      const message = error instanceof Error && error.message === 'User has no email'
+        ? t('copy_link_missing_email')
+        : (error instanceof Error ? error.message : t('copy_link_missing_email'));
+      alert(message);
+    }
   };
 
   const visibleEmployees = useMemo(() => employees.filter((emp) => {
@@ -161,6 +177,12 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
                     className="text-primary-600 hover:text-primary-900 flex items-center justify-end rtl:justify-start gap-1 inline-flex"
                   >
                     <Clock className="w-4 h-4" /> {t('manage')}
+                  </button>
+                  <button
+                    onClick={() => handleGenerateAccessLink(emp)}
+                    className="text-blue-600 hover:text-blue-800 flex items-center justify-end rtl:justify-start gap-1 inline-flex ms-3"
+                  >
+                    <Link2 className="w-4 h-4" /> {t('copy_access_link')}
                   </button>
                 </td>
               </tr>
