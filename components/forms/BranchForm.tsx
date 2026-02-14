@@ -8,16 +8,15 @@ import { Save, MapPin, Phone, Building } from 'lucide-react';
 const branchSchema = z.object({
   name: z.string().min(3, 'Branch name is required'),
   location: z.string().min(5, 'Address is required'),
-  contactPhone: z.string().min(10, 'Valid phone number required'),
+  contactPhone: z.string().min(8, 'Valid phone number required'),
   isActive: z.boolean(),
-  managerId: z.string().optional(),
 });
 
 type BranchFormValues = z.infer<typeof branchSchema>;
 
 interface BranchFormProps {
   initialData?: Branch;
-  onSave: (data: Branch) => void;
+  onSave: (data: BranchFormValues) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -29,20 +28,11 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
       location: initialData?.location || '',
       contactPhone: initialData?.contactPhone || '',
       isActive: initialData?.isActive ?? true,
-      managerId: initialData?.managerId || '',
     }
   });
 
   const onSubmit = async (data: BranchFormValues) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const branchPayload: Branch = {
-      id: initialData?.id || Math.random().toString(36).substr(2, 9),
-      ...data
-    };
-    
-    onSave(branchPayload);
+    await onSave(data);
   };
 
   return (
@@ -52,14 +42,14 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
             <Building className="w-5 h-5 mr-2 text-primary-600" /> Branch Details
           </h3>
-          
+
           <div className="grid grid-cols-1 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">Branch Name</label>
-              <input 
-                {...register('name')} 
+              <input
+                {...register('name')}
                 placeholder="e.g. Al-Fath Downtown"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500"
               />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message as string}</p>}
             </div>
@@ -70,9 +60,9 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MapPin className="h-5 w-5 text-gray-400" />
                 </div>
-                <input 
-                  {...register('location')} 
-                  className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
+                <input
+                  {...register('location')}
+                  className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location.message as string}</p>}
@@ -84,40 +74,40 @@ export const BranchForm: React.FC<BranchFormProps> = ({ initialData, onSave, onC
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Phone className="h-5 w-5 text-gray-400" />
                 </div>
-                <input 
-                  {...register('contactPhone')} 
-                  className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500" 
+                <input
+                  {...register('contactPhone')}
+                  className="block w-full pl-10 rounded-md border-gray-300 shadow-sm border p-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               {errors.contactPhone && <p className="mt-1 text-xs text-red-600">{errors.contactPhone.message as string}</p>}
             </div>
 
             <div className="flex items-center space-x-3 bg-gray-50 p-4 rounded-lg">
-                <input 
-                  type="checkbox" 
-                  id="isActive"
-                  {...register('isActive')}
-                  className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="isActive" className="font-medium text-gray-700">
-                    Branch is Operational (Active)
-                </label>
+              <input
+                type="checkbox"
+                id="isActive"
+                {...register('isActive')}
+                className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isActive" className="font-medium text-gray-700">
+                Branch is Operational (Active)
+              </label>
             </div>
           </div>
         </div>
       </div>
 
       <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-             Cancel
-         </button>
-         <button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center shadow-sm disabled:opacity-50"
-         >
-             <Save className="w-4 h-4 mr-2" /> Save Branch
-         </button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center shadow-sm disabled:opacity-50"
+        >
+          <Save className="w-4 h-4 mr-2" /> Save Branch
+        </button>
       </div>
     </form>
   );

@@ -3,31 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 
 class DirectoryController extends Controller
 {
-    public function branches(Request $request)
-    {
-        return response()->json([
-            'data' => Branch::query()
-                ->select(['id', 'name', 'location', 'contact_phone', 'is_active'])
-                ->orderBy('id')
-                ->get()
-                ->map(fn (Branch $branch): array => [
-                    'id' => (string) $branch->id,
-                    'name' => $branch->name,
-                    'location' => $branch->location,
-                    'contactPhone' => $branch->contact_phone,
-                    'isActive' => (bool) $branch->is_active,
-                ])
-                ->all(),
-        ]);
-    }
-
-
     public function roles(Request $request)
     {
         $clinicId = $request->user()->clinic_id;

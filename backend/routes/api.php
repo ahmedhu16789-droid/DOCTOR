@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AppointmentController;
+use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\EmployeeController;
@@ -15,7 +16,10 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('patients', [PatientController::class, 'index']);
-        Route::get('branches', [DirectoryController::class, 'branches']);
+        Route::get('branches', [BranchController::class, 'index']);
+        Route::post('branches', [BranchController::class, 'store']);
+        Route::put('branches/{branch}', [BranchController::class, 'update']);
+        Route::delete('branches/{branch}', [BranchController::class, 'destroy']);
         Route::get('departments', [DirectoryController::class, 'departments']);
         Route::get('roles', [DirectoryController::class, 'roles']);
         Route::get('doctors', [DoctorController::class, 'index']);
