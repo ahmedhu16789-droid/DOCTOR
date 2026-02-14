@@ -90,11 +90,23 @@ export default function App() {
   }, []);
 
   // Initial Data Fetch
-  const dataLoadedRef = React.useRef(false);
+  const lastLoadedSessionRef = React.useRef<string | null>(null);
 
   useEffect(() => {
+    const sessionKey = view === 'PUBLIC' ? 'PUBLIC' : user?.id ?? null;
+
+    if (!sessionKey) {
+      lastLoadedSessionRef.current = null;
+      return;
+    }
+
+    if (lastLoadedSessionRef.current === sessionKey) {
+      return;
+    }
+
     // Prevent duplicate loading
     if (user || view === 'PUBLIC') {
+      lastLoadedSessionRef.current = sessionKey;
       const abortController = new AbortController();
 
       const loadData = async () => {
@@ -161,6 +173,7 @@ export default function App() {
             return user?.activeBranchId ?? defaultUserBranch ?? apiBranches[0]?.id ?? '';
           });
         } catch (error) {
+          lastLoadedSessionRef.current = null;
           console.error('CRITICAL: Verify loadData error:', error);
         } finally {
           if (!abortController.signal.aborted) {
