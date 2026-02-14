@@ -131,6 +131,10 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth = t
     throw new Error(payload?.message ?? 'API request failed');
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -268,6 +272,43 @@ export const getBranchesFromApi = async (): Promise<Branch[]> => {
 export const getDepartmentsFromApi = async (): Promise<ApiDepartmentOption[]> => {
   const payload = await apiFetch<{ data: ApiDepartmentOption[] }>('/departments');
   return payload.data ?? [];
+};
+
+
+export const createBranchViaApi = async (branch: Omit<Branch, 'id'>): Promise<Branch> => {
+  const payload = await apiFetch<ApiBranch>('/branches', {
+    method: 'POST',
+    body: JSON.stringify(branch),
+  });
+
+  return {
+    id: payload.id,
+    name: payload.name,
+    location: payload.location,
+    contactPhone: payload.contactPhone,
+    isActive: payload.isActive,
+  };
+};
+
+export const updateBranchViaApi = async (branch: Branch): Promise<Branch> => {
+  const payload = await apiFetch<ApiBranch>(`/branches/${branch.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(branch),
+  });
+
+  return {
+    id: payload.id,
+    name: payload.name,
+    location: payload.location,
+    contactPhone: payload.contactPhone,
+    isActive: payload.isActive,
+  };
+};
+
+export const deleteBranchViaApi = async (branchId: string): Promise<void> => {
+  await apiFetch(`/branches/${branchId}`, {
+    method: 'DELETE',
+  });
 };
 
 export const getDoctorsFromApi = async (params?: { branchId?: string; specialty?: string; name?: string }): Promise<User[]> => {
