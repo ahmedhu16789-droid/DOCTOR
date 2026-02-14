@@ -94,21 +94,30 @@ export default function App() {
 
   useEffect(() => {
     // Prevent duplicate loading
-    if (dataLoadedRef.current) return;
-
     if (user || view === 'PUBLIC') {
-      dataLoadedRef.current = true;
-      setLoading(true);
-
       const abortController = new AbortController();
 
-      Promise.allSettled([
-        getPatientsFromApi(),
-        getAppointmentsFromApi([]),
-        getBranchesFromApi(),
-      ])
-        .then(async ([patientsResult, appointmentsResult, branchesResult]) => {
+      const loadData = async () => {
+        setLoading(true);
+
+        try {
+          console.log('Initiating data fetch...');
+          const refreshPatients = () => getPatientsFromApi();
+          const refreshAppointments = () => getAppointmentsFromApi([]);
+
+          const pPatients = refreshPatients().then(res => { console.log('Patients FETCHED'); return res; });
+          const pAppointments = refreshAppointments().then(res => { console.log('Appointments FETCHED'); return res; });
+          const pBranches = getBranchesFromApi(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
+
+          const [patientsResult, appointmentsResult, branchesResult] = await Promise.allSettled([
+            pPatients,
+            pAppointments,
+            pBranches
+          ]);
+
           if (abortController.signal.aborted) return;
+
+          console.log('All promises settled');
 
           let fallbackAppointments: Appointment[] = [];
           let fallbackPatients: Patient[] = [];
@@ -119,6 +128,12 @@ export default function App() {
 
           const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
           const rawAppointments = appointmentsResult.status === 'fulfilled' ? appointmentsResult.value : fallbackAppointments;
+
+          if (branchesResult.status === 'rejected') {
+            console.error('CRITICAL: Branches promise rejected in Promise.allSettled:', branchesResult.reason);
+          } else {
+            console.log('Branches promise fulfilled:', branchesResult.value);
+          }
           const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : [];
 
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
@@ -137,14 +152,24 @@ export default function App() {
             const userBranchIds = user?.assignedBranches ?? [];
             const defaultUserBranch = userBranchIds.find((id) => apiBranches.some((branch) => branch.id === id));
 
-            return defaultUserBranch ?? user?.activeBranchId ?? apiBranches[0]?.id ?? '';
+            console.log('Setting Active Branch ID (Logic):', {
+              userBranchIds,
+              defaultUserBranch,
+              activeBranchId: user?.activeBranchId,
+              firstBranch: apiBranches[0]?.id
+            });
+            return user?.activeBranchId ?? defaultUserBranch ?? apiBranches[0]?.id ?? '';
           });
-        })
-        .finally(() => {
+        } catch (error) {
+          console.error('CRITICAL: Verify loadData error:', error);
+        } finally {
           if (!abortController.signal.aborted) {
             setLoading(false);
           }
-        });
+        }
+      };
+
+      loadData();
 
       return () => {
         abortController.abort();
@@ -164,11 +189,20 @@ export default function App() {
       return;
     }
 
+    console.group('Branch Selection Debug');
+    console.log('User:', user);
+    console.log('User Assigned Branches:', user.assignedBranches);
+    console.log('All Branches:', branches);
+
     const branchOptions = branches
       .filter((branch) => user.assignedBranches.includes(branch.id))
       .map((branch) => branch.id);
 
+    console.log('Filtered Branch Options (intersection):', branchOptions);
+
     if (branchOptions.length === 0) {
+      console.warn('No matching branches found for user! assignedBranches vs available branches mismatch.');
+      console.groupEnd();
       return;
     }
 
@@ -177,8 +211,12 @@ export default function App() {
         ? user.activeBranchId
         : branchOptions[0];
 
+      console.log('Setting Active Branch ID to:', fallbackBranchId);
       setActiveBranchId(fallbackBranchId);
+    } else {
+      console.log('Active Branch ID already valid:', activeBranchId);
     }
+    console.groupEnd();
   }, [user, activeBranchId, branches]);
 
 

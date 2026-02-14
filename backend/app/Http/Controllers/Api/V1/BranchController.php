@@ -14,17 +14,33 @@ class BranchController extends Controller
     public function index()
     {
         $clinicId = auth()->user()?->clinic_id;
+
+        // Use ApiCache to speed up subsequent requests.
+        // We must cache the RESULT of the query (Collection), not the query builder itself.
         $branches = ApiCache::remember(
             'branches.index',
             $clinicId,
             'all',
-            fn () => Branch::query()
-                ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active'])
-                ->orderBy('id')
-                ->get()
+            function () use ($clinicId) {
+                return Branch::query()
+                    ->withoutGlobalScopes()
+                    ->where('clinic_id', $clinicId)
+                    ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active'])
+                    ->orderBy('id')
+                    ->get();
+            }
         );
+        
+        // Return manual response to guarantee structure and keys match frontend expectations
+        $data = $branches->map(fn($b) => [
+            'id' => (string) $b->id,
+            'name' => $b->name,
+            'location' => $b->location,
+            'contactPhone' => $b->contact_phone,
+            'isActive' => (bool) (is_array($b) ? $b['is_active'] : $b->is_active), // Handle both array (if cached as array) and object
+        ]);
 
-        return BranchResource::collection($branches);
+        return response()->json(['data' => $data]);
     }
 
     public function store(BranchUpsertRequest $request)

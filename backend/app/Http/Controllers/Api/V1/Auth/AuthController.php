@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
@@ -80,7 +81,11 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->with('branches:id')->first();
+        // Load branches without global scopes to ensure TenantScope doesn't filter them out
+        // based on the potentially unauthenticated or partial context during login.
+        $user = User::where('email', $validated['email'])
+            ->with(['branches' => fn ($q) => $q->withoutGlobalScopes()])
+            ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 422);
@@ -105,7 +110,12 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->loadMissing('branches:id');
+        $user = $request->user();
+        
+        // Ensure branches are loaded without global scopes
+        if (!$user->relationLoaded('branches')) {
+            $user->load(['branches' => fn ($q) => $q->withoutGlobalScopes()]);
+        }
 
         $payload = ApiCache::remember(
             'auth.me',
@@ -130,25 +140,40 @@ class AuthController extends Controller
 
     private function resolveActiveBranchId(User $user): ?string
     {
-        $now = Carbon::now();
+        // Use clinic timezone for accurate shift detection
+        $timezone = $user->clinic->settings['timezone'] ?? config('app.timezone');
+        $now = Carbon::now($timezone);
+        
         $dayOfWeek = $now->dayOfWeek;
         $currentTime = $now->format('H:i');
+
+        Log::info("Calculated Active Branch Logic for User: {$user->id} ({$user->name})");
+        Log::info("Timezone: {$timezone} | DayOfWeek: {$dayOfWeek} | CurrentTime: {$currentTime}");
+        Log::info("User Branches Count: " . $user->branches->count());
+        Log::info("User Branches IDs: " . $user->branches->pluck('id')->implode(', '));
+        Log::info("Schedule: " . json_encode($user->schedule));
 
         $activeShift = collect($user->schedule ?? [])->first(function (array $shift) use ($dayOfWeek, $currentTime): bool {
             $start = (string) ($shift['startTime'] ?? '00:00');
             $end = (string) ($shift['endTime'] ?? '00:00');
+            $shiftDay = (int) ($shift['dayOfWeek'] ?? -1);
 
-            return (int) ($shift['dayOfWeek'] ?? -1) === $dayOfWeek
+            $isActive = $shiftDay === $dayOfWeek
                 && isset($shift['branchId'])
                 && $start <= $currentTime
                 && $currentTime <= $end;
+
+            Log::info("Checking shift: Day: {$shiftDay}, Start: {$start}, End: {$end}, Branch: " . ($shift['branchId'] ?? 'N/A') . " => Active: " . ($isActive ? 'YES' : 'NO'));
+            return $isActive;
         });
 
         if (is_array($activeShift) && isset($activeShift['branchId'])) {
+            Log::info("Found active shift branch: " . $activeShift['branchId']);
             return (string) $activeShift['branchId'];
         }
 
         $firstAssignedBranch = $user->branches->pluck('id')->first();
+        Log::info("Fallback to first assigned branch: " . ($firstAssignedBranch ?? 'NONE'));
 
         return $firstAssignedBranch ? (string) $firstAssignedBranch : null;
     }

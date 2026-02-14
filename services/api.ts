@@ -196,11 +196,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth = t
   return response.json() as Promise<T>;
 }
 
-const normalizeUser = (apiUser: ApiUser): User => {
-  const fallbackUser = MOCK_USERS.find((u) => u.id === apiUser.id || u.email === apiUser.email);
+const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
+  // If fallbackUser is not provided, try to find it from MOCK_USERS
+  const effectiveFallbackUser = fallbackUser === undefined
+    ? MOCK_USERS.find((u) => u.id === apiUser.id || u.email === apiUser.email)
+    : fallbackUser;
 
   return {
-    id: apiUser.id,
+    id: String(apiUser.id),
     name: apiUser.name,
     role: apiUser.role,
     email: apiUser.email,
@@ -317,10 +320,11 @@ export const getCurrentUser = async (): Promise<User> => {
   return user;
 };
 
-export const getBranchesFromApi = async (): Promise<Branch[]> => {
-  const payload = await apiFetch<{ data: ApiBranch[] }>('/branches');
+export const getBranchesFromApi = async (signal?: AbortSignal): Promise<Branch[]> => {
+  const payload = await apiFetch<{ data: ApiBranch[] }>('/branches', { signal });
+  console.log('API /branches payload:', payload);
   return (payload.data ?? []).map((branch) => ({
-    id: branch.id,
+    id: String(branch.id),
     name: branch.name,
     location: branch.location,
     contactPhone: branch.contactPhone,
