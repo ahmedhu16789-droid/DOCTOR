@@ -6,16 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BranchUpsertRequest;
 use App\Http\Resources\Api\V1\BranchResource;
 use App\Models\Branch;
+use App\Support\ApiCache;
 use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
 {
     public function index()
     {
-        $branches = Branch::query()
-            ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active'])
-            ->orderBy('id')
-            ->get();
+        $clinicId = auth()->user()?->clinic_id;
+        $branches = ApiCache::remember(
+            'branches.index',
+            $clinicId,
+            'all',
+            fn () => Branch::query()
+                ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active'])
+                ->orderBy('id')
+                ->get()
+        );
 
         return BranchResource::collection($branches);
     }
@@ -30,6 +37,8 @@ class BranchController extends Controller
             'is_active' => $request->boolean('isActive'),
         ]);
 
+        ApiCache::bump('branches.index', $request->user()->clinic_id);
+
         return response()->json(new BranchResource($branch), 201);
     }
 
@@ -42,6 +51,8 @@ class BranchController extends Controller
             'is_active' => $request->boolean('isActive'),
         ]);
 
+        ApiCache::bump('branches.index', $request->user()->clinic_id);
+
         return response()->json(new BranchResource($branch));
     }
 
@@ -51,6 +62,8 @@ class BranchController extends Controller
             $branch->users()->detach();
             $branch->delete();
         });
+
+        ApiCache::bump('branches.index', auth()->user()?->clinic_id);
 
         return response()->noContent();
     }
