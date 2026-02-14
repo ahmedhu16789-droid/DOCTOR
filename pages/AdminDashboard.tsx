@@ -3,9 +3,9 @@ import { User, UserRole, Branch, Department } from '../types';
 import { MOCK_USERS, BRANCHES } from '../constants';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
-import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter } from 'lucide-react';
+import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
+import { createAccessLinkViaApi, createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
 
 interface AdminDashboardProps {
     currentUser: User;
@@ -63,6 +63,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
 
     const doctorsCount = filteredUsers.length;
     const activeBranches = branches.filter(b => b.isActive).length;
+
+
+
+    const handleGenerateAccessLink = async (user: User): Promise<void> => {
+        try {
+            const { token } = await createAccessLinkViaApi(user.id);
+            const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
+            await navigator.clipboard.writeText(link);
+            alert(t('copy_link_done'));
+        } catch (error) {
+            const message = error instanceof Error && error.message === 'User has no email'
+                ? t('copy_link_missing_email')
+                : (error instanceof Error ? error.message : t('copy_link_missing_email'));
+            alert(message);
+        }
+    };
 
     const handleSaveUser = async (savedUser: User) => {
         const persisted = isCreatingUser ? await createDoctorViaApi(savedUser) : await updateDoctorViaApi(savedUser);
@@ -157,7 +173,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-700">{u.payroll?.model?.replace('_', ' ') || '-'}</td>
                                     <td className="px-6 py-4 text-right rtl:text-left">
-                                        {isSuperAdmin && <button onClick={() => setEditingUser(u)} className="text-primary-700 font-medium hover:text-primary-900">{t('edit')}</button>}
+                                        {isSuperAdmin && (
+                                            <div className="inline-flex items-center gap-3">
+                                                <button onClick={() => setEditingUser(u)} className="text-primary-700 font-medium hover:text-primary-900">{t('edit')}</button>
+                                                <button onClick={() => handleGenerateAccessLink(u)} className="text-blue-700 font-medium hover:text-blue-900 inline-flex items-center gap-1">
+                                                    <Link2 className="w-4 h-4" /> {t('copy_access_link')}
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
