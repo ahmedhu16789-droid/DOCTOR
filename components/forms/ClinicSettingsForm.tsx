@@ -1,40 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, Globe, Mail, Clock, ShieldCheck, Upload } from 'lucide-react';
+import { Save, Mail, Clock, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-
-interface ClinicSettings {
-    name: string;
-    email: string;
-    phone: string;
-    website: string;
-    timezone: string;
-    currency: string;
-    logoUrl: string;
-}
+import { ClinicSettingsPayload, getClinicSettingsFromApi, updateClinicSettingsViaApi } from '../../services/api';
 
 export const ClinicSettingsForm: React.FC = () => {
     const { t } = useTranslation();
     const [success, setSuccess] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
-    const { register, handleSubmit, formState: { isSubmitting } } = useForm<ClinicSettings>({
+    const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<ClinicSettingsPayload>({
         defaultValues: {
-            name: 'Al-Fath Clinic',
-            email: 'admin@alfath-clinic.com',
-            phone: '+20 123 456 7890',
-            website: 'www.alfath-clinic.com',
+            name: '',
+            email: '',
+            phone: '',
+            website: '',
             timezone: 'Africa/Cairo',
             currency: 'EGP',
             logoUrl: ''
         }
     });
 
-    const onSubmit = async (data: ClinicSettings) => {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log('Settings Saved:', data);
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                setIsLoading(true);
+                const settings = await getClinicSettingsFromApi();
+                reset(settings);
+            } catch (error) {
+                console.error('Failed to load clinic settings', error);
+                setErrorMessage('Failed to load clinic settings');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadSettings();
+    }, [reset]);
+
+    const onSubmit = async (data: ClinicSettingsPayload) => {
+        setErrorMessage('');
+
+        try {
+            const savedSettings = await updateClinicSettingsViaApi(data);
+            reset(savedSettings);
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (error) {
+            console.error('Failed to save clinic settings', error);
+            setErrorMessage('Failed to save clinic settings');
+        }
     };
+
+    if (isLoading) {
+        return <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-sm text-gray-500">Loading settings...</div>;
+    }
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -51,9 +72,9 @@ export const ClinicSettingsForm: React.FC = () => {
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                {errorMessage && <div className="mb-4 text-sm text-red-600">{errorMessage}</div>}
 
-                    {/* Identity */}
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
                             {t('identity_branding')}
@@ -91,7 +112,6 @@ export const ClinicSettingsForm: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Contact */}
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
                             {t('contact_info')}
@@ -113,7 +133,6 @@ export const ClinicSettingsForm: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Localization */}
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
                             {t('localization')}

@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\EmployeeController;
+use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\ClinicSettingsController;
 use App\Http\Controllers\Api\V1\PatientController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,5 +32,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
         Route::get('appointments', [AppointmentController::class, 'index']);
         Route::post('appointments', [AppointmentController::class, 'store']);
+        Route::get('reports/financial', [FinancialReportController::class, 'index']);
+        Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
+        Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
     });
 });
