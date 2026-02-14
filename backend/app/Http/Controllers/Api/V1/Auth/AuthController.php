@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Clinic;
 use App\Models\User;
+use App\Support\ApiCache;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -106,18 +107,25 @@ class AuthController extends Controller
     {
         $user = $request->user()->loadMissing('branches:id');
 
-        return response()->json([
-            'user' => [
-                'id' => (string) $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
-                'schedule' => $user->schedule ?? [],
-                'activeBranchId' => $this->resolveActiveBranchId($user),
-            ],
-            'clinicId' => (string) $user->clinic_id,
-        ]);
+        $payload = ApiCache::remember(
+            'auth.me',
+            $user->clinic_id,
+            (string) $user->id,
+            fn () => [
+                'user' => [
+                    'id' => (string) $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'assignedBranches' => $user->branches->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
+                    'schedule' => $user->schedule ?? [],
+                    'activeBranchId' => $this->resolveActiveBranchId($user),
+                ],
+                'clinicId' => (string) $user->clinic_id,
+            ]
+        );
+
+        return response()->json($payload);
     }
 
     private function resolveActiveBranchId(User $user): ?string

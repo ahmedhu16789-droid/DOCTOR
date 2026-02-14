@@ -8,6 +8,7 @@ use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Support\ApiCache;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,14 +19,26 @@ class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
-        $appointments = Appointment::query()
-            ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
-            ->with(['invoice:id,appointment_id,total,paid_amount,status'])
-            ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
-            ->when($request->filled('doctorId'), fn ($query) => $query->where('doctor_id', $request->integer('doctorId')))
-            ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
-            ->latest('date')
-            ->simplePaginate(50);
+        $filters = [
+            'branchId' => $request->integer('branchId'),
+            'doctorId' => $request->integer('doctorId'),
+            'date' => $request->string('date')->value(),
+            'page' => max(1, $request->integer('page', 1)),
+        ];
+
+        $appointments = ApiCache::remember(
+            'appointments.index',
+            $request->user()?->clinic_id,
+            md5(json_encode($filters)),
+            fn () => Appointment::query()
+                ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
+                ->with(['invoice:id,appointment_id,total,paid_amount,status'])
+                ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
+                ->when($request->filled('doctorId'), fn ($query) => $query->where('doctor_id', $request->integer('doctorId')))
+                ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
+                ->latest('date')
+                ->simplePaginate(50, ['*'], 'page', $filters['page'])
+        );
 
         return AppointmentResource::collection($appointments);
     }
@@ -144,6 +157,8 @@ class AppointmentController extends Controller
 
             return $appointment->load('invoice');
         });
+
+        ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
         return response()->json(new AppointmentResource($appointment), 201);
     }
