@@ -1,75 +1,6 @@
 import { MOCK_USERS } from '../constants';
 import { User } from '../types';
-
-const LINKS_KEY = 'afcm_one_time_links';
-const CREDENTIALS_KEY = 'afcm_local_credentials';
-
-interface OneTimeAccessLink {
-  token: string;
-  userId: string;
-  email: string;
-  createdAt: string;
-  usedAt?: string;
-  revokedAt?: string;
-}
-
-interface LocalCredential {
-  userId: string;
-  email: string;
-  password: string;
-  user: User;
-  updatedAt: string;
-}
-
-const readLinks = (): OneTimeAccessLink[] => {
-  const raw = localStorage.getItem(LINKS_KEY);
-  if (!raw) return [];
-
-  try {
-    return JSON.parse(raw) as OneTimeAccessLink[];
-  } catch {
-    localStorage.removeItem(LINKS_KEY);
-    return [];
-  }
-};
-
-const writeLinks = (links: OneTimeAccessLink[]): void => {
-  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
-};
-
-const readCredentials = (): LocalCredential[] => {
-  const raw = localStorage.getItem(CREDENTIALS_KEY);
-  if (!raw) {
-    const defaultCredentials = MOCK_USERS
-      .filter((user) => Boolean(user.email))
-      .map((user) => ({
-        userId: user.id,
-        email: user.email!,
-        password: 'password123',
-        user,
-        updatedAt: new Date().toISOString(),
-      }));
-
-    localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(defaultCredentials));
-    return defaultCredentials;
-  }
-
-  try {
-    return JSON.parse(raw) as LocalCredential[];
-  } catch {
-    localStorage.removeItem(CREDENTIALS_KEY);
-    return [];
-  }
-};
-
-const writeCredentials = (credentials: LocalCredential[]): void => {
-  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
-};
-
-const getBaseUrl = (): string => {
-  const { origin, pathname } = window.location;
-  return `${origin}${pathname}`;
-};
+import { getAppBaseUrl, readCredentials, readLinks, writeCredentials, writeLinks } from './core/authLinksStore';
 
 export const generateOneTimeAccessLink = (user: User): string => {
   if (!user.email) {
@@ -93,7 +24,7 @@ export const generateOneTimeAccessLink = (user: User): string => {
 
   writeLinks(links);
 
-  return `${getBaseUrl()}?accessToken=${encodeURIComponent(token)}`;
+  return `${getAppBaseUrl()}?accessToken=${encodeURIComponent(token)}`;
 };
 
 export const consumeOneTimeAccessLink = (params: { token: string; email: string; password: string }): User => {
