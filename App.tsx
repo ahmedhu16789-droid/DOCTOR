@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
@@ -190,6 +190,39 @@ export default function App() {
     }
   }, [user, view]);
 
+
+  const doctorCurrentShiftBranchId = useMemo(() => {
+    if (!user || user.role !== UserRole.DOCTOR || !user.schedule?.length) {
+      return null;
+    }
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const today = now.getDay();
+
+    const matchingShift = user.schedule.find((shift) => {
+      if (shift.dayOfWeek !== today || !shift.branchId) {
+        return false;
+      }
+
+      const [startHour, startMinute] = shift.startTime.split(':').map(Number);
+      const [endHour, endMinute] = shift.endTime.split(':').map(Number);
+
+      if ([startHour, startMinute, endHour, endMinute].some(Number.isNaN)) {
+        return false;
+      }
+
+      const start = startHour * 60 + startMinute;
+      const end = endHour * 60 + endMinute;
+
+      return currentMinutes >= start && currentMinutes < end;
+    });
+
+    return matchingShift?.branchId ?? null;
+  }, [user]);
+
+  const canDoctorChangeBranch = !doctorCurrentShiftBranchId;
+
   const handleLogin = (selectedUser: User) => {
     setUser(selectedUser);
     setView('APP');
@@ -219,6 +252,15 @@ export default function App() {
       return;
     }
 
+    if (user.role === UserRole.DOCTOR && doctorCurrentShiftBranchId && branchOptions.includes(doctorCurrentShiftBranchId)) {
+      if (activeBranchId !== doctorCurrentShiftBranchId) {
+        console.log('Doctor is currently on shift. Locking active branch to:', doctorCurrentShiftBranchId);
+        setActiveBranchId(doctorCurrentShiftBranchId);
+      }
+      console.groupEnd();
+      return;
+    }
+
     if (!activeBranchId || !branchOptions.includes(activeBranchId)) {
       const fallbackBranchId = user.activeBranchId && branchOptions.includes(user.activeBranchId)
         ? user.activeBranchId
@@ -230,7 +272,7 @@ export default function App() {
       console.log('Active Branch ID already valid:', activeBranchId);
     }
     console.groupEnd();
-  }, [user, activeBranchId, branches]);
+  }, [user, activeBranchId, branches, doctorCurrentShiftBranchId]);
 
 
   const handleLogout = () => {
@@ -387,6 +429,14 @@ export default function App() {
 
   const currentActiveApt = activeEncounter ? appointments.find(a => a.id === activeEncounter.apt.id) : null;
 
+  const visibleAppointments = useMemo(() => {
+    if (!activeBranchId) {
+      return appointments;
+    }
+
+    return appointments.filter((appointment) => appointment.branchId === activeBranchId);
+  }, [appointments, activeBranchId]);
+
   const MainContent = () => {
     if (view === 'PUBLIC') {
       return <PublicBooking onBackToLogin={() => setView('AUTH')} />;
@@ -419,6 +469,7 @@ export default function App() {
         availableBranches={branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
         activeBranchId={activeBranchId}
         onActiveBranchChange={setActiveBranchId}
+        canChangeBranch={user.role !== UserRole.DOCTOR || canDoctorChangeBranch}
       >
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -429,7 +480,7 @@ export default function App() {
             {activeTab === 'dashboard' && user && (
               <Dashboard
                 user={user}
-                appointments={appointments}
+                appointments={visibleAppointments}
                 onStatusChange={handleStatusChange}
               />
             )}
@@ -437,7 +488,7 @@ export default function App() {
             {activeTab === 'appointments' && user && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
                 <div className="lg:col-span-2 h-full">
-                  <CalendarView appointments={appointments} />
+                  <CalendarView appointments={visibleAppointments} />
                 </div>
                 <div className="h-full">
                   <AppointmentBooking
@@ -457,7 +508,7 @@ export default function App() {
                   <h2 className="text-xl font-bold">{t('patient_queue')}</h2>
                 </div>
                 <ReceptionQueue
-                  appointments={appointments}
+                  appointments={visibleAppointments}
                   onUpdateStatus={handleStatusChange}
                   onOpenEncounter={handleOpenEncounter}
                   onProcessPayment={handleProcessPayment}

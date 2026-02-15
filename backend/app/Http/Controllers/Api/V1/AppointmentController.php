@@ -19,9 +19,12 @@ class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
+        $authenticatedUser = $request->user();
+        $isDoctor = $authenticatedUser?->role === 'DOCTOR';
+
         $filters = [
             'branchId' => $request->integer('branchId'),
-            'doctorId' => $request->integer('doctorId'),
+            'doctorId' => $isDoctor ? $authenticatedUser?->id : $request->integer('doctorId'),
             'date' => $request->string('date')->value(),
             'page' => max(1, $request->integer('page', 1)),
         ];
@@ -34,7 +37,7 @@ class AppointmentController extends Controller
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
                 ->with(['invoice:id,appointment_id,total,paid_amount,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
-                ->when($request->filled('doctorId'), fn ($query) => $query->where('doctor_id', $request->integer('doctorId')))
+                ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
                 ->latest('date')
                 ->simplePaginate(50, ['*'], 'page', $filters['page'])
