@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
   availableBranches: Branch[];
   activeBranchId: string;
   onActiveBranchChange: (branchId: string) => void;
+  canChangeBranch?: boolean;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ 
@@ -24,6 +25,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   availableBranches,
   activeBranchId,
   onActiveBranchChange,
+  canChangeBranch = true,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -55,6 +57,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             availableBranches={availableBranches}
             activeBranchId={activeBranchId}
             onActiveBranchChange={onActiveBranchChange}
+            canChangeBranch={canChangeBranch}
          />
 
          <main className="flex-1 p-4 sm:p-6 lg:p-8 mt-16 overflow-x-hidden">

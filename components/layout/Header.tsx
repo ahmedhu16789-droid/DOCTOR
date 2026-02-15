@@ -13,6 +13,7 @@ interface HeaderProps {
   availableBranches: Branch[];
   activeBranchId: string;
   onActiveBranchChange: (branchId: string) => void;
+  canChangeBranch?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   availableBranches,
   activeBranchId,
   onActiveBranchChange,
+  canChangeBranch = true,
 }) => {
   const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
@@ -55,7 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
              <select
                 value={activeBranchId}
                 onChange={(event) => onActiveBranchChange(event.target.value)}
-                className="text-sm font-semibold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer hover:text-primary-600"
+                disabled={!canChangeBranch}
+                className="text-sm font-semibold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer hover:text-primary-600 disabled:cursor-not-allowed disabled:text-gray-400"
              >
                  {availableBranches.map(b => (
                      <option key={b.id} value={b.id}>{b.name}</option>
