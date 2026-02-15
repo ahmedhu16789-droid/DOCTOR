@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 interface PatientLookupProps {
   patients: Patient[];
   onSelectPatient: (patient: Patient) => void;
-  onAddNewPatient: (patient: Partial<Patient>) => Promise<void> | void;
+  onAddNewPatient: (patient: Partial<Patient>) => Promise<Patient | void> | Patient | void;
   onSearchByPhone?: (phone: string) => Promise<Patient[]>;
 }
 
@@ -69,13 +69,19 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAddNewPatient({
+
+    const created = await onAddNewPatient({
       name: newName,
       phone: newPhone,
-      age: parseInt(newAge),
+      age: Number.parseInt(newAge, 10),
       gender: newGender,
       medicalHistorySummary: 'New Patient'
     });
+
+    if (created) {
+      onSelectPatient(created);
+    }
+
     setIsCreating(false);
     setNewName('');
     setNewPhone('');

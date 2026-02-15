@@ -19,7 +19,12 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
 
   // Filter Logic
-  const filtered = appointments.filter(a => filterDoc === 'ALL' || a.doctorId === filterDoc);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const filtered = appointments
+    .filter((a) => a.date.slice(0, 10) === todayIso)
+    .filter((a) => filterDoc === 'ALL' || a.doctorId === filterDoc)
+    .sort((left, right) => left.timeSlot.localeCompare(right.timeSlot));
+
   const waiting = filtered.filter(a => a.status === AppointmentStatus.WAITING);
   const inProgress = filtered.filter(a => a.status === AppointmentStatus.IN_PROGRESS);
   const called = filtered.filter(a => a.status === AppointmentStatus.CALLED);

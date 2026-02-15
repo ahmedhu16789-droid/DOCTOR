@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AppointmentController;
+use App\Http\Controllers\Api\V1\MedicationController;
+use App\Http\Controllers\Api\V1\MedicalEncounterController;
+use App\Http\Controllers\Api\V1\AppointmentBillingController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
@@ -38,6 +41,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
         Route::post('appointments', [AppointmentController::class, 'store']);
+
+        Route::get('medications', [MedicationController::class, 'index']);
+        Route::get('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'show']);
+        Route::put('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'upsert']);
+        Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
+        Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
         Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
