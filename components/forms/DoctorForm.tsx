@@ -11,7 +11,7 @@ import { ApiDepartmentOption } from '../../services/api';
 
 const doctorSchema = z.object({
     name: z.string().min(3, 'Name is required'),
-    phone: z.string().min(10, 'Valid phone required'),
+    phone: z.string().trim().optional().or(z.literal('')),
     email: z.string().email().optional().or(z.literal('')),
     specialty: z.nativeEnum(Department),
     role: z.literal(UserRole.DOCTOR),
