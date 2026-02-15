@@ -14,7 +14,7 @@ import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser } from './services/api';
+import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, removeBillingItemViaApi } from './services/api';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -349,55 +349,48 @@ export default function App() {
     }
   };
 
-  const handleAddService = (aptId: string, service: ServiceItem) => {
-    setAppointments(prev => prev.map(apt => {
-      if (apt.id !== aptId) return apt;
-
-      const newItem = {
-        id: Math.random().toString(),
+  const handleAddService = async (aptId: string, service: ServiceItem) => {
+    try {
+      const updated = await addBillingItemViaApi(aptId, {
         serviceId: service.id,
         name: service.name,
+        category: service.category,
         quantity: 1,
         unitPrice: service.price,
-        total: service.price,
-        addedBy: user?.id || 'unknown',
-        timestamp: new Date().toISOString()
-      };
-
-      const updatedItems = [...apt.billing.items, newItem];
-      const newTotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
-
-      return {
+      });
+      setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
           ...apt.billing,
-          items: updatedItems,
-          subtotal: newTotal,
-          total: newTotal - apt.billing.discount,
-          status: (newTotal - apt.billing.discount) <= apt.billing.paidAmount ? PaymentStatus.PAID : PaymentStatus.UNPAID
-        }
-      };
-    }));
+          items: updated.billing.items?.map((item) => ({ ...item, addedBy: user?.id || 'system', timestamp: new Date().toISOString() })) ?? [],
+          subtotal: updated.billing.total,
+          total: updated.billing.total,
+          paidAmount: updated.billing.paidAmount,
+          status: updated.billing.status,
+        },
+      } : apt)));
+    } catch {
+      setToast({ type: 'error', message: 'تعذر إضافة الخدمة حالياً' });
+    }
   };
 
-  const handleRemoveService = (aptId: string, itemId: string) => {
-    setAppointments(prev => prev.map(apt => {
-      if (apt.id !== aptId) return apt;
-
-      const updatedItems = apt.billing.items.filter(item => item.id !== itemId);
-      const newTotal = updatedItems.reduce((sum, item) => sum + item.total, 0);
-
-      return {
+  const handleRemoveService = async (aptId: string, itemId: string) => {
+    try {
+      const updated = await removeBillingItemViaApi(aptId, itemId);
+      setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
           ...apt.billing,
-          items: updatedItems,
-          subtotal: newTotal,
-          total: newTotal - apt.billing.discount,
-          status: (newTotal - apt.billing.discount) <= apt.billing.paidAmount ? PaymentStatus.PAID : PaymentStatus.UNPAID
-        }
-      };
-    }));
+          items: updated.billing.items?.map((item) => ({ ...item, addedBy: user?.id || 'system', timestamp: new Date().toISOString() })) ?? [],
+          subtotal: updated.billing.total,
+          total: updated.billing.total,
+          paidAmount: updated.billing.paidAmount,
+          status: updated.billing.status,
+        },
+      } : apt)));
+    } catch {
+      setToast({ type: 'error', message: 'تعذر حذف الخدمة حالياً' });
+    }
   };
 
   const handleProcessPayment = (aptId: string, amount: number, method: PaymentMethod) => {

@@ -186,6 +186,7 @@ export interface VitalSigns {
 export interface Medication {
   id: string;
   name: string;
+  activeIngredient?: string;
   dosage: string;
   frequency: string;
   duration: string;

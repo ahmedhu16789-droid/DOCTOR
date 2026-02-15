@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign } from 'lucide-react';
-import { MOCK_MEDICATIONS, MOCK_SERVICES } from '../services/mockData';
+import { MOCK_SERVICES } from '../services/mockData';
+import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi, searchMedicationsFromApi } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 interface DoctorWorkspaceProps {
@@ -22,7 +23,10 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [vitals, setVitals] = useState<VitalSigns>({ recordedBy: 'u1', timestamp: new Date().toISOString() });
     const [diagnosis, setDiagnosis] = useState('');
     const [notes, setNotes] = useState('');
+    const [plan, setPlan] = useState('');
     const [prescription, setPrescription] = useState<Medication[]>([]);
+    const [medicationOptions, setMedicationOptions] = useState<{ id: string; name: string; activeIngredient?: string }[]>([]);
+    const [saving, setSaving] = useState(false);
 
     // Rx Builder State
     const [rxSearch, setRxSearch] = useState('');
@@ -30,11 +34,69 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
 
     const isNurse = userRole === UserRole.NURSE;
 
+    const loadEncounter = async () => {
+        const data = await getMedicalEncounterFromApi(appointment.id);
+        if (!data) return;
+
+        setVitals({ ...data.vitals, recordedBy: data.vitals?.recordedBy ?? 'u1', timestamp: data.vitals?.timestamp ?? new Date().toISOString() });
+        setNotes(data.examFindings ?? '');
+        setDiagnosis(data.diagnosis ?? '');
+        setPlan(data.plan ?? '');
+        setPrescription((data.prescription ?? []).map((medication) => ({
+            id: medication.id,
+            name: medication.name,
+            activeIngredient: medication.activeIngredient,
+            dosage: medication.dosage ?? '',
+            frequency: medication.frequency ?? '',
+            duration: medication.duration ?? '',
+            instructions: medication.instructions,
+        })));
+    };
+
+    useEffect(() => {
+        loadEncounter();
+    }, [appointment.id]);
+
+    useEffect(() => {
+        const delay = window.setTimeout(async () => {
+            if (!rxSearch.trim()) {
+                setMedicationOptions([]);
+                return;
+            }
+
+            const options = await searchMedicationsFromApi(rxSearch);
+            setMedicationOptions(options);
+        }, 250);
+
+        return () => window.clearTimeout(delay);
+    }, [rxSearch]);
+
+    const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
+        setSaving(true);
+        try {
+            await saveMedicalEncounterViaApi(appointment.id, {
+                vitals,
+                examFindings: notes,
+                diagnosis,
+                plan,
+                status,
+                prescription,
+            });
+
+            if (status === 'FINALIZED') {
+                onComplete();
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleAddMedication = () => {
         if (rxSearch && newMed.dosage) {
             setPrescription([...prescription, {
                 id: Math.random().toString(),
                 name: rxSearch,
+                activeIngredient: medicationOptions.find(option => option.name === rxSearch)?.activeIngredient,
                 dosage: newMed.dosage || '',
                 frequency: newMed.frequency || '',
                 duration: newMed.duration || ''
@@ -70,11 +132,11 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    <button disabled={saving} onClick={() => persistEncounter('DRAFT')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-60">
                         <Save className="w-4 h-4" /> {t('save_draft')}
                     </button>
                     {!isNurse && (
-                        <button onClick={onComplete} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        <button disabled={saving} onClick={() => persistEncounter('FINALIZED')} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-60">
                             {t('finalize_visit')}
                         </button>
                     )}
@@ -147,26 +209,26 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('blood_pressure')}</label>
                                         <div className="flex items-center gap-2">
-                                            <input type="number" placeholder="120" className="w-full p-2 border border-gray-300 rounded-md" />
+                                            <input type="number" placeholder="120" value={vitals.bpSystolic ?? ""} onChange={(event) => setVitals({ ...vitals, bpSystolic: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                             <span className="text-gray-400">/</span>
-                                            <input type="number" placeholder="80" className="w-full p-2 border border-gray-300 rounded-md" />
+                                            <input type="number" placeholder="80" value={vitals.bpDiastolic ?? ""} onChange={(event) => setVitals({ ...vitals, bpDiastolic: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('heart_rate')}</label>
-                                        <input type="number" placeholder="72" className="w-full p-2 border border-gray-300 rounded-md" />
+                                        <input type="number" placeholder="72" value={vitals.heartRate ?? ""} onChange={(event) => setVitals({ ...vitals, heartRate: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('temp')}</label>
-                                        <input type="number" placeholder="36.5" className="w-full p-2 border border-gray-300 rounded-md" />
+                                        <input type="number" placeholder="36.5" value={vitals.temperature ?? ""} onChange={(event) => setVitals({ ...vitals, temperature: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('weight')}</label>
-                                        <input type="number" placeholder="70" className="w-full p-2 border border-gray-300 rounded-md" />
+                                        <input type="number" placeholder="70" value={vitals.weight ?? ""} onChange={(event) => setVitals({ ...vitals, weight: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('oxygen')}</label>
-                                        <input type="number" placeholder="98" className="w-full p-2 border border-gray-300 rounded-md" />
+                                        <input type="number" placeholder="98" value={vitals.oxygenSat ?? ""} onChange={(event) => setVitals({ ...vitals, oxygenSat: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
                                     </div>
                                 </div>
                                 <div className="mt-8 pt-6 border-t border-gray-100">
@@ -185,7 +247,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                             <div className="max-w-3xl mx-auto space-y-6">
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                     <h3 className="font-bold text-gray-900 mb-4">{t('exam_findings')}</h3>
-                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-40" placeholder={t('exam_placeholder')}></textarea>
+                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-40" placeholder={t('exam_placeholder')} value={notes} onChange={e => setNotes(e.target.value)}></textarea>
                                 </div>
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                     <h3 className="font-bold text-gray-900 mb-4">{t('diagnosis')}</h3>
@@ -199,7 +261,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                 </div>
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                     <h3 className="font-bold text-gray-900 mb-4">{t('plan')}</h3>
-                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-24" placeholder={t('plan_placeholder')}></textarea>
+                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-24" placeholder={t('plan_placeholder')} value={plan} onChange={e => setPlan(e.target.value)}></textarea>
                                 </div>
                             </div>
                         )}
@@ -220,7 +282,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 onChange={e => setRxSearch(e.target.value)}
                                             />
                                             <datalist id="meds">
-                                                {MOCK_MEDICATIONS.map(m => <option key={m.id} value={m.name} />)}
+                                                {medicationOptions.map(m => <option key={m.id} value={m.name}>{m.activeIngredient}</option>)}
                                             </datalist>
                                         </div>
                                         <div className="md:col-span-2">
