@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\AppointmentRequest;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\User;
 use App\Support\ApiCache;
 use Carbon\Carbon;
@@ -35,7 +36,7 @@ class AppointmentController extends Controller
             md5(json_encode($filters)),
             fn () => Appointment::query()
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
-                ->with(['invoice:id,appointment_id,total,paid_amount,status'])
+                ->with(['invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
@@ -150,7 +151,7 @@ class AppointmentController extends Controller
                 'status' => $request->string('status')->value() ?: 'SCHEDULED',
             ]);
 
-            Invoice::create([
+            $invoice = Invoice::create([
                 'clinic_id' => $request->user()->clinic_id,
                 'appointment_id' => $appointment->id,
                 'total' => $request->input('billing.total'),
@@ -158,7 +159,19 @@ class AppointmentController extends Controller
                 'status' => $request->input('billing.status'),
             ]);
 
-            return $appointment->load('invoice');
+            InvoiceItem::query()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'invoice_id' => $invoice->id,
+                'service_id' => 'srv_cns',
+                'name' => 'Consultation Fee',
+                'category' => 'CONSULTATION',
+                'quantity' => 1,
+                'unit_price' => (float) $request->input('billing.total', 0),
+                'total' => (float) $request->input('billing.total', 0),
+                'added_by' => $request->user()->id,
+            ]);
+
+            return $appointment->load('invoice.items');
         });
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);

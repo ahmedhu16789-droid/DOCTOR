@@ -41,4 +41,9 @@ class Appointment extends Model
     {
         return $this->hasOne(Invoice::class);
     }
+
+    public function encounter(): HasOne
+    {
+        return $this->hasOne(MedicalEncounter::class);
+    }
 }

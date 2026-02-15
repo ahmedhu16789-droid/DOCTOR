@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus, Branch, Department, Patient, PaymentMethod, PaymentStatus, User, UserRole } from '../types';
+import { Appointment, AppointmentStatus, Branch, Department, Medication, Patient, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
 import { MOCK_USERS } from '../constants';
 import { apiFetch } from './core/httpClient';
 import { clearAuthSession, getStoredUser, getToken, setStoredUser, setToken } from './core/authSession';
@@ -35,8 +35,36 @@ interface ApiAppointment {
     total: number;
     paidAmount: number;
     status: PaymentStatus;
+    items?: {
+      id: string;
+      serviceId?: string;
+      name: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }[];
   };
 }
+
+interface ApiMedicalEncounter {
+  id: string;
+  appointmentId: string;
+  vitals?: VitalSigns;
+  examFindings?: string;
+  diagnosis?: string;
+  plan?: string;
+  status: 'DRAFT' | 'FINALIZED';
+  prescription: {
+    id: string;
+    name: string;
+    activeIngredient?: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    instructions?: string;
+  }[];
+}
+
 
 interface ApiPatient {
   id: string;
@@ -232,7 +260,12 @@ const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[] =
     type: mapAppointmentType(appointment.status),
     createdAt: new Date().toISOString(),
     billing: {
-      items: [],
+      items: (appointment.billing.items ?? []).map((item) => ({
+        ...item,
+        serviceId: item.serviceId ?? '',
+        addedBy: 'system',
+        timestamp: new Date().toISOString(),
+      })),
       subtotal: appointment.billing.total,
       discount: 0,
       total: appointment.billing.total,
@@ -462,8 +495,10 @@ export const getPatientsFromApi = async (): Promise<Patient[]> => {
   return (payload.data ?? []).map(normalizePatient);
 };
 
-export const getAppointmentsFromApi = async (patients: Patient[] = []): Promise<Appointment[]> => {
-  const payload = await apiFetch<{ data: ApiAppointment[] }>('/appointments');
+export const getAppointmentsFromApi = async (patients: Patient[] = [], params?: { date?: string }): Promise<Appointment[]> => {
+  const query = new URLSearchParams();
+  if (params?.date) query.set('date', params.date);
+  const payload = await apiFetch<{ data: ApiAppointment[] }>(`/appointments${query.toString() ? `?${query.toString()}` : ''}`);
   return (payload.data ?? []).map((apt) => normalizeAppointment(apt, patients));
 };
 
@@ -500,6 +535,52 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
   slotsBulkCache.clear();
 
   return created;
+};
+
+
+export const getMedicalEncounterFromApi = async (appointmentId: string): Promise<ApiMedicalEncounter | null> => {
+  const payload = await apiFetch<{ data: ApiMedicalEncounter | null }>(`/appointments/${appointmentId}/encounter`);
+  return payload.data;
+};
+
+export const saveMedicalEncounterViaApi = async (appointmentId: string, payload: {
+  vitals?: VitalSigns;
+  examFindings?: string;
+  diagnosis?: string;
+  plan?: string;
+  status?: 'DRAFT' | 'FINALIZED';
+  prescription: Medication[];
+}): Promise<ApiMedicalEncounter> => {
+  const response = await apiFetch<{ data: ApiMedicalEncounter }>(`/appointments/${appointmentId}/encounter`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+
+  return response.data;
+};
+
+export const searchMedicationsFromApi = async (search: string): Promise<{ id: string; name: string; activeIngredient?: string }[]> => {
+  if (!search.trim()) return [];
+  const query = new URLSearchParams({ search });
+  const payload = await apiFetch<{ data: { id: string; name: string; activeIngredient?: string }[] }>(`/medications?${query.toString()}`);
+  return payload.data ?? [];
+};
+
+export const addBillingItemViaApi = async (appointmentId: string, service: { serviceId?: string; name: string; category?: string; quantity?: number; unitPrice: number }): Promise<ApiAppointment> => {
+  const payload = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/billing/items`, {
+    method: 'POST',
+    body: JSON.stringify(service),
+  });
+
+  return payload.data;
+};
+
+export const removeBillingItemViaApi = async (appointmentId: string, itemId: string): Promise<ApiAppointment> => {
+  const payload = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/billing/items/${itemId}`, {
+    method: 'DELETE',
+  });
+
+  return payload.data;
 };
 
 export const getFinancialReportFromApi = async (params?: { from?: string; to?: string }): Promise<FinancialReportPayload> => {
