@@ -20,7 +20,21 @@ class Appointment extends Model
         'date',
         'time_slot',
         'status',
+        'called_at',
+        'started_at',
+        'completed_at',
+        'no_show_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'called_at' => 'datetime',
+            'started_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'no_show_at' => 'datetime',
+        ];
+    }
 
     public function branch(): BelongsTo
     {

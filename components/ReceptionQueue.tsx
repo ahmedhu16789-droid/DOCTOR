@@ -193,15 +193,21 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
                     )}
 
                     {apt.status === AppointmentStatus.WAITING && (
-                      <button onClick={() => handleAction(apt.id, apt.status, 'call')} className="flex items-center gap-1 text-amber-600 hover:text-amber-900 bg-amber-50 px-3 py-1 rounded">
-                        <Megaphone className="w-3 h-3" /> {t('call_patient')}
-                      </button>
+                      <>
+                        <button onClick={() => handleAction(apt.id, apt.status, 'call')} className="flex items-center gap-1 text-amber-600 hover:text-amber-900 bg-amber-50 px-3 py-1 rounded">
+                          <Megaphone className="w-3 h-3" /> {t('call_patient')}
+                        </button>
+                        <button onClick={() => handleAction(apt.id, apt.status, 'noshow')} className="text-red-600 hover:text-red-900 px-3 py-1">{t('no_show')}</button>
+                      </>
                     )}
 
                     {apt.status === AppointmentStatus.CALLED && (
-                      <button onClick={() => handleAction(apt.id, apt.status, 'start')} className="flex items-center gap-1 text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded">
-                        <Play className="w-3 h-3" /> {t('start_visit')}
-                      </button>
+                      <>
+                        <button onClick={() => handleAction(apt.id, apt.status, 'start')} className="flex items-center gap-1 text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded">
+                          <Play className="w-3 h-3" /> {t('start_visit')}
+                        </button>
+                        <button onClick={() => handleAction(apt.id, apt.status, 'noshow')} className="text-red-600 hover:text-red-900 px-3 py-1">{t('no_show')}</button>
+                      </>
                     )}
 
                     {/* Doctor Actions */}

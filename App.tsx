@@ -14,7 +14,7 @@ import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, removeBillingItemViaApi } from './services/api';
+import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
 import { setStoredUser } from './services/core/authSession';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -335,9 +335,14 @@ export default function App() {
   };
 
   const handleStatusChange = (id: string, newStatus: AppointmentStatus) => {
-    setAppointments(prev => prev.map(a =>
+    setAppointments((prev) => prev.map((a) =>
       a.id === id ? { ...a, status: newStatus } : a
     ));
+
+    updateAppointmentStatusViaApi(id, newStatus).catch(() => {
+      setToast({ type: 'error', message: 'تعذر تحديث حالة الموعد حالياً' });
+      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+    });
   };
 
   const handleNewBooking = async (apt: Partial<Appointment>) => {
@@ -394,11 +399,9 @@ export default function App() {
     setActiveEncounter(null);
   };
 
-  const handleCompleteEncounter = () => {
-    if (activeEncounter) {
-      handleStatusChange(activeEncounter.apt.id, AppointmentStatus.COMPLETED);
-      setActiveEncounter(null);
-    }
+  const handleCompleteEncounter = (appointmentId: string) => {
+    handleStatusChange(appointmentId, AppointmentStatus.COMPLETED);
+    setActiveEncounter(null);
   };
 
   const handleAddService = async (aptId: string, service: ServiceItem) => {
@@ -445,31 +448,23 @@ export default function App() {
     }
   };
 
-  const handleProcessPayment = (aptId: string, amount: number, method: PaymentMethod) => {
-    setAppointments(prev => prev.map(apt => {
-      if (apt.id !== aptId) return apt;
-
-      const newPaidAmount = apt.billing.paidAmount + amount;
-      const newTransaction = {
-        id: Math.random().toString(),
-        amount,
-        method,
-        timestamp: new Date().toISOString(),
-        recordedBy: user?.id || 'unknown',
-        reference: `REC-${Math.floor(Math.random() * 10000)}`,
-        type: 'PAYMENT' as const
-      };
-
-      return {
+  const handleProcessPayment = async (aptId: string, amount: number, method: PaymentMethod) => {
+    try {
+      const updated = await processAppointmentPaymentViaApi(aptId, { amount, method });
+      setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
           ...apt.billing,
-          paidAmount: newPaidAmount,
-          transactions: [...apt.billing.transactions, newTransaction],
-          status: newPaidAmount >= apt.billing.total ? PaymentStatus.PAID : PaymentStatus.PARTIAL
-        }
-      };
-    }));
+          paidAmount: updated.billing.paidAmount,
+          status: updated.billing.status,
+          subtotal: updated.billing.total,
+          total: updated.billing.total,
+          items: updated.billing.items?.map((item) => ({ ...item, addedBy: user?.id || 'system', timestamp: new Date().toISOString() })) ?? apt.billing.items,
+        },
+      } : apt)));
+    } catch {
+      setToast({ type: 'error', message: 'تعذر تسجيل الدفعة حالياً' });
+    }
   };
 
   const currentActiveApt = activeEncounter ? appointments.find(a => a.id === activeEncounter.apt.id) : null;
