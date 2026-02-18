@@ -37,6 +37,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const getSessionStorageKey = (suffix: string, userId?: string) => `doctor:${suffix}:${userId ?? 'guest'}`;
+  const readCachedSessionData = (userId?: string): { appointments: Appointment[]; patients: Patient[]; branches: Branch[] } | null => {
+    const raw = localStorage.getItem(getSessionStorageKey('dashboard-cache', userId));
+
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw) as { appointments: Appointment[]; patients: Patient[]; branches: Branch[] };
+    } catch {
+      localStorage.removeItem(getSessionStorageKey('dashboard-cache', userId));
+      return null;
+    }
+  };
+
+  const writeCachedSessionData = (payload: { appointments: Appointment[]; patients: Patient[]; branches: Branch[] }, userId?: string) => {
+    localStorage.setItem(getSessionStorageKey('dashboard-cache', userId), JSON.stringify(payload));
+  };
+
   // Workspace State
   const [activeEncounter, setActiveEncounter] = useState<{ apt: Appointment, patient: Patient } | null>(null);
 
@@ -65,6 +83,19 @@ export default function App() {
     if (cachedUser) {
       setUser(cachedUser);
       setView('APP');
+
+      const cachedDashboardData = readCachedSessionData(cachedUser.id);
+
+      if (cachedDashboardData) {
+        setPatients(cachedDashboardData.patients ?? []);
+        setAppointments(cachedDashboardData.appointments ?? []);
+        setBranches(cachedDashboardData.branches ?? []);
+      }
+
+      const cachedActiveBranchId = localStorage.getItem(getSessionStorageKey('active-branch', cachedUser.id));
+      if (cachedActiveBranchId) {
+        setActiveBranchId(cachedActiveBranchId);
+      }
     }
 
     const initSession = async () => {
@@ -134,6 +165,7 @@ export default function App() {
 
           let fallbackAppointments: Appointment[] = [];
           let fallbackPatients: Patient[] = [];
+          let fallbackBranches: Branch[] = readCachedSessionData(user?.id)?.branches ?? [];
 
           if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
             [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
@@ -147,7 +179,7 @@ export default function App() {
           } else {
             console.log('Branches promise fulfilled:', branchesResult.value);
           }
-          const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : [];
+          const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : fallbackBranches;
 
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
           const hydratedAppointments = rawAppointments.map((appointment) => ({
@@ -158,6 +190,12 @@ export default function App() {
           setPatients(pts);
           setAppointments(hydratedAppointments);
           setBranches(apiBranches);
+
+          writeCachedSessionData({
+            patients: pts,
+            appointments: hydratedAppointments,
+            branches: apiBranches,
+          }, user?.id);
 
           setActiveBranchId((prev) => {
             if (prev) return prev;
@@ -282,6 +320,11 @@ export default function App() {
     }
     console.groupEnd();
   }, [user, activeBranchId, branches, doctorCurrentShiftBranchId]);
+
+  useEffect(() => {
+    if (!user) return;
+    localStorage.setItem(getSessionStorageKey('active-branch', user.id), activeBranchId);
+  }, [activeBranchId, user]);
 
 
   const handleLogout = () => {
