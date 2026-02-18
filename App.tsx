@@ -15,6 +15,7 @@ import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
 import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, removeBillingItemViaApi } from './services/api';
+import { setStoredUser } from './services/core/authSession';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -224,6 +225,7 @@ export default function App() {
   const canDoctorChangeBranch = !doctorCurrentShiftBranchId;
 
   const handleLogin = (selectedUser: User) => {
+    setStoredUser(selectedUser);
     setUser(selectedUser);
     setView('APP');
     setActiveTab('dashboard');
