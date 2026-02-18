@@ -13,8 +13,10 @@ import { FinancialReports } from './pages/FinancialReports';
 import { BranchManagement } from './pages/BranchManagement';
 import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
+import { BRANCHES } from './constants';
 import { getAppointments, getPatients } from './services/mockData';
 import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, removeBillingItemViaApi } from './services/api';
+import { getToken, setStoredUser } from './services/core/authSession';
 import { Users } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -113,6 +115,26 @@ export default function App() {
         setLoading(true);
 
         try {
+          const hasAuthToken = Boolean(getToken());
+
+          if (view !== 'PUBLIC' && !hasAuthToken) {
+            const [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+
+            setPatients(fallbackPatients);
+            setAppointments(fallbackAppointments);
+            setBranches(BRANCHES);
+
+            setActiveBranchId((prev) => {
+              if (prev) return prev;
+
+              const userBranchIds = user?.assignedBranches ?? [];
+              const defaultUserBranch = userBranchIds.find((id) => BRANCHES.some((branch) => branch.id === id));
+
+              return user?.activeBranchId ?? defaultUserBranch ?? BRANCHES[0]?.id ?? '';
+            });
+
+            return;
+          }
           console.log('Initiating data fetch...');
           const refreshPatients = () => getPatientsFromApi();
           const refreshAppointments = () => getAppointmentsFromApi([]);
@@ -146,7 +168,9 @@ export default function App() {
           } else {
             console.log('Branches promise fulfilled:', branchesResult.value);
           }
-          const apiBranches = branchesResult.status === 'fulfilled' ? branchesResult.value : [];
+          const apiBranches = branchesResult.status === 'fulfilled' && branchesResult.value.length > 0
+            ? branchesResult.value
+            : BRANCHES;
 
           const patientById = new Map(pts.map((patient) => [patient.id, patient]));
           const hydratedAppointments = rawAppointments.map((appointment) => ({
@@ -224,6 +248,7 @@ export default function App() {
   const canDoctorChangeBranch = !doctorCurrentShiftBranchId;
 
   const handleLogin = (selectedUser: User) => {
+    setStoredUser(selectedUser);
     setUser(selectedUser);
     setView('APP');
     setActiveTab('dashboard');
