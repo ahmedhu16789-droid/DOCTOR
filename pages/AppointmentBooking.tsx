@@ -63,8 +63,6 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
     });
 
     onPatientCreated(created);
-    setSelectedPatient(created);
-    setStep('SELECTION');
 
     return created;
   };

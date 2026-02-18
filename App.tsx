@@ -240,9 +240,11 @@ export default function App() {
     console.log('User Assigned Branches:', user.assignedBranches);
     console.log('All Branches:', branches);
 
-    const branchOptions = branches
-      .filter((branch) => user.assignedBranches.includes(branch.id))
-      .map((branch) => branch.id);
+    const branchOptions = user.role === UserRole.ADMIN
+      ? branches.map((branch) => branch.id)
+      : branches
+          .filter((branch) => user.assignedBranches.includes(branch.id))
+          .map((branch) => branch.id);
 
     console.log('Filtered Branch Options (intersection):', branchOptions);
 
@@ -262,6 +264,11 @@ export default function App() {
     }
 
     if (!activeBranchId || !branchOptions.includes(activeBranchId)) {
+      // Allow ADMIN to have empty activeBranchId (All Branches)
+      if (user.role === UserRole.ADMIN && activeBranchId === '') {
+          return;
+      }
+
       const fallbackBranchId = user.activeBranchId && branchOptions.includes(user.activeBranchId)
         ? user.activeBranchId
         : branchOptions[0];
@@ -459,7 +466,7 @@ export default function App() {
         onLogout={handleLogout}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        availableBranches={branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
+        availableBranches={user.role === UserRole.ADMIN ? branches : branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
         activeBranchId={activeBranchId}
         onActiveBranchChange={setActiveBranchId}
         canChangeBranch={user.role !== UserRole.DOCTOR || canDoctorChangeBranch}

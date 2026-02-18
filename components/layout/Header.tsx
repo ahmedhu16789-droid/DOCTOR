@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, Bell, Search, ChevronDown, Globe } from 'lucide-react';
-import { Branch, User } from '../../types';
+import { Branch, User, UserRole } from '../../types';
 import { clsx } from 'clsx';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +60,9 @@ export const Header: React.FC<HeaderProps> = ({
                 disabled={!canChangeBranch}
                 className="text-sm font-semibold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer hover:text-primary-600 disabled:cursor-not-allowed disabled:text-gray-400"
              >
+                 {user.role === UserRole.ADMIN && (
+                   <option value="">{t('all_branches')}</option>
+                 )}
                  {availableBranches.map(b => (
                      <option key={b.id} value={b.id}>{b.name}</option>
                  ))}

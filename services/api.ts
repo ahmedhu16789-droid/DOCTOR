@@ -451,6 +451,7 @@ export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone
     method: 'POST',
     body: JSON.stringify(patient),
   });
+  console.log('createPatientViaApi payload:', payload);
 
   return normalizePatient(payload);
 };

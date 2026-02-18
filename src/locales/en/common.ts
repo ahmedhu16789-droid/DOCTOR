@@ -5,6 +5,7 @@ export const common = {
     "welcome": "Welcome",
     "notifications": "Notifications",
     "current_branch": "Current Branch",
+    "all_branches": "All Branches",
     "view_all": "View All",
     "loading": "Loading...",
     "actions": "Actions",

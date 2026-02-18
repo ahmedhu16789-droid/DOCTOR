@@ -5,6 +5,7 @@ export const common = {
     "welcome": "مرحباً",
     "notifications": "الإشعارات",
     "current_branch": "الفرع الحالي",
+    "all_branches": "كل الفروع",
     "view_all": "عرض الكل",
     "loading": "جاري التحميل...",
     "actions": "إجراءات",
