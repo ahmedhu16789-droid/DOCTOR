@@ -47,6 +47,17 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
     return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold border border-red-200">UNPAID {due}</span>;
   };
 
+  // Extract unique doctors from today's appointments for the filter
+  const uniqueDoctors = React.useMemo(() => {
+    const docs = new Map();
+    appointments.forEach(a => {
+      if (!docs.has(a.doctorId)) {
+        docs.set(a.doctorId, a.doctorName);
+      }
+    });
+    return Array.from(docs.entries()).map(([id, name]) => ({ id, name }));
+  }, [appointments]);
+
   if (tvMode) {
     return (
       <div className="fixed inset-0 bg-gray-900 text-white z-50 flex flex-col p-8">
@@ -97,15 +108,18 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-bold text-gray-900">{t('patient_queue')}</h2>
-          <select
-            className="text-sm border-gray-300 rounded-lg focus:ring-primary-500"
-            value={filterDoc}
-            onChange={(e) => setFilterDoc(e.target.value)}
-          >
-            <option value="ALL">{t('all_roles').replace('Roles', 'Doctors')}</option> {/* Reuse or add specific key if needed */}
-            <option value="u1">Dr. Sarah Ahmed</option>
-            <option value="u3">Dr. Kareem Ezz</option>
-          </select>
+          {userRole !== UserRole.DOCTOR && (
+            <select
+              className="text-sm border-gray-300 rounded-lg focus:ring-primary-500"
+              value={filterDoc}
+              onChange={(e) => setFilterDoc(e.target.value)}
+            >
+              <option value="ALL">{t('all_roles').replace('Roles', 'Doctors')}</option>
+              {uniqueDoctors.map(doc => (
+                <option key={doc.id} value={doc.id}>{doc.name}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="flex gap-2">
           <div className="flex items-center gap-2 mr-4 text-sm text-gray-500">

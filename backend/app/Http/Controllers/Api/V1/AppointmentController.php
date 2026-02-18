@@ -36,7 +36,7 @@ class AppointmentController extends Controller
             md5(json_encode($filters)),
             fn () => Appointment::query()
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
-                ->with(['invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
+                ->with(['doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))

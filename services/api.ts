@@ -27,6 +27,7 @@ interface ApiAppointment {
   id: string;
   patientId: string;
   doctorId: string;
+  doctorName?: string;
   branchId: string;
   date: string;
   timeSlot: string;
@@ -251,7 +252,7 @@ const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[] =
     patientId: appointment.patientId,
     patientName: patient?.name ?? 'Unknown Patient',
     doctorId: appointment.doctorId,
-    doctorName: doctor?.name ?? 'Doctor',
+    doctorName: appointment.doctorName ?? doctor?.name ?? 'Doctor',
     branchId: appointment.branchId,
     date: appointment.date,
     timeSlot: appointment.timeSlot,

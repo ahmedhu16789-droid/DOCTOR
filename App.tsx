@@ -39,20 +39,20 @@ export default function App() {
 
   const getSessionStorageKey = (suffix: string, userId?: string) => `doctor:${suffix}:${userId ?? 'guest'}`;
   const readCachedSessionData = (userId?: string): { appointments: Appointment[]; patients: Patient[]; branches: Branch[] } | null => {
-    const raw = localStorage.getItem(getSessionStorageKey('dashboard-cache', userId));
+    const raw = localStorage.getItem(getSessionStorageKey('dashboard-cache-v2', userId));
 
     if (!raw) return null;
 
     try {
       return JSON.parse(raw) as { appointments: Appointment[]; patients: Patient[]; branches: Branch[] };
     } catch {
-      localStorage.removeItem(getSessionStorageKey('dashboard-cache', userId));
+      localStorage.removeItem(getSessionStorageKey('dashboard-cache-v2', userId));
       return null;
     }
   };
 
   const writeCachedSessionData = (payload: { appointments: Appointment[]; patients: Patient[]; branches: Branch[] }, userId?: string) => {
-    localStorage.setItem(getSessionStorageKey('dashboard-cache', userId), JSON.stringify(payload));
+    localStorage.setItem(getSessionStorageKey('dashboard-cache-v2', userId), JSON.stringify(payload));
   };
 
   // Workspace State
@@ -475,12 +475,18 @@ export default function App() {
   const currentActiveApt = activeEncounter ? appointments.find(a => a.id === activeEncounter.apt.id) : null;
 
   const visibleAppointments = useMemo(() => {
-    if (!activeBranchId) {
-      return appointments;
+    let filtered = appointments;
+
+    if (activeBranchId) {
+      filtered = filtered.filter((appointment) => appointment.branchId === activeBranchId);
     }
 
-    return appointments.filter((appointment) => appointment.branchId === activeBranchId);
-  }, [appointments, activeBranchId]);
+    if (user?.role === UserRole.DOCTOR) {
+      filtered = filtered.filter((appointment) => appointment.doctorId === user.id);
+    }
+
+    return filtered;
+  }, [appointments, activeBranchId, user]);
 
   // Render Logic
   if (view === 'PUBLIC') {
