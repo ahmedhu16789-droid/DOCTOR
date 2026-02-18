@@ -245,8 +245,8 @@ export default function App() {
     const branchOptions = user.role === UserRole.ADMIN
       ? branches.map((branch) => branch.id)
       : branches
-          .filter((branch) => user.assignedBranches.includes(branch.id))
-          .map((branch) => branch.id);
+        .filter((branch) => user.assignedBranches.includes(branch.id))
+        .map((branch) => branch.id);
 
     console.log('Filtered Branch Options (intersection):', branchOptions);
 
@@ -268,7 +268,7 @@ export default function App() {
     if (!activeBranchId || !branchOptions.includes(activeBranchId)) {
       // Allow ADMIN to have empty activeBranchId (All Branches)
       if (user.role === UserRole.ADMIN && activeBranchId === '') {
-          return;
+        return;
       }
 
       const fallbackBranchId = user.activeBranchId && branchOptions.includes(user.activeBranchId)
@@ -439,17 +439,47 @@ export default function App() {
     return appointments.filter((appointment) => appointment.branchId === activeBranchId);
   }, [appointments, activeBranchId]);
 
-  const MainContent = () => {
-    if (view === 'PUBLIC') {
-      return <PublicBooking onBackToLogin={() => setView('AUTH')} />;
-    }
+  // Render Logic
+  if (view === 'PUBLIC') {
+    return (
+      <LanguageProvider>
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+          >
+            {toast.message}
+          </div>
+        )}
+        <PublicBooking onBackToLogin={() => setView('AUTH')} />
+      </LanguageProvider>
+    );
+  }
 
-    if (view === 'AUTH') {
-      return <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />;
-    }
+  if (view === 'AUTH') {
+    return (
+      <LanguageProvider>
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+          >
+            {toast.message}
+          </div>
+        )}
+        <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />
+      </LanguageProvider>
+    );
+  }
 
-    if (activeEncounter && user && currentActiveApt) {
-      return (
+  if (activeEncounter && user && currentActiveApt) {
+    return (
+      <LanguageProvider>
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+          >
+            {toast.message}
+          </div>
+        )}
         <DoctorWorkspace
           appointment={currentActiveApt}
           patient={activeEncounter.patient}
@@ -459,19 +489,28 @@ export default function App() {
           onAddService={handleAddService}
           onRemoveService={handleRemoveService}
         />
-      );
-    }
+      </LanguageProvider>
+    );
+  }
 
-    return (
+  return (
+    <LanguageProvider>
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
+        >
+          {toast.message}
+        </div>
+      )}
       <DashboardLayout
         user={user}
         onLogout={handleLogout}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        availableBranches={user.role === UserRole.ADMIN ? branches : branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
+        availableBranches={user?.role === UserRole.ADMIN ? branches : branches.filter((branch) => user?.assignedBranches.includes(branch.id) ?? false)}
         activeBranchId={activeBranchId}
         onActiveBranchChange={setActiveBranchId}
-        canChangeBranch={user.role !== UserRole.DOCTOR || canDoctorChangeBranch}
+        canChangeBranch={user?.role !== UserRole.DOCTOR || canDoctorChangeBranch}
       >
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -580,19 +619,6 @@ export default function App() {
           </>
         )}
       </DashboardLayout>
-    );
-  }
-
-  return (
-    <LanguageProvider>
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
-        >
-          {toast.message}
-        </div>
-      )}
-      <MainContent />
     </LanguageProvider>
   );
 }

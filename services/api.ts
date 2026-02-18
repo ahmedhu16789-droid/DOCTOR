@@ -447,13 +447,13 @@ export const lookupPatientsByPhoneFromApi = async (phone: string): Promise<Patie
 };
 
 export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone' | 'age' | 'gender'> & { medicalHistorySummary?: string }): Promise<Patient> => {
-  const payload = await apiFetch<{ data: ApiPatient }>('/patients', {
+  const payload = await apiFetch<ApiPatient>('/patients', {
     method: 'POST',
     body: JSON.stringify(patient),
   });
   console.log('createPatientViaApi payload:', payload);
 
-  return normalizePatient(payload.data);
+  return normalizePatient(payload);
 };
 
 

@@ -18,6 +18,7 @@ type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
 export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated }) => {
   const { t } = useTranslation();
+
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedDept, setSelectedDept] = useState<Department>(Department.INTERNAL_MEDICINE);
@@ -54,6 +55,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   }, [doctors, activeBranchId, selectedDate]);
 
   const handlePatientCreate = async (newPatientData: Partial<Patient>) => {
+    console.log('handlePatientCreate: Called with', newPatientData);
     const created = await createPatientViaApi({
       name: newPatientData.name ?? '',
       phone: newPatientData.phone ?? '',
@@ -61,6 +63,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       gender: (newPatientData.gender as 'Male' | 'Female') ?? 'Male',
       medicalHistorySummary: newPatientData.medicalHistorySummary,
     });
+    console.log('handlePatientCreate: API returned', created);
 
     onPatientCreated(created);
 
