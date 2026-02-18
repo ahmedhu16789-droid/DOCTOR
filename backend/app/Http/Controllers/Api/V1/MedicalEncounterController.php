@@ -17,11 +17,27 @@ class MedicalEncounterController extends Controller
 
         $encounter = $appointment->encounter()->with('prescriptions')->first();
 
+        $history = MedicalEncounter::query()
+            ->where('patient_id', $appointment->patient_id)
+            ->where('id', '!=', $encounter?->id)
+            ->with(['appointment:id,date,time_slot', 'prescriptions'])
+            ->latest('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn (MedicalEncounter $item) => $this->serializeEncounter($item))
+            ->values();
+
         if (! $encounter) {
-            return response()->json(['data' => null]);
+            return response()->json([
+                'data' => null,
+                'history' => $history,
+            ]);
         }
 
-        return response()->json(['data' => $this->serializeEncounter($encounter)]);
+        return response()->json([
+            'data' => $this->serializeEncounter($encounter),
+            'history' => $history,
+        ]);
     }
 
     public function upsert(Request $request, Appointment $appointment): JsonResponse
@@ -94,6 +110,8 @@ class MedicalEncounterController extends Controller
             'diagnosis' => $encounter->diagnosis,
             'plan' => $encounter->plan,
             'status' => $encounter->status,
+            'date' => $encounter->appointment?->date,
+            'timeSlot' => $encounter->appointment?->time_slot,
             'prescription' => $encounter->prescriptions->map(fn ($medication) => [
                 'id' => (string) $medication->id,
                 'name' => $medication->medication_name,

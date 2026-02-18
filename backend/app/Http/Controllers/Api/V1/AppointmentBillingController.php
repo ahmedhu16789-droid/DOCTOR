@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\InvoiceItem;
+use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,6 +45,41 @@ class AppointmentBillingController extends Controller
             ]);
 
             $this->recalculateInvoice($invoice);
+        });
+
+        $appointment->load('invoice.items');
+
+        return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
+
+    public function processPayment(Request $request, Appointment $appointment): JsonResponse
+    {
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'method' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        DB::transaction(function () use ($request, $appointment, $validated): void {
+            $invoice = $appointment->invoice;
+            abort_if(! $invoice, 422, 'Appointment invoice was not initialized.');
+
+            $amount = (float) $validated['amount'];
+            $remaining = max(0.0, (float) $invoice->total - (float) $invoice->paid_amount);
+            abort_if($amount > $remaining, 422, 'Payment amount exceeds outstanding balance.');
+
+            $invoice->paid_amount = (float) $invoice->paid_amount + $amount;
+            $this->recalculateInvoice($invoice);
+
+            Transaction::query()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'invoice_id' => $invoice->id,
+                'amount' => $amount,
+                'method' => $validated['method'] ?? null,
+                'paid_at' => now(),
+            ]);
         });
 
         $appointment->load('invoice.items');

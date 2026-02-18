@@ -55,6 +55,8 @@ interface ApiMedicalEncounter {
   diagnosis?: string;
   plan?: string;
   status: 'DRAFT' | 'FINALIZED';
+  date?: string;
+  timeSlot?: string;
   prescription: {
     id: string;
     name: string;
@@ -66,6 +68,16 @@ interface ApiMedicalEncounter {
   }[];
 }
 
+
+interface ApiEncounterHistoryResponse {
+  data: ApiMedicalEncounter | null;
+  history?: ApiMedicalEncounter[];
+}
+
+export interface MedicalEncounterWithHistory {
+  data: ApiMedicalEncounter | null;
+  history: ApiMedicalEncounter[];
+}
 
 interface ApiPatient {
   id: string;
@@ -540,8 +552,20 @@ export const createAppointmentViaApi = async (appointment: Partial<Appointment>)
 };
 
 
-export const getMedicalEncounterFromApi = async (appointmentId: string): Promise<ApiMedicalEncounter | null> => {
-  const payload = await apiFetch<{ data: ApiMedicalEncounter | null }>(`/appointments/${appointmentId}/encounter`);
+export const getMedicalEncounterFromApi = async (appointmentId: string): Promise<MedicalEncounterWithHistory> => {
+  const payload = await apiFetch<ApiEncounterHistoryResponse>(`/appointments/${appointmentId}/encounter`);
+  return {
+    data: payload.data,
+    history: payload.history ?? [],
+  };
+};
+
+export const updateAppointmentStatusViaApi = async (appointmentId: string, status: AppointmentStatus): Promise<ApiAppointment> => {
+  const payload = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
   return payload.data;
 };
 
@@ -575,6 +599,16 @@ export const addBillingItemViaApi = async (appointmentId: string, service: { ser
   });
 
   return payload.data;
+};
+
+
+export const processAppointmentPaymentViaApi = async (appointmentId: string, payload: { amount: number; method: PaymentMethod }): Promise<ApiAppointment> => {
+  const response = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/billing/payments`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  return response.data;
 };
 
 export const removeBillingItemViaApi = async (appointmentId: string, itemId: string): Promise<ApiAppointment> => {

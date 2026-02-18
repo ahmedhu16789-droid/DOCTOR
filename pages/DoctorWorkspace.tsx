@@ -10,7 +10,7 @@ interface DoctorWorkspaceProps {
     patient: Patient;
     userRole: UserRole;
     onClose: () => void;
-    onComplete: () => void;
+    onComplete: (appointmentId: string) => void;
     onAddService: (aptId: string, service: ServiceItem) => void;
     onRemoveService: (aptId: string, itemId: string) => void;
 }
@@ -27,6 +27,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [prescription, setPrescription] = useState<Medication[]>([]);
     const [medicationOptions, setMedicationOptions] = useState<{ id: string; name: string; activeIngredient?: string }[]>([]);
     const [saving, setSaving] = useState(false);
+    const [history, setHistory] = useState<{ id: string; date?: string; diagnosis?: string; plan?: string; doctorId?: string; }[]>([]);
 
     // Rx Builder State
     const [rxSearch, setRxSearch] = useState('');
@@ -35,7 +36,10 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const isNurse = userRole === UserRole.NURSE;
 
     const loadEncounter = async () => {
-        const data = await getMedicalEncounterFromApi(appointment.id);
+        const payload = await getMedicalEncounterFromApi(appointment.id);
+        setHistory(payload.history ?? []);
+
+        const data = payload.data;
         if (!data) return;
 
         setVitals({ ...data.vitals, recordedBy: data.vitals?.recordedBy ?? 'u1', timestamp: data.vitals?.timestamp ?? new Date().toISOString() });
@@ -84,7 +88,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
             });
 
             if (status === 'FINALIZED') {
-                onComplete();
+                onComplete(appointment.id);
             }
         } finally {
             setSaving(false);
@@ -155,12 +159,15 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     <div className="p-4">
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{t('previous_visits')}</h4>
                         <div className="space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="relative pl-4 rtl:pl-0 rtl:pr-4 border-l-2 rtl:border-l-0 rtl:border-r-2 border-gray-200 pb-2">
+                            {history.length === 0 && (
+                                <div className="text-sm text-gray-500">No previous visits</div>
+                            )}
+                            {history.map((visit) => (
+                                <div key={visit.id} className="relative pl-4 rtl:pl-0 rtl:pr-4 border-l-2 rtl:border-l-0 rtl:border-r-2 border-gray-200 pb-2">
                                     <div className="absolute -left-[5px] rtl:-right-[5px] top-0 w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                                    <div className="text-sm font-bold text-gray-800">Oct 1{i}, 2023</div>
-                                    <div className="text-xs text-gray-500 mb-1">Dr. Sarah Ahmed • Cardiology</div>
-                                    <div className="text-sm text-gray-600">Follow up on hypertension. Adjusted meds.</div>
+                                    <div className="text-sm font-bold text-gray-800">{visit.date ?? '-'}</div>
+                                    <div className="text-xs text-gray-500 mb-1">{visit.diagnosis ?? t('diagnosis')}</div>
+                                    <div className="text-sm text-gray-600">{visit.plan ?? t('plan')}</div>
                                 </div>
                             ))}
                         </div>

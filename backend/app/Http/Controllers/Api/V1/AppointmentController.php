@@ -111,6 +111,46 @@ class AppointmentController extends Controller
         return response()->json(['data' => $data]);
     }
 
+
+    public function updateStatus(Request $request, Appointment $appointment): JsonResponse
+    {
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
+        ]);
+
+        $status = $validated['status'];
+
+        $appointment->status = $status;
+
+        if ($status === 'CALLED' && ! $appointment->called_at) {
+            $appointment->called_at = now();
+        }
+
+        if ($status === 'IN_PROGRESS') {
+            $appointment->started_at = $appointment->started_at ?? now();
+            $appointment->called_at = $appointment->called_at ?? now();
+        }
+
+        if ($status === 'COMPLETED') {
+            $appointment->completed_at = now();
+            $appointment->started_at = $appointment->started_at ?? now();
+            $appointment->called_at = $appointment->called_at ?? $appointment->started_at;
+        }
+
+        if ($status === 'NO_SHOW') {
+            $appointment->no_show_at = now();
+        }
+
+        $appointment->save();
+        $appointment->load(['doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+
+        ApiCache::bump('appointments.index', $request->user()->clinic_id);
+
+        return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
     public function store(AppointmentRequest $request): JsonResponse
     {
         $doctorId = $request->integer('doctorId');
