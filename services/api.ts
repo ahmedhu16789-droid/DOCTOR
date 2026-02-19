@@ -57,6 +57,7 @@ interface ApiMedicalEncounter {
   examFindings?: string;
   diagnosis?: string;
   plan?: string;
+  nextVisitDate?: string;
   status: 'DRAFT' | 'FINALIZED';
   date?: string;
   timeSlot?: string;
@@ -587,6 +588,7 @@ export const saveMedicalEncounterViaApi = async (appointmentId: string, payload:
   examFindings?: string;
   diagnosis?: string;
   plan?: string;
+  nextVisitDate?: string;
   status?: 'DRAFT' | 'FINALIZED';
   prescription: Medication[];
 }): Promise<ApiMedicalEncounter> => {

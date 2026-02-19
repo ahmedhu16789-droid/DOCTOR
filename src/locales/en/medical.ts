@@ -29,6 +29,7 @@ export const medical = {
     "diagnosis_placeholder": "e.g. Essential Hypertension",
     "plan": "Plan & Follow-up",
     "plan_placeholder": "Rest for 3 days, return if fever persists...",
+    "next_visit_date": "Next Visit Date",
 
     // Prescription
     "rx_builder": "Prescription Builder",
