@@ -7,12 +7,17 @@ use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\InvoiceItem;
 use App\Models\Transaction;
+use App\Services\DoctorEarningsCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AppointmentBillingController extends Controller
 {
+    public function __construct(private readonly DoctorEarningsCalculator $doctorEarningsCalculator)
+    {
+    }
+
     public function addItem(Request $request, Appointment $appointment): JsonResponse
     {
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
@@ -73,13 +78,15 @@ class AppointmentBillingController extends Controller
             $invoice->paid_amount = (float) $invoice->paid_amount + $amount;
             $this->recalculateInvoice($invoice);
 
-            Transaction::query()->create([
+            $transaction = Transaction::query()->create([
                 'clinic_id' => $request->user()->clinic_id,
                 'invoice_id' => $invoice->id,
                 'amount' => $amount,
                 'method' => $validated['method'] ?? null,
                 'paid_at' => now(),
             ]);
+
+            $this->doctorEarningsCalculator->recordForPayment($appointment, $invoice, $transaction);
         });
 
         $appointment->load('invoice.items');
