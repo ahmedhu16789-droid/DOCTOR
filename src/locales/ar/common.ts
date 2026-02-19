@@ -9,6 +9,8 @@ export const common = {
     "view_all": "عرض الكل",
     "loading": "جاري التحميل...",
     "actions": "إجراءات",
+    "language.switch_to_ar": "العربية",
+    "language.switch_to_en": "English",
 
     // Auth / Login
     "login_title": "عيادات الفتح",

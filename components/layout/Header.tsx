@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 text-xs font-bold transition-all"
         >
             <Globe className="w-3.5 h-3.5" />
-            {language === 'en' ? 'العربية' : 'English'}
+            {t(language === 'en' ? 'language.switch_to_ar' : 'language.switch_to_en', { keySeparator: false })}
         </button>
 
         {/* Search Bar (Hidden on small mobile) */}

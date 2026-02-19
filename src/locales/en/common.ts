@@ -9,6 +9,8 @@ export const common = {
     "view_all": "View All",
     "loading": "Loading...",
     "actions": "Actions",
+    "language.switch_to_ar": "Arabic",
+    "language.switch_to_en": "English",
 
     // Auth / Login
     "login_title": "Al-Fath Clinic",
