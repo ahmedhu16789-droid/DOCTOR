@@ -137,5 +137,11 @@ export const common = {
     "close": "إغلاق",
     "cancel": "إلغاء",
     "create_select": "إنشاء واختيار",
+    "appointment_status_update_failed": "تعذر تحديث حالة الموعد حالياً",
+    "booking_saved_for_patient": "تم حفظ الحجز لـ {{patientName}}",
+    "booking_save_failed_for_patient": "تعذر حفظ الحجز على السيرفر لـ {{patientName}}",
+    "service_add_failed": "تعذر إضافة الخدمة حالياً",
+    "service_remove_failed": "تعذر حذف الخدمة حالياً",
+    "payment_record_failed": "تعذر تسجيل الدفعة حالياً",
     "search_result_hint": "أدخل الاسم أو الرقم للبحث",
 };

@@ -137,5 +137,11 @@ export const common = {
     "close": "Close",
     "cancel": "Cancel",
     "create_select": "Create & Select",
+    "appointment_status_update_failed": "Unable to update appointment status right now",
+    "booking_saved_for_patient": "Booking saved for {{patientName}}",
+    "booking_save_failed_for_patient": "Unable to save booking on the server for {{patientName}}",
+    "service_add_failed": "Unable to add service right now",
+    "service_remove_failed": "Unable to remove service right now",
+    "payment_record_failed": "Unable to record payment right now",
     "search_result_hint": "Enter name or phone to search",
 };
