@@ -54,7 +54,7 @@ export const ClinicSettingsForm: React.FC = () => {
     };
 
     if (isLoading) {
-        return <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-sm text-gray-500">Loading settings...</div>;
+        return <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-sm text-gray-500">{t('clinic_settings_loading')}</div>;
     }
 
     return (
@@ -145,19 +145,19 @@ export const ClinicSettingsForm: React.FC = () => {
                                         <Clock className="h-5 w-5 text-gray-400" />
                                     </div>
                                     <select {...register('timezone')} className="block w-full pl-10 rounded-md border-gray-300 border p-2 bg-white">
-                                        <option value="Africa/Cairo">Africa/Cairo (GMT+2/3)</option>
-                                        <option value="Asia/Riyadh">Asia/Riyadh (GMT+3)</option>
-                                        <option value="Asia/Dubai">Asia/Dubai (GMT+4)</option>
-                                        <option value="Europe/London">Europe/London (GMT+0)</option>
+                                        <option value="Africa/Cairo">{t('timezone_africa_cairo')}</option>
+                                        <option value="Asia/Riyadh">{t('timezone_asia_riyadh')}</option>
+                                        <option value="Asia/Dubai">{t('timezone_asia_dubai')}</option>
+                                        <option value="Europe/London">{t('timezone_europe_london')}</option>
                                     </select>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('default_currency')}</label>
                                 <select {...register('currency')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
-                                    <option value="EGP">Egyptian Pound (EGP)</option>
-                                    <option value="USD">US Dollar ($)</option>
-                                    <option value="SAR">Saudi Riyal (SAR)</option>
+                                    <option value="EGP">{t('currency_egp')}</option>
+                                    <option value="USD">{t('currency_usd')}</option>
+                                    <option value="SAR">{t('currency_sar')}</option>
                                 </select>
                             </div>
                         </div>
