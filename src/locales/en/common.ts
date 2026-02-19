@@ -93,6 +93,22 @@ export const common = {
     "clinical_notes": "Clinical Notes",
     "no_visits_for_patient": "No visits recorded for this patient yet",
     "select_patient_to_view_visits": "Select a patient to view full visit details and accurately track status",
+    "paid_total": "Paid Total",
+    "due_total": "Due Total",
+    "invoice_total": "Invoice Total",
+    "visit_progress": "Visit Progress",
+    "visit_closed_without_completion": "Visit ended without completion",
+    "SCHEDULED": "Scheduled",
+    "WAITING": "Waiting",
+    "CALLED": "Called",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "NO_SHOW": "No Show",
+    "UNPAID": "Unpaid",
+    "PARTIAL": "Partial",
+    "PAID": "Paid",
+    "REFUNDED": "Refunded",
 
     // Calendar
     "months": [
