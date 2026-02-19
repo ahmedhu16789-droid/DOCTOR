@@ -29,6 +29,7 @@ export const medical = {
     "diagnosis_placeholder": "مثال: ارتفاع ضغط الدم الأولي",
     "plan": "الخطة والمتابعة",
     "plan_placeholder": "راحة لمدة 3 أيام، العودة في حالة استمرار الحمى...",
+    "next_visit_date": "موعد الزيارة التالية",
 
     // Prescription
     "rx_builder": "منشئ الروشتة",

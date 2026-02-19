@@ -21,6 +21,7 @@ class MedicalEncounter extends Model
         'exam_findings',
         'diagnosis',
         'plan',
+        'next_visit_date',
         'status',
         'finalized_at',
     ];
@@ -29,6 +30,7 @@ class MedicalEncounter extends Model
     {
         return [
             'vitals' => 'array',
+            'next_visit_date' => 'date',
             'finalized_at' => 'datetime',
         ];
     }

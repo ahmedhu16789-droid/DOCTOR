@@ -205,6 +205,7 @@ export interface MedicalEncounter {
   vitals?: VitalSigns;
   symptoms: string;
   diagnosis: string;
+  nextVisitDate?: string;
   prescription: Medication[];
   labOrders?: string[];
   internalNotes: string; // Private to staff

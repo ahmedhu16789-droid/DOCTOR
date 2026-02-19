@@ -48,6 +48,7 @@ type VisitHistoryItem = {
     date?: string;
     diagnosis?: string;
     plan?: string;
+    nextVisitDate?: string;
     doctorId?: string;
     vitals?: VitalSigns;
     prescription?: Medication[];
@@ -65,6 +66,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [diagnosis, setDiagnosis] = useState('');
     const [notes, setNotes] = useState('');
     const [plan, setPlan] = useState('');
+    const [nextVisitDate, setNextVisitDate] = useState('');
     const [prescription, setPrescription] = useState<Medication[]>([]);
     const [drugSuggestions, setDrugSuggestions] = useState<string[]>([]);
     const [selectedDrug, setSelectedDrug] = useState('');
@@ -83,6 +85,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const latestNotes = React.useRef(notes);
     const latestDiagnosis = React.useRef(diagnosis);
     const latestPlan = React.useRef(plan);
+    const latestNextVisitDate = React.useRef(nextVisitDate);
     const latestPrescription = React.useRef(prescription);
     const [history, setHistory] = useState<VisitHistoryItem[]>([]);
     const [selectedVisit, setSelectedVisit] = useState<VisitHistoryItem | null>(null);
@@ -108,6 +111,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
         setNotes(data.examFindings ?? '');
         setDiagnosis(data.diagnosis ?? '');
         setPlan(data.plan ?? '');
+        setNextVisitDate(data.nextVisitDate ?? '');
         setPrescription((data.prescription ?? []).map((medication) => ({
             id: medication.id,
             name: medication.name,
@@ -206,6 +210,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     useEffect(() => { latestNotes.current = notes; }, [notes]);
     useEffect(() => { latestDiagnosis.current = diagnosis; }, [diagnosis]);
     useEffect(() => { latestPlan.current = plan; }, [plan]);
+    useEffect(() => { latestNextVisitDate.current = nextVisitDate; }, [nextVisitDate]);
     useEffect(() => { latestPrescription.current = prescription; }, [prescription]);
 
     // Auto-save DRAFT 1.5s after any clinical change — refs guarantee latest data
@@ -218,6 +223,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     examFindings: latestNotes.current,
                     diagnosis: latestDiagnosis.current,
                     plan: latestPlan.current,
+                    nextVisitDate: latestNextVisitDate.current || undefined,
                     status: 'DRAFT',
                     prescription: latestPrescription.current,
                 });
@@ -227,7 +233,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
             }
         }, 1500);
         return () => window.clearTimeout(timer);
-    }, [vitals, notes, diagnosis, plan, prescription]);
+    }, [vitals, notes, diagnosis, plan, prescription, nextVisitDate]);
 
 
     const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
@@ -238,6 +244,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                 examFindings: notes,
                 diagnosis,
                 plan,
+                nextVisitDate: nextVisitDate || undefined,
                 status,
                 prescription,
             });
@@ -647,6 +654,15 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 </button>
                                             ))}
                                         </div>
+                                        <div className="mb-3">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('next_visit_date')}</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 text-sm"
+                                                value={nextVisitDate}
+                                                onChange={e => setNextVisitDate(e.target.value)}
+                                            />
+                                        </div>
                                         <textarea
                                             className="w-full p-3 border-2 border-gray-200 rounded-lg h-28 focus:outline-none focus:border-primary-400 resize-none text-sm"
                                             placeholder={t('plan_placeholder')}
@@ -792,6 +808,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 <p><span className="font-bold text-gray-900">Age:</span> {patient.age}</p>
                                             </div>
                                             <p><span className="font-bold text-gray-900">{t('date')}:</span> {new Date().toLocaleDateString()}</p>
+                                            {nextVisitDate && <p><span className="font-bold text-gray-900">{t('next_visit_date')}:</span> {nextVisitDate}</p>}
                                         </div>
                                         <button onClick={handlePrintRx} className="print:hidden flex items-center gap-2 text-gray-500 hover:text-primary-600">
                                             <Printer className="w-5 h-5" /> {t('print_rx')}
@@ -955,6 +972,10 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                             <div>
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('plan')}</p>
                                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedVisit.plan ?? '-'}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('next_visit_date')}</p>
+                                <p className="text-sm text-gray-700">{selectedVisit.nextVisitDate ?? '-'}</p>
                             </div>
 
                             <div>

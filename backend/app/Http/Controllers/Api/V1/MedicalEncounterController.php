@@ -49,6 +49,7 @@ class MedicalEncounterController extends Controller
             'examFindings' => ['nullable', 'string'],
             'diagnosis' => ['nullable', 'string'],
             'plan' => ['nullable', 'string'],
+            'nextVisitDate' => ['nullable', 'date'],
             'status' => ['nullable', 'in:DRAFT,FINALIZED'],
             'prescription' => ['nullable', 'array'],
             'prescription.*.name' => ['required_with:prescription', 'string'],
@@ -70,6 +71,7 @@ class MedicalEncounterController extends Controller
                     'exam_findings' => $validated['examFindings'] ?? null,
                     'diagnosis' => $validated['diagnosis'] ?? null,
                     'plan' => $validated['plan'] ?? null,
+                    'next_visit_date' => $validated['nextVisitDate'] ?? null,
                     'status' => $validated['status'] ?? 'DRAFT',
                     'finalized_at' => ($validated['status'] ?? null) === 'FINALIZED' ? now() : null,
                 ]
@@ -109,6 +111,7 @@ class MedicalEncounterController extends Controller
             'examFindings' => $encounter->exam_findings,
             'diagnosis' => $encounter->diagnosis,
             'plan' => $encounter->plan,
+            'nextVisitDate' => optional($encounter->next_visit_date)?->format('Y-m-d'),
             'status' => $encounter->status,
             'date' => $encounter->appointment?->date,
             'timeSlot' => $encounter->appointment?->time_slot,
