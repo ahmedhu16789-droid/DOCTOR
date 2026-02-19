@@ -10,6 +10,7 @@ import { ClinicSettings } from '../../pages/ClinicSettings';
 import { DoctorProfile } from '../../pages/DoctorProfile';
 import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
+import { DoctorPayrollReports } from '../../pages/DoctorPayrollReports';
 import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
@@ -126,6 +127,10 @@ export function AppMainContent({
 
       {activeTab === 'finance' && user && (
         <FinancialReports />
+      )}
+
+      {activeTab === 'doctor-payroll' && user && (
+        <DoctorPayrollReports />
       )}
 
       {activeTab === 'patients' && (

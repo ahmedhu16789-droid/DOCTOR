@@ -34,6 +34,7 @@ export const common = {
     "staff_hr": "الموظفين والموارد البشرية",
     "branches": "الفروع",
     "reports": "التقارير المالية",
+    "doctor_payroll": "Payroll الأطباء",
     "settings": "الإعدادات",
     "sign_out": "تسجيل الخروج",
     "workspace": "مساحة العمل",

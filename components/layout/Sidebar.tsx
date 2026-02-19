@@ -48,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       group: 'finance',
       items: [
         { id: 'finance', label: 'reports', icon: Wallet, roles: [UserRole.ADMIN, UserRole.BRANCH_MANAGER] },
+        { id: 'doctor-payroll', label: 'doctor_payroll', icon: Wallet, roles: [UserRole.ADMIN, UserRole.BRANCH_MANAGER] },
       ]
     }
   ];
