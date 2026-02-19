@@ -34,6 +34,7 @@ export const common = {
     "staff_hr": "Staff & HR",
     "branches": "Branches",
     "reports": "Reports",
+    "doctor_payroll": "Doctor Payroll",
     "settings": "Settings",
     "sign_out": "Sign Out",
     "workspace": "Workspace",

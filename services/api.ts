@@ -179,6 +179,32 @@ export interface FinancialReportPayload {
   recentTransactions: FinancialTransaction[];
 }
 
+export interface DoctorPayrollReportFilters {
+  doctorId?: string;
+  branchId?: string;
+  periodMonth?: string;
+  status?: string;
+}
+
+export interface DoctorPayrollReportRecord {
+  periodId: string;
+  doctorId: string;
+  doctorName: string;
+  periodMonth: string;
+  totalEarned: number;
+  totalAdjustments: number;
+  totalSettled: number;
+  status: 'OPEN' | 'CLOSED' | 'SETTLED';
+  closedAt?: string | null;
+}
+
+export interface DoctorPayrollSettlementPayload {
+  settlement_date: string;
+  amount: number;
+  method: string;
+  reference?: string;
+}
+
 export interface ApiDepartmentOption {
   value: Department;
   labelEn: string;
@@ -641,6 +667,30 @@ export const getFinancialReportFromApi = async (params?: { from?: string; to?: s
 
   const payload = await apiFetch<{ data: FinancialReportPayload }>(`/reports/financial${query.toString() ? `?${query.toString()}` : ''}`);
   return payload.data;
+};
+
+export const getDoctorPayrollReportFromApi = async (params?: DoctorPayrollReportFilters): Promise<DoctorPayrollReportRecord[]> => {
+  const query = new URLSearchParams();
+  if (params?.doctorId) query.set('doctor_id', params.doctorId);
+  if (params?.branchId) query.set('branch_id', params.branchId);
+  if (params?.periodMonth) query.set('period_month', params.periodMonth);
+  if (params?.status) query.set('status', params.status);
+
+  const payload = await apiFetch<{ data: DoctorPayrollReportRecord[] }>(`/reports/doctor-payroll${query.toString() ? `?${query.toString()}` : ''}`);
+  return payload.data ?? [];
+};
+
+export const closeDoctorPayrollPeriod = async (periodId: string): Promise<void> => {
+  await apiFetch(`/payroll/periods/${periodId}/close`, {
+    method: 'POST',
+  });
+};
+
+export const settleDoctorPayrollPeriod = async (periodId: string, payload: DoctorPayrollSettlementPayload): Promise<void> => {
+  await apiFetch(`/payroll/periods/${periodId}/settle`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 };
 
 
