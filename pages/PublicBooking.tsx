@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Appointment, Department, Patient } from '../types';
 import { BRANCHES, DEPARTMENTS, MOCK_USERS } from '../constants';
 import { generateTimeSlots, MOCK_PATIENTS } from '../services/mockData';
@@ -10,7 +10,7 @@ interface PublicBookingProps {
 }
 
 export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   // Flow State
   const [step, setStep] = useState<'SEARCH' | 'SLOT_SELECTION' | 'AUTH' | 'CONFIRM'>('SEARCH');
 
@@ -97,7 +97,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
               AF
             </div>
-            <span className="font-bold text-lg text-gray-800">Al-Fath Clinic</span>
+            <span className="font-bold text-lg text-gray-800">{t('clinic_name')}</span>
           </div>
           <button onClick={onBackToLogin} className="text-sm text-gray-500 hover:text-primary-600">
             {t('staff_login')}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { WeeklyShift, Branch } from '../types';
+import { WeeklyShift } from '../types';
 import { BRANCHES } from '../constants';
 import { X, Plus, Clock, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ScheduleEditorProps {
   schedule: WeeklyShift[];
@@ -10,6 +11,7 @@ interface ScheduleEditorProps {
 }
 
 export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave, allowedBranches }) => {
+  const { t } = useTranslation();
   const [shifts, setShifts] = useState<WeeklyShift[]>(schedule);
   const [newShift, setNewShift] = useState<Partial<WeeklyShift>>({
     dayOfWeek: 1,
@@ -20,7 +22,15 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
   });
   const [error, setError] = useState<string | null>(null);
 
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const days = [
+    t('weekday.sunday'),
+    t('weekday.monday'),
+    t('weekday.tuesday'),
+    t('weekday.wednesday'),
+    t('weekday.thursday'),
+    t('weekday.friday'),
+    t('weekday.saturday')
+  ];
 
   // Conflict Detection
   const hasConflict = (shift: Partial<WeeklyShift>) => {
@@ -41,12 +51,12 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
     if (!newShift.startTime || !newShift.endTime || !newShift.branchId) return;
     
     if (newShift.startTime >= newShift.endTime) {
-        setError("End time must be after start time");
+        setError(t('schedule_editor.error.end_after_start'));
         return;
     }
 
     if (hasConflict(newShift)) {
-        setError("This shift overlaps with an existing shift.");
+        setError(t('schedule_editor.error.overlap'));
         return;
     }
 
@@ -76,14 +86,14 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h3 className="font-bold text-gray-900 mb-4 flex items-center">
         <Clock className="w-5 h-5 mr-2 text-primary-600" /> 
-        Weekly Schedule & Availability
+        {t('schedule_editor.title')}
       </h3>
 
       {/* Add Form */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
              <div className="col-span-1">
-                 <label className="text-xs font-bold text-gray-500 uppercase">Day</label>
+                 <label className="text-xs font-bold text-gray-500 uppercase">{t('schedule_editor.day')}</label>
                  <select 
                    className="w-full mt-1 p-2 text-sm border rounded"
                    value={newShift.dayOfWeek}
@@ -93,7 +103,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
                  </select>
              </div>
              <div className="col-span-1">
-                 <label className="text-xs font-bold text-gray-500 uppercase">Branch</label>
+                 <label className="text-xs font-bold text-gray-500 uppercase">{t('schedule_editor.branch')}</label>
                  <select 
                    className="w-full mt-1 p-2 text-sm border rounded"
                    value={newShift.branchId}
@@ -105,7 +115,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
                  </select>
              </div>
              <div>
-                 <label className="text-xs font-bold text-gray-500 uppercase">Start</label>
+                 <label className="text-xs font-bold text-gray-500 uppercase">{t('schedule_editor.start')}</label>
                  <input 
                     type="time" 
                     className="w-full mt-1 p-2 text-sm border rounded"
@@ -114,7 +124,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
                  />
              </div>
              <div>
-                 <label className="text-xs font-bold text-gray-500 uppercase">End</label>
+                 <label className="text-xs font-bold text-gray-500 uppercase">{t('schedule_editor.end')}</label>
                  <input 
                     type="time" 
                     className="w-full mt-1 p-2 text-sm border rounded"
@@ -123,18 +133,18 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
                  />
              </div>
              <div>
-                 <label className="text-xs font-bold text-gray-500 uppercase">Slot (Min)</label>
+                 <label className="text-xs font-bold text-gray-500 uppercase">{t('schedule_editor.slot_min')}</label>
                  <select 
                     className="w-full mt-1 p-2 text-sm border rounded"
                     value={newShift.slotDuration}
                     onChange={e => setNewShift({...newShift, slotDuration: parseInt(e.target.value)})}
                  >
-                     <option value={10}>10 min</option>
-                     <option value={15}>15 min</option>
-                     <option value={20}>20 min</option>
-                     <option value={30}>30 min</option>
-                     <option value={45}>45 min</option>
-                     <option value={60}>60 min</option>
+                     <option value={10}>{t('schedule_editor.slot_option', { minutes: 10 })}</option>
+                     <option value={15}>{t('schedule_editor.slot_option', { minutes: 15 })}</option>
+                     <option value={20}>{t('schedule_editor.slot_option', { minutes: 20 })}</option>
+                     <option value={30}>{t('schedule_editor.slot_option', { minutes: 30 })}</option>
+                     <option value={45}>{t('schedule_editor.slot_option', { minutes: 45 })}</option>
+                     <option value={60}>{t('schedule_editor.slot_option', { minutes: 60 })}</option>
                  </select>
              </div>
          </div>
@@ -149,7 +159,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
             onClick={handleAddShift}
             className="w-full py-2 bg-white border-2 border-dashed border-gray-300 text-gray-500 font-bold rounded hover:border-primary-500 hover:text-primary-600 transition-colors flex justify-center items-center"
          >
-             <Plus className="w-4 h-4 mr-2" /> Add Shift
+             <Plus className="w-4 h-4 mr-2" /> {t('schedule_editor.add_shift')}
          </button>
       </div>
 
@@ -183,7 +193,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ schedule, onSave
               );
           })}
           {shifts.length === 0 && (
-              <div className="text-center text-gray-400 text-sm italic py-4">No working hours defined.</div>
+              <div className="text-center text-gray-400 text-sm italic py-4">{t('schedule_editor.empty')}</div>
           )}
       </div>
     </div>

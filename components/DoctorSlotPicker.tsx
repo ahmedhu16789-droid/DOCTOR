@@ -1,6 +1,7 @@
 import React from 'react';
 import { TimeSlot } from '../types';
 import { Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DoctorSlotPickerProps {
   slots: TimeSlot[];
@@ -9,7 +10,8 @@ interface DoctorSlotPickerProps {
   date: string;
 }
 
-export const DoctorSlotPicker: React.FC<DoctorSlotPickerProps> = ({ slots, selectedSlot, onSelectSlot, date }) => {
+export const DoctorSlotPicker: React.FC<DoctorSlotPickerProps> = ({ slots, selectedSlot, onSelectSlot }) => {
+  const { t } = useTranslation();
   // Group slots by hour for better visualization
   const morningSlots = slots.filter(s => parseInt(s.time.split(':')[0]) < 12);
   const afternoonSlots = slots.filter(s => parseInt(s.time.split(':')[0]) >= 12);
@@ -46,30 +48,30 @@ export const DoctorSlotPicker: React.FC<DoctorSlotPickerProps> = ({ slots, selec
     <div className="space-y-6">
       <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
         <Clock className="w-4 h-4 mr-2" />
-        <span>Time zone: Africa/Cairo (GMT+3) • Duration: 15 min</span>
+        <span>{t('doctor_slot_picker.meta', { timezone: 'Africa/Cairo (GMT+3)', duration: 15 })}</span>
       </div>
 
       <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Morning</h4>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('doctor_slot_picker.morning')}</h4>
         <SlotGrid items={morningSlots} />
-        {morningSlots.length === 0 && <p className="text-sm text-gray-400 italic">No morning slots available.</p>}
+        {morningSlots.length === 0 && <p className="text-sm text-gray-400 italic">{t('doctor_slot_picker.no_morning_slots')}</p>}
       </div>
 
       <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Afternoon</h4>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('doctor_slot_picker.afternoon')}</h4>
         <SlotGrid items={afternoonSlots} />
-        {afternoonSlots.length === 0 && <p className="text-sm text-gray-400 italic">No afternoon slots available.</p>}
+        {afternoonSlots.length === 0 && <p className="text-sm text-gray-400 italic">{t('doctor_slot_picker.no_afternoon_slots')}</p>}
       </div>
       
       <div className="flex items-center gap-4 text-xs mt-4 justify-center border-t border-gray-100 pt-4">
         <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-white border border-gray-300 mr-1"></span> Available
+            <span className="w-3 h-3 rounded-full bg-white border border-gray-300 mr-1"></span> {t('doctor_slot_picker.available')}
         </div>
         <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-primary-600 mr-1"></span> Selected
+            <span className="w-3 h-3 rounded-full bg-primary-600 mr-1"></span> {t('doctor_slot_picker.selected')}
         </div>
         <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full bg-gray-100 border border-gray-200 mr-1"></span> Booked
+            <span className="w-3 h-3 rounded-full bg-gray-100 border border-gray-200 mr-1"></span> {t('doctor_slot_picker.booked')}
         </div>
       </div>
     </div>
