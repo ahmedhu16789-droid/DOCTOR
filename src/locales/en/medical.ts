@@ -56,4 +56,11 @@ export const medical = {
     "patient_history": "Patient History",
     "previous_visits": "Previous Visits",
     "allergies": "Allergies",
+    "visit_details": "Visit Details",
+    "visit_date": "Visit Date",
+    "close": "Close",
+    "previous_prescription": "Previous Prescription",
+    "no_previous_prescription": "No prescription found for this visit",
+    "show_previous_vitals": "Show Previous Vitals",
+    "hide_previous_vitals": "Hide Previous Vitals",
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
-import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign } from 'lucide-react';
+import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
 import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
 import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
@@ -15,6 +15,16 @@ interface DoctorWorkspaceProps {
     onAddService: (aptId: string, service: ServiceItem) => void;
     onRemoveService: (aptId: string, itemId: string) => void;
 }
+
+type VisitHistoryItem = {
+    id: string;
+    date?: string;
+    diagnosis?: string;
+    plan?: string;
+    doctorId?: string;
+    vitals?: VitalSigns;
+    prescription?: Medication[];
+};
 
 export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, patient, userRole, onClose, onComplete, onAddService, onRemoveService }) => {
     const { t } = useTranslation();
@@ -43,7 +53,9 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const latestDiagnosis = React.useRef(diagnosis);
     const latestPlan = React.useRef(plan);
     const latestPrescription = React.useRef(prescription);
-    const [history, setHistory] = useState<{ id: string; date?: string; diagnosis?: string; plan?: string; doctorId?: string; }[]>([]);
+    const [history, setHistory] = useState<VisitHistoryItem[]>([]);
+    const [selectedVisit, setSelectedVisit] = useState<VisitHistoryItem | null>(null);
+    const [showPreviousVitals, setShowPreviousVitals] = useState(false);
 
     // Rx Builder State
     const [rxSearch, setRxSearch] = useState('');
@@ -81,6 +93,18 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     useEffect(() => {
         loadEncounter();
     }, [appointment.id]);
+
+    useEffect(() => {
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setSelectedVisit(null);
+                setShowPreviousVitals(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, []);
 
     // React drug name search — ClinicalTables API works from 2 chars, returns names + dosages together
     useEffect(() => {
@@ -242,12 +266,20 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                 <div className="text-sm text-gray-500">No previous visits</div>
                             )}
                             {history.map((visit) => (
-                                <div key={visit.id} className="relative pl-4 rtl:pl-0 rtl:pr-4 border-l-2 rtl:border-l-0 rtl:border-r-2 border-gray-200 pb-2">
+                                <button
+                                    key={visit.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedVisit(visit);
+                                        setShowPreviousVitals(false);
+                                    }}
+                                    className="w-full text-start relative pl-4 rtl:pl-0 rtl:pr-4 border-l-2 rtl:border-l-0 rtl:border-r-2 border-gray-200 pb-2 rounded-md hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300"
+                                >
                                     <div className="absolute -left-[5px] rtl:-right-[5px] top-0 w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                                     <div className="text-sm font-bold text-gray-800">{visit.date ?? '-'}</div>
                                     <div className="text-xs text-gray-500 mb-1">{visit.diagnosis ?? t('diagnosis')}</div>
                                     <div className="text-sm text-gray-600">{visit.plan ?? t('plan')}</div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -862,6 +894,105 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     </div>
                 </div>
             </div>
+
+            {selectedVisit && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 print:hidden"
+                    onClick={() => {
+                        setSelectedVisit(null);
+                        setShowPreviousVitals(false);
+                    }}
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div
+                        className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                            <h3 className="text-lg font-bold text-gray-900">{t('visit_details')}</h3>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedVisit(null);
+                                    setShowPreviousVitals(false);
+                                }}
+                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                                aria-label={t('close')}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-5">
+                            <div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('visit_date')}</p>
+                                <p className="text-base text-gray-900 font-semibold">{selectedVisit.date ?? '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('diagnosis')}</p>
+                                <p className="text-sm text-gray-700">{selectedVisit.diagnosis ?? '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t('plan')}</p>
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedVisit.plan ?? '-'}</p>
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('previous_prescription')}</p>
+                                </div>
+                                {selectedVisit.prescription && selectedVisit.prescription.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {selectedVisit.prescription.map((medication) => (
+                                            <div key={medication.id} className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                                                <p className="text-sm font-semibold text-gray-800">{medication.name}</p>
+                                                <p className="text-xs text-gray-600 mt-1">
+                                                    {[medication.dosage, medication.frequency, medication.duration].filter(Boolean).join(' • ') || '-'}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500">{t('no_previous_prescription')}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPreviousVitals((current) => !current)}
+                                    className="px-3 py-2 text-sm font-medium rounded-lg border border-primary-200 text-primary-700 hover:bg-primary-50 transition-colors"
+                                >
+                                    {showPreviousVitals ? t('hide_previous_vitals') : t('show_previous_vitals')}
+                                </button>
+                                {showPreviousVitals && (
+                                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="rounded-lg border border-gray-200 p-2">
+                                            <p className="text-xs text-gray-500">{t('blood_pressure')}</p>
+                                            <p className="text-sm font-semibold text-gray-800">
+                                                {selectedVisit.vitals?.bpSystolic ?? '-'} / {selectedVisit.vitals?.bpDiastolic ?? '-'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-200 p-2">
+                                            <p className="text-xs text-gray-500">{t('heart_rate')}</p>
+                                            <p className="text-sm font-semibold text-gray-800">{selectedVisit.vitals?.heartRate ?? '-'}</p>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-200 p-2">
+                                            <p className="text-xs text-gray-500">{t('temp')}</p>
+                                            <p className="text-sm font-semibold text-gray-800">{selectedVisit.vitals?.temperature ?? '-'}</p>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-200 p-2">
+                                            <p className="text-xs text-gray-500">{t('oxygen')}</p>
+                                            <p className="text-sm font-semibold text-gray-800">{selectedVisit.vitals?.oxygenSat ?? '-'}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
