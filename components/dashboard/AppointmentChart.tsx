@@ -22,7 +22,7 @@ export const AppointmentChart: React.FC = () => {
       <p className="text-sm text-gray-500 mb-6">{t('patient_distribution')}</p>
 
       <div className="flex-1 w-full min-h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={250}>
           <BarChart data={data}>
             <XAxis
               dataKey="name"
