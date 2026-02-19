@@ -51,6 +51,47 @@ function getPaymentStatusColor(status: PaymentStatus) {
   }
 }
 
+const dateTimeValue = (appointment: Appointment) => new Date(`${appointment.date}T${appointment.timeSlot}`).getTime();
+
+const VISIT_PROGRESS_STEPS: AppointmentStatus[] = [
+  AppointmentStatus.SCHEDULED,
+  AppointmentStatus.WAITING,
+  AppointmentStatus.CALLED,
+  AppointmentStatus.IN_PROGRESS,
+  AppointmentStatus.COMPLETED,
+];
+
+function getStatusColor(status: AppointmentStatus) {
+  switch (status) {
+    case AppointmentStatus.COMPLETED:
+      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    case AppointmentStatus.IN_PROGRESS:
+      return 'text-indigo-700 bg-indigo-50 border-indigo-200';
+    case AppointmentStatus.CALLED:
+      return 'text-violet-700 bg-violet-50 border-violet-200';
+    case AppointmentStatus.WAITING:
+      return 'text-amber-700 bg-amber-50 border-amber-200';
+    case AppointmentStatus.CANCELLED:
+    case AppointmentStatus.NO_SHOW:
+      return 'text-rose-700 bg-rose-50 border-rose-200';
+    default:
+      return 'text-slate-700 bg-slate-50 border-slate-200';
+  }
+}
+
+function getPaymentStatusColor(status: PaymentStatus) {
+  switch (status) {
+    case PaymentStatus.PAID:
+      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    case PaymentStatus.PARTIAL:
+      return 'text-amber-700 bg-amber-50 border-amber-200';
+    case PaymentStatus.REFUNDED:
+      return 'text-rose-700 bg-rose-50 border-rose-200';
+    default:
+      return 'text-slate-700 bg-slate-50 border-slate-200';
+  }
+}
+
 export function PatientsRecords({
   patients,
   appointments,
@@ -59,6 +100,7 @@ export function PatientsRecords({
 }: PatientsRecordsProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const filteredPatients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -121,6 +163,7 @@ export function PatientsRecords({
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('contact')}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('last_visit')}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('history')}</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -128,12 +171,25 @@ export function PatientsRecords({
               <tr
                 key={patient.id}
                 onClick={() => onSelectPatient(patient.id)}
-                className={`cursor-pointer transition-colors ${selectedPatientId === patient.id ? 'bg-primary-50' : 'hover:bg-gray-50'}`}
+                className={`cursor-pointer transition-colors ${selectedPatientId === patient.id ? 'bg-primary-50 ring-1 ring-primary-100' : 'hover:bg-gray-50'}`}
               >
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{patient.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{patient.phone}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{patient.lastVisit || '-'}</td>
                 <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{patient.medicalHistorySummary}</td>
+                <td className="px-6 py-4 text-sm text-end">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectPatient(patient.id);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-100"
+                  >
+                    {t('view_all')}
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
