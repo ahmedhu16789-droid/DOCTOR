@@ -84,6 +84,15 @@ export const common = {
     "contact": "Contact",
     "last_visit": "Last Visit",
     "history": "History",
+    "total_visits": "Total Visits",
+    "completed_visits": "Completed Visits",
+    "upcoming_visits": "Upcoming Visits",
+    "department": "Department",
+    "appointment_type": "Appointment Type",
+    "payment_status": "Payment Status",
+    "clinical_notes": "Clinical Notes",
+    "no_visits_for_patient": "No visits recorded for this patient yet",
+    "select_patient_to_view_visits": "Select a patient to view full visit details and accurately track status",
 
     // Calendar
     "months": [
