@@ -17,6 +17,8 @@ class DoctorPayrollContract extends Model
         'model',
         'base_salary',
         'commission_percentage',
+        'additional_services_commission_enabled',
+        'additional_services_commission_percentage',
         'effective_from',
         'effective_to',
         'is_active',
@@ -27,6 +29,8 @@ class DoctorPayrollContract extends Model
         return [
             'base_salary' => 'decimal:2',
             'commission_percentage' => 'decimal:2',
+            'additional_services_commission_enabled' => 'boolean',
+            'additional_services_commission_percentage' => 'decimal:2',
             'effective_from' => 'date',
             'effective_to' => 'date',
             'is_active' => 'boolean',

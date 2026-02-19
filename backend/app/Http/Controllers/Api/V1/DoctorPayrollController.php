@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\DoctorEarningsLedger;
+use App\Models\DoctorPayrollContract;
 use App\Models\DoctorPayrollPeriod;
 use App\Models\DoctorPayrollSettlement;
 use Illuminate\Http\JsonResponse;
@@ -14,14 +15,21 @@ class DoctorPayrollController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $periodMonth = $request->query('period_month');
+        $periodMonth = $request->query('period_month') ?: now()->format('Y-m');
         $doctorId = $request->query('doctor_id');
+        $branchId = $request->query('branch_id');
+        $status = $request->query('status');
+
+        $this->ensureMonthlyFixedSalaryAccruals((int) $request->user()->clinic_id, $periodMonth, $doctorId ?: null);
 
         $rows = DoctorEarningsLedger::query()
             ->selectRaw('doctor_id, period_month, SUM(amount) as total_earned, SUM(CASE WHEN earning_type = ? THEN amount ELSE 0 END) as total_adjustments', ['ADJUSTMENT'])
             ->with('doctor:id,name')
             ->when($periodMonth, fn ($query) => $query->where('period_month', $periodMonth))
             ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
+            ->when($branchId, function ($query) use ($branchId): void {
+                $query->whereHas('doctor.branches', fn ($doctorQuery) => $doctorQuery->where('branches.id', (int) $branchId));
+            })
             ->groupBy('doctor_id', 'period_month')
             ->orderByDesc('period_month')
             ->get();
@@ -58,7 +66,54 @@ class DoctorPayrollController extends Controller
             ];
         })->values();
 
+        if ($status) {
+            $data = $data->filter(fn (array $row) => $row['status'] === $status)->values();
+        }
+
         return response()->json(['data' => $data]);
+    }
+
+    private function ensureMonthlyFixedSalaryAccruals(int $clinicId, string $periodMonth, ?string $doctorId = null): void
+    {
+        $periodStart = $periodMonth.'-01';
+        $periodEnd = date('Y-m-t', strtotime($periodStart));
+
+        DoctorPayrollContract::query()
+            ->where('clinic_id', $clinicId)
+            ->whereIn('model', ['FIXED_SALARY', 'HYBRID'])
+            ->where('base_salary', '>', 0)
+            ->whereDate('effective_from', '<=', $periodEnd)
+            ->where(function ($query) use ($periodStart): void {
+                $query->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $periodStart);
+            })
+            ->when($doctorId, fn ($query) => $query->where('doctor_id', (int) $doctorId))
+            ->get()
+            ->each(function (DoctorPayrollContract $contract) use ($periodMonth, $clinicId): void {
+                $alreadyExists = DoctorEarningsLedger::query()
+                    ->where('clinic_id', $clinicId)
+                    ->where('doctor_id', $contract->doctor_id)
+                    ->where('period_month', $periodMonth)
+                    ->where('earning_type', 'FIXED_SALARY_ACCRUAL')
+                    ->exists();
+
+                if ($alreadyExists) {
+                    return;
+                }
+
+                DoctorEarningsLedger::query()->create([
+                    'clinic_id' => $clinicId,
+                    'doctor_id' => $contract->doctor_id,
+                    'period_month' => $periodMonth,
+                    'earning_type' => 'FIXED_SALARY_ACCRUAL',
+                    'basis_amount' => $contract->base_salary,
+                    'rate' => null,
+                    'amount' => $contract->base_salary,
+                    'currency' => strtoupper((string) config('app.currency', 'USD')),
+                    'status' => 'PENDING',
+                    'notes' => 'Monthly fixed salary accrual generated from active payroll contract.',
+                ]);
+            });
     }
 
     public function close(int $id): JsonResponse

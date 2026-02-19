@@ -26,6 +26,8 @@ class DoctorUpsertRequest extends FormRequest
             'payroll.model' => ['required', Rule::in(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'])],
             'payroll.baseSalary' => ['required', 'numeric', 'min:0'],
             'payroll.commissionPercentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'payroll.additionalServicesCommissionEnabled' => ['nullable', 'boolean'],
+            'payroll.additionalServicesCommissionPercentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'schedule' => ['nullable', 'array'],
             'schedule.*.dayOfWeek' => ['required', 'integer', 'between:0,6'],
             'schedule.*.startTime' => ['required', 'date_format:H:i'],

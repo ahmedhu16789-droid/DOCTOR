@@ -76,6 +76,8 @@ export const admin = {
     "payroll_hybrid": "مختلط",
     "base_salary": "الراتب الأساسي",
     "commission_percentage": "نسبة العمولة %",
+    "additional_services_commission_enabled": "تفعيل عمولة الخدمات الإضافية",
+    "additional_services_commission_percentage": "نسبة عمولة الخدمات الإضافية %",
     "consultation_fee": "رسوم الكشف",
     "email": "البريد الإلكتروني",
 

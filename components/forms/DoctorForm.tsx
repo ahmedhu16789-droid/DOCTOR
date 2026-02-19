@@ -21,6 +21,8 @@ const doctorSchema = z.object({
         model: z.enum(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID']),
         baseSalary: z.number().min(0),
         commissionPercentage: z.number().min(0).max(100).optional(),
+        additionalServicesCommissionEnabled: z.boolean().optional(),
+        additionalServicesCommissionPercentage: z.number().min(0).max(100).optional(),
     }),
     schedule: z.array(z.object({
         id: z.string().optional(),
@@ -56,7 +58,13 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
             role: UserRole.DOCTOR,
             consultationFee: initialData?.consultationFee || 0,
             assignedBranches: initialData?.assignedBranches || [],
-            payroll: initialData?.payroll || { model: 'PERCENTAGE', baseSalary: 0, commissionPercentage: 0 },
+            payroll: initialData?.payroll || {
+                model: 'PERCENTAGE',
+                baseSalary: 0,
+                commissionPercentage: 0,
+                additionalServicesCommissionEnabled: false,
+                additionalServicesCommissionPercentage: 0,
+            },
             schedule: initialData?.schedule || []
         }
     });
@@ -159,6 +167,31 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('commission_percentage')}</label>
                                     <input {...register('payroll.commissionPercentage', { valueAsNumber: true })} type="number" min={0} max={100} className="block w-full rounded-md border-gray-300 border p-2" />
+                                </div>
+                            )}
+                            {(paymentModel === 'PERCENTAGE' || paymentModel === 'HYBRID') && (
+                                <div className="md:col-span-2 space-y-3 border border-gray-200 rounded-lg p-4">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                        <input
+                                            {...register('payroll.additionalServicesCommissionEnabled')}
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        {t('additional_services_commission_enabled')}
+                                    </label>
+
+                                    {watch('payroll.additionalServicesCommissionEnabled') && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('additional_services_commission_percentage')}</label>
+                                            <input
+                                                {...register('payroll.additionalServicesCommissionPercentage', { valueAsNumber: true })}
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                className="block w-full rounded-md border-gray-300 border p-2"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

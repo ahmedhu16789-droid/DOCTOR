@@ -35,6 +35,10 @@ class DoctorResource extends JsonResource
                 'model' => $this->payroll['model'] ?? 'PERCENTAGE',
                 'baseSalary' => (float) ($this->payroll['baseSalary'] ?? 0),
                 'commissionPercentage' => isset($this->payroll['commissionPercentage']) ? (float) $this->payroll['commissionPercentage'] : null,
+                'additionalServicesCommissionEnabled' => (bool) ($this->payroll['additionalServicesCommissionEnabled'] ?? false),
+                'additionalServicesCommissionPercentage' => isset($this->payroll['additionalServicesCommissionPercentage'])
+                    ? (float) $this->payroll['additionalServicesCommissionPercentage']
+                    : null,
                 'effectiveDate' => $this->payroll['effectiveDate'] ?? now()->toDateString(),
             ],
         ];
