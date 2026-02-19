@@ -1,23 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
-import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
-import { AppointmentBooking } from './pages/AppointmentBooking';
 import { PublicBooking } from './pages/PublicBooking';
-import { CalendarView } from './components/CalendarView';
-import { ReceptionQueue } from './components/ReceptionQueue';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { EmployeeManagement } from './pages/EmployeeManagement';
-import { FinancialReports } from './pages/FinancialReports';
-import { BranchManagement } from './pages/BranchManagement';
-import { ClinicSettings } from './pages/ClinicSettings';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
 import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
 import { setStoredUser } from './services/core/authSession';
-import { Activity, CalendarDays, Clock3, Stethoscope, UserRoundSearch, Users } from 'lucide-react';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { AppShell } from './components/app/AppShell';
+import { AppMainContent } from './components/app/AppMainContent';
 
 import { useTranslation } from 'react-i18next';
 
@@ -58,18 +49,6 @@ export default function App() {
 
   // Workspace State
   const [activeEncounter, setActiveEncounter] = useState<{ apt: Appointment, patient: Patient } | null>(null);
-
-  const selectedPatient = useMemo(
-    () => patients.find((patient) => patient.id === selectedPatientId) ?? null,
-    [patients, selectedPatientId],
-  );
-
-  const selectedPatientVisits = useMemo(
-    () => appointments
-      .filter((appointment) => appointment.patientId === selectedPatientId)
-      .sort((a, b) => new Date(`${b.date}T${b.timeSlot}`).getTime() - new Date(`${a.date}T${a.timeSlot}`).getTime()),
-    [appointments, selectedPatientId],
-  );
 
   // Persist activeTab to localStorage
   useEffect(() => {
@@ -545,44 +524,23 @@ export default function App() {
   // Render Logic
   if (view === 'PUBLIC') {
     return (
-      <LanguageProvider>
-        {toast && (
-          <div
-            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
-          >
-            {toast.message}
-          </div>
-        )}
+      <AppShell toast={toast}>
         <PublicBooking onBackToLogin={() => setView('AUTH')} />
-      </LanguageProvider>
+      </AppShell>
     );
   }
 
   if (view === 'AUTH') {
     return (
-      <LanguageProvider>
-        {toast && (
-          <div
-            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
-          >
-            {toast.message}
-          </div>
-        )}
+      <AppShell toast={toast}>
         <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />
-      </LanguageProvider>
+      </AppShell>
     );
   }
 
   if (activeEncounter && user && currentActiveApt) {
     return (
-      <LanguageProvider>
-        {toast && (
-          <div
-            className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
-          >
-            {toast.message}
-          </div>
-        )}
+      <AppShell toast={toast}>
         <DoctorWorkspace
           appointment={currentActiveApt}
           patient={activeEncounter.patient}
@@ -592,19 +550,12 @@ export default function App() {
           onAddService={handleAddService}
           onRemoveService={handleRemoveService}
         />
-      </LanguageProvider>
+      </AppShell>
     );
   }
 
   return (
-    <LanguageProvider>
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}
-        >
-          {toast.message}
-        </div>
-      )}
+    <AppShell toast={toast}>
       <DashboardLayout
         user={user}
         onLogout={handleLogout}
@@ -615,207 +566,25 @@ export default function App() {
         onActiveBranchChange={setActiveBranchId}
         canChangeBranch={user?.role !== UserRole.DOCTOR || canDoctorChangeBranch}
       >
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'dashboard' && user && (
-              <Dashboard
-                user={user}
-                appointments={visibleAppointments}
-                onStatusChange={handleStatusChange}
-              />
-            )}
-
-            {activeTab === 'appointments' && user && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
-                <div className="lg:col-span-2 h-full">
-                  <CalendarView appointments={visibleAppointments} />
-                </div>
-                <div className="h-full">
-                  <AppointmentBooking
-                    onBook={handleNewBooking}
-                    patients={patients}
-                    branches={branches}
-                    activeBranchId={activeBranchId}
-                    onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])}
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'queue' && user && (
-              <div className="h-full">
-                <div className="mb-4 flex justify-between items-center">
-                  <h2 className="text-xl font-bold">{t('patient_queue')}</h2>
-                </div>
-                <ReceptionQueue
-                  appointments={visibleAppointments}
-                  onUpdateStatus={handleStatusChange}
-                  onOpenEncounter={handleOpenEncounter}
-                  onProcessPayment={handleProcessPayment}
-                  onRefresh={refreshData}
-                  userRole={user.role}
-                />
-              </div>
-            )}
-
-            {activeTab === 'doctors' && user && (
-              <AdminDashboard currentUser={user} />
-            )}
-
-            {activeTab === 'employees' && user && (
-              <EmployeeManagement currentUser={user} />
-            )}
-
-            {activeTab === 'branches' && user && (
-              <BranchManagement />
-            )}
-
-            {activeTab === 'settings' && user && (
-              <ClinicSettings />
-            )}
-
-            {activeTab === 'finance' && user && (
-              <FinancialReports />
-            )}
-
-            {activeTab === 'patients' && (
-              <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-lg font-bold">{t('patient_records')}</h2>
-                  <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700">{t('add_patient')}</button>
-                </div>
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('name')}</th>
-                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('contact')}</th>
-                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('last_visit')}</th>
-                      <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('history')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {patients.map(p => (
-                      <tr
-                        key={p.id}
-                        onClick={() => setSelectedPatientId(p.id)}
-                        className={`hover:bg-gray-50 cursor-pointer ${selectedPatientId === p.id ? 'bg-primary-50/40' : ''}`}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                              <Users className="w-4 h-4" />
-                            </div>
-                            <div className="ms-4">
-                              <div className="text-sm font-medium text-gray-900">{p.name}</div>
-                              <div className="text-sm text-gray-500">Age: {p.age}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.lastVisit}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{p.medicalHistorySummary}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {selectedPatient ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">{selectedPatient.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{selectedPatient.phone}</p>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full md:w-auto">
-                      <div className="rounded-lg border border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500 mb-1">{t('total_visits')}</p>
-                        <p className="text-lg font-bold text-gray-900">{selectedPatientVisits.length}</p>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500 mb-1">{t('completed_visits')}</p>
-                        <p className="text-lg font-bold text-emerald-600">{selectedPatientVisits.filter((visit) => visit.status === AppointmentStatus.COMPLETED).length}</p>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500 mb-1">{t('upcoming_visits')}</p>
-                        <p className="text-lg font-bold text-blue-600">{selectedPatientVisits.filter((visit) => [AppointmentStatus.SCHEDULED, AppointmentStatus.WAITING, AppointmentStatus.CALLED, AppointmentStatus.IN_PROGRESS].includes(visit.status)).length}</p>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500 mb-1">{t('last_visit')}</p>
-                        <p className="text-lg font-bold text-gray-900">{selectedPatient.lastVisit || '-'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedPatientVisits.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedPatientVisits.map((visit) => (
-                        <div key={visit.id} className="rounded-xl border border-gray-200 p-4">
-                          <div className="flex flex-wrap justify-between gap-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-gray-900 font-semibold">
-                                <Stethoscope className="w-4 h-4 text-primary-600" />
-                                <span>{visit.doctorName}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <CalendarDays className="w-4 h-4" />
-                                <span>{visit.date}</span>
-                                <Clock3 className="w-4 h-4 ms-2" />
-                                <span>{visit.timeSlot}</span>
-                              </div>
-                            </div>
-                            <div className="text-sm">
-                              <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700">
-                                <Activity className="w-4 h-4" />
-                                {visit.status}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                            <div className="rounded-md bg-gray-50 px-3 py-2">
-                              <span className="text-gray-500">{t('department')}:</span>
-                              <span className="font-medium text-gray-900 ms-2">{visit.department}</span>
-                            </div>
-                            <div className="rounded-md bg-gray-50 px-3 py-2">
-                              <span className="text-gray-500">{t('appointment_type')}:</span>
-                              <span className="font-medium text-gray-900 ms-2">{visit.type}</span>
-                            </div>
-                            <div className="rounded-md bg-gray-50 px-3 py-2">
-                              <span className="text-gray-500">{t('payment_status')}:</span>
-                              <span className="font-medium text-gray-900 ms-2">{visit.billing.status}</span>
-                            </div>
-                          </div>
-                          {visit.notes && (
-                            <p className="mt-3 text-sm text-gray-600">
-                              <span className="font-semibold text-gray-800">{t('clinical_notes')}:</span> {visit.notes}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
-                      <UserRoundSearch className="w-8 h-8 mx-auto mb-3 text-gray-400" />
-                      {t('no_visits_for_patient')}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
-                  <UserRoundSearch className="w-8 h-8 mx-auto mb-3 text-gray-400" />
-                  {t('select_patient_to_view_visits')}
-                </div>
-              )}
-              </div>
-            )}
-          </>
-        )}
+        <AppMainContent
+          activeTab={activeTab}
+          user={user}
+          loading={loading}
+          patients={patients}
+          branches={branches}
+          activeBranchId={activeBranchId}
+          visibleAppointments={visibleAppointments}
+          selectedPatientId={selectedPatientId}
+          onStatusChange={handleStatusChange}
+          onBook={handleNewBooking}
+          onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])}
+          onOpenEncounter={handleOpenEncounter}
+          onProcessPayment={handleProcessPayment}
+          onRefresh={refreshData}
+          onSelectPatient={setSelectedPatientId}
+          patientQueueLabel={t('patient_queue')}
+        />
       </DashboardLayout>
-    </LanguageProvider>
+    </AppShell>
   );
 }
