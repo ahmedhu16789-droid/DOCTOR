@@ -78,6 +78,7 @@ export const common = {
     "done": "تم",
     "pay_now": "دفع الآن",
     "billing": "الفواتير",
+    "refresh_data": "تحديث البيانات",
 
     // Patient Records
     "patient_records": "سجلات المرضى",
