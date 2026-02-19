@@ -10,13 +10,15 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table): void {
             $table->json('exam_finding_templates')->nullable()->after('payroll');
+            $table->json('diagnosis_templates')->nullable()->after('exam_finding_templates');
+            $table->json('plan_templates')->nullable()->after('diagnosis_templates');
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn('exam_finding_templates');
+            $table->dropColumn(['exam_finding_templates', 'diagnosis_templates', 'plan_templates']);
         });
     }
 };

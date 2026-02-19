@@ -32,6 +32,8 @@ class User extends Authenticatable
         'schedule',
         'payroll',
         'exam_finding_templates',
+        'diagnosis_templates',
+        'plan_templates',
     ];
 
     protected $hidden = [
@@ -48,6 +50,8 @@ class User extends Authenticatable
             'schedule' => 'array',
             'payroll' => 'array',
             'exam_finding_templates' => 'array',
+            'diagnosis_templates' => 'array',
+            'plan_templates' => 'array',
         ];
     }
 

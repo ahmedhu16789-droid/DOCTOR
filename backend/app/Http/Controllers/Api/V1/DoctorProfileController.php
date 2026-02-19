@@ -15,6 +15,8 @@ class DoctorProfileController extends Controller
 
         return response()->json([
             'examFindingTemplates' => $user->exam_finding_templates ?? [],
+            'diagnosisTemplates' => $user->diagnosis_templates ?? [],
+            'planTemplates' => $user->plan_templates ?? [],
         ]);
     }
 
@@ -26,14 +28,22 @@ class DoctorProfileController extends Controller
         $validated = $request->validate([
             'examFindingTemplates' => ['required', 'array', 'max:30'],
             'examFindingTemplates.*' => ['string', 'min:2', 'max:180'],
+            'diagnosisTemplates' => ['required', 'array', 'max:30'],
+            'diagnosisTemplates.*' => ['string', 'min:2', 'max:180'],
+            'planTemplates' => ['required', 'array', 'max:30'],
+            'planTemplates.*' => ['string', 'min:2', 'max:180'],
         ]);
 
         $user->update([
             'exam_finding_templates' => $validated['examFindingTemplates'],
+            'diagnosis_templates' => $validated['diagnosisTemplates'],
+            'plan_templates' => $validated['planTemplates'],
         ]);
 
         return response()->json([
             'examFindingTemplates' => $user->exam_finding_templates ?? [],
+            'diagnosisTemplates' => $user->diagnosis_templates ?? [],
+            'planTemplates' => $user->plan_templates ?? [],
             'message' => 'Doctor profile updated successfully.',
         ]);
     }

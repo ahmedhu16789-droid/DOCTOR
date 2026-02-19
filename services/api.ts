@@ -16,6 +16,8 @@ interface ApiUser {
   schedule?: User['schedule'];
   activeBranchId?: string | null;
   examFindingTemplates?: string[];
+  diagnosisTemplates?: string[];
+  planTemplates?: string[];
 }
 
 interface ApiLoginResponse {
@@ -110,6 +112,8 @@ interface ApiDoctor {
   schedule?: User['schedule'];
   payroll?: User['payroll'];
   examFindingTemplates?: string[];
+  diagnosisTemplates?: string[];
+  planTemplates?: string[];
 }
 
 
@@ -212,6 +216,8 @@ const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
     activeBranchId: apiUser.activeBranchId ?? undefined,
     avatarUrl: fallbackUser?.avatarUrl,
     examFindingTemplates: apiUser.examFindingTemplates ?? fallbackUser?.examFindingTemplates ?? [],
+    diagnosisTemplates: apiUser.diagnosisTemplates ?? fallbackUser?.diagnosisTemplates ?? [],
+    planTemplates: apiUser.planTemplates ?? fallbackUser?.planTemplates ?? [],
   };
 };
 
@@ -227,6 +233,8 @@ const normalizeDoctor = (doctor: ApiDoctor): User => ({
   schedule: doctor.schedule ?? [],
   payroll: doctor.payroll,
   examFindingTemplates: doctor.examFindingTemplates ?? [],
+  diagnosisTemplates: doctor.diagnosisTemplates ?? [],
+  planTemplates: doctor.planTemplates ?? [],
   status: 'ACTIVE',
 });
 
@@ -636,6 +644,8 @@ export const getFinancialReportFromApi = async (params?: { from?: string; to?: s
 
 export interface DoctorProfilePayload {
   examFindingTemplates: string[];
+  diagnosisTemplates: string[];
+  planTemplates: string[];
 }
 
 export const getDoctorProfileFromApi = async (): Promise<DoctorProfilePayload> => {

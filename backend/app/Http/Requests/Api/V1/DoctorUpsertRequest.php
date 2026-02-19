@@ -34,6 +34,10 @@ class DoctorUpsertRequest extends FormRequest
             'schedule.*.branchId' => ['nullable', 'integer', 'exists:branches,id'],
             'examFindingTemplates' => ['nullable', 'array', 'max:30'],
             'examFindingTemplates.*' => ['string', 'min:2', 'max:180'],
+            'diagnosisTemplates' => ['nullable', 'array', 'max:30'],
+            'diagnosisTemplates.*' => ['string', 'min:2', 'max:180'],
+            'planTemplates' => ['nullable', 'array', 'max:30'],
+            'planTemplates.*' => ['string', 'min:2', 'max:180'],
         ];
     }
 }

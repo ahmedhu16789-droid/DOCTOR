@@ -104,6 +104,8 @@ class AuthController extends Controller
                 'schedule' => $user->schedule ?? [],
                 'activeBranchId' => $this->resolveActiveBranchId($user),
                 'examFindingTemplates' => $user->exam_finding_templates ?? [],
+                'diagnosisTemplates' => $user->diagnosis_templates ?? [],
+                'planTemplates' => $user->plan_templates ?? [],
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
@@ -132,6 +134,8 @@ class AuthController extends Controller
                     'schedule' => $user->schedule ?? [],
                     'activeBranchId' => $this->resolveActiveBranchId($user),
                     'examFindingTemplates' => $user->exam_finding_templates ?? [],
+                    'diagnosisTemplates' => $user->diagnosis_templates ?? [],
+                    'planTemplates' => $user->plan_templates ?? [],
                 ],
                 'clinicId' => (string) $user->clinic_id,
             ]
