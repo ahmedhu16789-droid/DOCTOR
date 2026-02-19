@@ -59,4 +59,8 @@ export const medical = {
     "visit_details": "تفاصيل الزيارة",
     "visit_date": "تاريخ الزيارة",
     "close": "إغلاق",
+    "previous_prescription": "الروشتة السابقة",
+    "no_previous_prescription": "لا توجد روشتة مسجلة لهذه الزيارة",
+    "show_previous_vitals": "إظهار القيم الصحية السابقة",
+    "hide_previous_vitals": "إخفاء القيم الصحية السابقة",
 };
