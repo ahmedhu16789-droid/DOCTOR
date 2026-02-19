@@ -22,8 +22,11 @@ class ApiCache
         $scope = self::scope($clinicId);
         $versionKey = self::versionKey($resource, $scope);
 
-        Cache::increment($versionKey);
-        Cache::put($versionKey, Cache::get($versionKey, 1), now()->addDay());
+        // Explicitly get the current version, default to 0 if missing (so it becomes 1)
+        // Note: The memory/file driver behavior with 'increment' on 'remember'ed values can be flaky.
+        // We'll trust explicit put.
+        $current = (int) Cache::get($versionKey, 1);
+        Cache::put($versionKey, $current + 1, now()->addDay());
     }
 
     private static function version(string $resource, string $scope): int

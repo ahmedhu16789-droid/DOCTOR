@@ -209,69 +209,326 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-8 print:p-0">
 
-                        {activeTab === 'VITALS' && (
-                            <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-                                <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-gray-900"><Activity className="w-5 h-5 text-primary-600" /> {t('vitals_title')}</h2>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('blood_pressure')}</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="number" placeholder="120" value={vitals.bpSystolic ?? ""} onChange={(event) => setVitals({ ...vitals, bpSystolic: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
-                                            <span className="text-gray-400">/</span>
-                                            <input type="number" placeholder="80" value={vitals.bpDiastolic ?? ""} onChange={(event) => setVitals({ ...vitals, bpDiastolic: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
+                        {activeTab === 'VITALS' && (() => {
+                            // Helpers: classify each value as normal/warning/danger
+                            const bp = (vitals.bpSystolic ?? 120);
+                            const hr = vitals.heartRate ?? 72;
+                            const temp = vitals.temperature ?? 36.5;
+                            const spo2 = vitals.oxygenSat ?? 98;
+
+                            const bpStatus = bp < 90 ? 'low' : bp <= 120 ? 'ok' : bp <= 140 ? 'warn' : 'high';
+                            const hrStatus = hr < 60 ? 'low' : hr <= 100 ? 'ok' : hr <= 120 ? 'warn' : 'high';
+                            const tempStatus = temp < 36 ? 'low' : temp <= 37.5 ? 'ok' : temp <= 38.5 ? 'warn' : 'high';
+                            const spo2Status = spo2 >= 95 ? 'ok' : spo2 >= 90 ? 'warn' : 'high';
+
+                            const statusColor = (s: string) =>
+                                s === 'ok' ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                    : s === 'warn' ? 'border-amber-300 bg-amber-50 text-amber-700'
+                                        : s === 'low' ? 'border-blue-300 bg-blue-50 text-blue-700'
+                                            : 'border-red-300 bg-red-50 text-red-700';
+
+                            const statusLabel = (s: string) =>
+                                s === 'ok' ? 'Normal' : s === 'warn' ? 'Elevated' : s === 'low' ? 'Low' : 'High';
+
+                            const VitalCard = ({ label, children, status, range }: { label: string; children: React.ReactNode; status: string; range: string }) => (
+                                <div className={`rounded-xl border-2 p-5 transition-all ${statusColor(status)}`}>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-sm font-semibold text-gray-700">{label}</span>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor(status)}`}>{statusLabel(status)}</span>
+                                    </div>
+                                    {children}
+                                    <div className="text-xs mt-2 text-gray-400">{range}</div>
+                                </div>
+                            );
+
+                            return (
+                                <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+                                    <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-gray-900">
+                                        <Activity className="w-5 h-5 text-primary-600" /> {t('vitals_title')}
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                                        {/* Blood Pressure */}
+                                        <VitalCard label={t('blood_pressure')} status={bpStatus} range="Normal: 90–120 / 60–80 mmHg">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1">
+                                                    <div className="text-xs text-gray-500 mb-1">Systolic</div>
+                                                    <input
+                                                        type="number" min={60} max={220}
+                                                        value={vitals.bpSystolic ?? ''}
+                                                        onChange={e => setVitals({ ...vitals, bpSystolic: Number(e.target.value) || undefined })}
+                                                        placeholder="120"
+                                                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-lg font-mono font-bold focus:outline-none focus:border-primary-400 bg-white"
+                                                    />
+                                                    <input type="range" min={60} max={220} value={vitals.bpSystolic ?? 120}
+                                                        onChange={e => setVitals({ ...vitals, bpSystolic: Number(e.target.value) })}
+                                                        className="w-full mt-1 accent-primary-500"
+                                                    />
+                                                </div>
+                                                <span className="text-2xl text-gray-300 font-light">/</span>
+                                                <div className="flex-1">
+                                                    <div className="text-xs text-gray-500 mb-1">Diastolic</div>
+                                                    <input
+                                                        type="number" min={40} max={130}
+                                                        value={vitals.bpDiastolic ?? ''}
+                                                        onChange={e => setVitals({ ...vitals, bpDiastolic: Number(e.target.value) || undefined })}
+                                                        placeholder="80"
+                                                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-lg font-mono font-bold focus:outline-none focus:border-primary-400 bg-white"
+                                                    />
+                                                    <input type="range" min={40} max={130} value={vitals.bpDiastolic ?? 80}
+                                                        onChange={e => setVitals({ ...vitals, bpDiastolic: Number(e.target.value) })}
+                                                        className="w-full mt-1 accent-primary-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 mt-3">
+                                                {[['120/80', 'Normal'], ['90/60', 'Low BP'], ['140/90', 'High BP']].map(([val, lbl]) => (
+                                                    <button key={val} type="button"
+                                                        onClick={() => { const [s, d] = val.split('/'); setVitals({ ...vitals, bpSystolic: +s, bpDiastolic: +d }); }}
+                                                        className="text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-600">{lbl}</button>
+                                                ))}
+                                            </div>
+                                        </VitalCard>
+
+                                        {/* Heart Rate */}
+                                        <VitalCard label={`${t('heart_rate')} (BPM)`} status={hrStatus} range="Normal: 60–100 bpm">
+                                            <input
+                                                type="number" min={30} max={250}
+                                                value={vitals.heartRate ?? ''}
+                                                onChange={e => setVitals({ ...vitals, heartRate: Number(e.target.value) || undefined })}
+                                                placeholder="72"
+                                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-2xl font-mono font-bold focus:outline-none focus:border-primary-400 bg-white text-center"
+                                            />
+                                            <input type="range" min={30} max={200} value={vitals.heartRate ?? 72}
+                                                onChange={e => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
+                                                className="w-full mt-2 accent-primary-500"
+                                            />
+                                            <div className="flex gap-2 mt-2">
+                                                {[60, 80, 100, 120].map(v => (
+                                                    <button key={v} type="button"
+                                                        onClick={() => setVitals({ ...vitals, heartRate: v })}
+                                                        className="text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex-1">{v}</button>
+                                                ))}
+                                            </div>
+                                        </VitalCard>
+
+                                        {/* Temperature */}
+                                        <VitalCard label={`${t('temp')} (°C)`} status={tempStatus} range="Normal: 36.1–37.5 °C">
+                                            <input
+                                                type="number" step="0.1" min={34} max={42}
+                                                value={vitals.temperature ?? ''}
+                                                onChange={e => setVitals({ ...vitals, temperature: parseFloat(e.target.value) || undefined })}
+                                                placeholder="36.5"
+                                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-2xl font-mono font-bold focus:outline-none focus:border-primary-400 bg-white text-center"
+                                            />
+                                            <input type="range" min={34} max={42} step={0.1} value={vitals.temperature ?? 36.5}
+                                                onChange={e => setVitals({ ...vitals, temperature: parseFloat(e.target.value) })}
+                                                className="w-full mt-2 accent-primary-500"
+                                            />
+                                            <div className="flex gap-2 mt-2">
+                                                {[36.0, 36.5, 37.0, 38.0, 39.0].map(v => (
+                                                    <button key={v} type="button"
+                                                        onClick={() => setVitals({ ...vitals, temperature: v })}
+                                                        className="text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex-1">{v}</button>
+                                                ))}
+                                            </div>
+                                        </VitalCard>
+
+                                        {/* O2 Saturation */}
+                                        <VitalCard label={`${t('oxygen')} (%)`} status={spo2Status} range="Normal: 95–100%">
+                                            <input
+                                                type="number" min={70} max={100}
+                                                value={vitals.oxygenSat ?? ''}
+                                                onChange={e => setVitals({ ...vitals, oxygenSat: Number(e.target.value) || undefined })}
+                                                placeholder="98"
+                                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-2xl font-mono font-bold focus:outline-none focus:border-primary-400 bg-white text-center"
+                                            />
+                                            <input type="range" min={70} max={100} value={vitals.oxygenSat ?? 98}
+                                                onChange={e => setVitals({ ...vitals, oxygenSat: Number(e.target.value) })}
+                                                className="w-full mt-2 accent-primary-500"
+                                            />
+                                            <div className="flex gap-2 mt-2">
+                                                {[90, 93, 95, 97, 99].map(v => (
+                                                    <button key={v} type="button"
+                                                        onClick={() => setVitals({ ...vitals, oxygenSat: v })}
+                                                        className="text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex-1">{v}%</button>
+                                                ))}
+                                            </div>
+                                        </VitalCard>
+
+                                        {/* Weight */}
+                                        <div className="md:col-span-2 rounded-xl border-2 border-gray-200 bg-gray-50 p-5">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-sm font-semibold text-gray-700">{t('weight')} (kg)</span>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <input
+                                                    type="number" min={1} max={300}
+                                                    value={vitals.weight ?? ''}
+                                                    onChange={e => setVitals({ ...vitals, weight: Number(e.target.value) || undefined })}
+                                                    placeholder="70"
+                                                    className="w-32 px-3 py-2 border-2 border-gray-200 rounded-lg text-2xl font-mono font-bold focus:outline-none focus:border-primary-400 bg-white text-center"
+                                                />
+                                                <input type="range" min={1} max={200} value={vitals.weight ?? 70}
+                                                    onChange={e => setVitals({ ...vitals, weight: Number(e.target.value) })}
+                                                    className="flex-1 accent-primary-500"
+                                                />
+                                                <span className="text-gray-400 font-medium">kg</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('heart_rate')}</label>
-                                        <input type="number" placeholder="72" value={vitals.heartRate ?? ""} onChange={(event) => setVitals({ ...vitals, heartRate: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('temp')}</label>
-                                        <input type="number" placeholder="36.5" value={vitals.temperature ?? ""} onChange={(event) => setVitals({ ...vitals, temperature: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('weight')}</label>
-                                        <input type="number" placeholder="70" value={vitals.weight ?? ""} onChange={(event) => setVitals({ ...vitals, weight: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('oxygen')}</label>
-                                        <input type="number" placeholder="98" value={vitals.oxygenSat ?? ""} onChange={(event) => setVitals({ ...vitals, oxygenSat: Number(event.target.value) || undefined })} className="w-full p-2 border border-gray-300 rounded-md" />
-                                    </div>
-                                </div>
-                                <div className="mt-8 pt-6 border-t border-gray-100">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('triage_notes')}</label>
-                                    <textarea
-                                        className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                        placeholder={t('triage_placeholder')}
-                                        value={notes}
-                                        onChange={e => setNotes(e.target.value)}
-                                    ></textarea>
-                                </div>
-                            </div>
-                        )}
 
-                        {activeTab === 'NOTES' && (
-                            <div className="max-w-3xl mx-auto space-y-6">
-                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                                    <h3 className="font-bold text-gray-900 mb-4">{t('exam_findings')}</h3>
-                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-40" placeholder={t('exam_placeholder')} value={notes} onChange={e => setNotes(e.target.value)}></textarea>
+                                    {/* Chief Complaint / Triage Notes */}
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('triage_notes')}</label>
+                                        <textarea
+                                            className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                                            placeholder={t('triage_placeholder')}
+                                            value={notes}
+                                            onChange={e => setNotes(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                                    <h3 className="font-bold text-gray-900 mb-4">{t('diagnosis')}</h3>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 border border-gray-300 rounded-lg"
-                                        placeholder={t('diagnosis_placeholder')}
-                                        value={diagnosis}
-                                        onChange={e => setDiagnosis(e.target.value)}
-                                    />
+                            );
+                        })()}
+
+
+                        {activeTab === 'NOTES' && (() => {
+                            const ICD10_COMMON = [
+                                { code: 'J06.9', label: 'Upper Respiratory Infection' },
+                                { code: 'I10', label: 'Essential Hypertension' },
+                                { code: 'E11.9', label: 'Type 2 Diabetes Mellitus' },
+                                { code: 'J18.9', label: 'Pneumonia, unspecified' },
+                                { code: 'K21.0', label: 'GERD with esophagitis' },
+                                { code: 'M54.5', label: 'Low Back Pain' },
+                                { code: 'J45.9', label: 'Asthma, unspecified' },
+                                { code: 'A09', label: 'Gastroenteritis' },
+                                { code: 'R51', label: 'Headache' },
+                                { code: 'N39.0', label: 'Urinary Tract Infection' },
+                                { code: 'F41.1', label: 'Generalized Anxiety Disorder' },
+                                { code: 'J00', label: 'Common Cold' },
+                                { code: 'B34.9', label: 'Viral Infection, unspecified' },
+                                { code: 'L50.0', label: 'Allergic Urticaria' },
+                                { code: 'R05', label: 'Cough' },
+                            ];
+
+                            const EXAM_TEMPLATES = [
+                                'Conscious, oriented, cooperative',
+                                'Chest: clear to auscultation bilaterally, no wheezes or crackles',
+                                'Abdomen: soft, non-tender, no organomegaly',
+                                'Throat: hyperemic, tonsils not enlarged',
+                                'Skin: no rash, no jaundice',
+                                'Neurological: intact, no focal deficit',
+                                'CVS: S1 S2 heard, no murmurs',
+                                'Lymph nodes: not enlarged',
+                            ];
+
+                            const PLAN_TEMPLATES = [
+                                'Rest for 3 days, plenty of fluids',
+                                'Follow up in 1 week if not improved',
+                                'Referred to specialist',
+                                'Labs ordered, result follow-up',
+                                'Patient educated about medication compliance',
+                                'Return if fever > 38.5°C',
+                                'Lifestyle modification advised',
+                                'Blood pressure monitoring at home',
+                            ];
+
+                            const icdFiltered = ICD10_COMMON.filter(d =>
+                                diagnosis.length >= 1 &&
+                                (d.label.toLowerCase().includes(diagnosis.toLowerCase()) || d.code.includes(diagnosis))
+                            );
+
+                            return (
+                                <div className="max-w-3xl mx-auto space-y-5">
+
+                                    {/* Examination Findings */}
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                        <h3 className="font-bold text-gray-900 mb-3">{t('exam_findings')}</h3>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {EXAM_TEMPLATES.map(tmpl => (
+                                                <button key={tmpl} type="button"
+                                                    onClick={() => setNotes(p => p ? p + '\n' + tmpl : tmpl)}
+                                                    className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 text-gray-600 transition-colors"
+                                                >
+                                                    + {tmpl.length > 35 ? tmpl.slice(0, 35) + '…' : tmpl}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            className="w-full p-3 border-2 border-gray-200 rounded-lg h-36 focus:outline-none focus:border-primary-400 resize-none text-sm"
+                                            placeholder={t('exam_placeholder')}
+                                            value={notes}
+                                            onChange={e => setNotes(e.target.value)}
+                                        />
+                                        <div className="flex justify-end mt-1">
+                                            <span className="text-xs text-gray-400">{notes.length} chars</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Diagnosis with ICD-10 autocomplete */}
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                        <h3 className="font-bold text-gray-900 mb-3">{t('diagnosis')} <span className="text-xs text-gray-400 font-normal ml-1">ICD-10</span></h3>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 text-sm"
+                                                placeholder="Search by name or code, e.g. 'Hypertension' or 'I10'"
+                                                value={diagnosis}
+                                                onChange={e => setDiagnosis(e.target.value)}
+                                            />
+                                            {icdFiltered.length > 0 && (
+                                                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                                                    {icdFiltered.map(d => (
+                                                        <button key={d.code} type="button"
+                                                            onClick={() => setDiagnosis(`${d.code} – ${d.label}`)}
+                                                            className="w-full text-left px-4 py-2.5 hover:bg-primary-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
+                                                        >
+                                                            <span className="font-mono text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded font-bold">{d.code}</span>
+                                                            <span className="text-sm text-gray-800">{d.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Common quick-pick chips */}
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {ICD10_COMMON.slice(0, 6).map(d => (
+                                                <button key={d.code} type="button"
+                                                    onClick={() => setDiagnosis(`${d.code} – ${d.label}`)}
+                                                    className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 text-gray-600 transition-colors"
+                                                >
+                                                    {d.code} {d.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Plan & Follow-up */}
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                        <h3 className="font-bold text-gray-900 mb-3">{t('plan')}</h3>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {PLAN_TEMPLATES.map(tmpl => (
+                                                <button key={tmpl} type="button"
+                                                    onClick={() => setPlan(p => p ? p + '\n' + tmpl : tmpl)}
+                                                    className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 border border-gray-200 text-gray-600 transition-colors"
+                                                >
+                                                    + {tmpl}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <textarea
+                                            className="w-full p-3 border-2 border-gray-200 rounded-lg h-28 focus:outline-none focus:border-primary-400 resize-none text-sm"
+                                            placeholder={t('plan_placeholder')}
+                                            value={plan}
+                                            onChange={e => setPlan(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                                    <h3 className="font-bold text-gray-900 mb-4">{t('plan')}</h3>
-                                    <textarea className="w-full p-3 border border-gray-300 rounded-lg h-24" placeholder={t('plan_placeholder')} value={plan} onChange={e => setPlan(e.target.value)}></textarea>
-                                </div>
-                            </div>
-                        )}
+                            );
+                        })()}
+
+
 
                         {activeTab === 'RX' && (
                             <div className="max-w-4xl mx-auto">

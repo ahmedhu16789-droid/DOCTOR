@@ -84,8 +84,8 @@ export default function App() {
       setUser(cachedUser);
       setView('APP');
 
+      // Load cached data immediately for snappy UI
       const cachedDashboardData = readCachedSessionData(cachedUser.id);
-
       if (cachedDashboardData) {
         setPatients(cachedDashboardData.patients ?? []);
         setAppointments(cachedDashboardData.appointments ?? []);
@@ -106,6 +106,22 @@ export default function App() {
         if (currentUser) {
           setUser(currentUser);
           setView('APP');
+
+          // Always fetch fresh data from the API — never trust the cache on page reload
+          const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
+            getPatientsFromApi(),
+            getAppointmentsFromApi([]),
+            getBranchesFromApi(),
+          ]);
+          const patientById = new Map(freshPatients.map((p) => [p.id, p]));
+          const hydrated = freshAppointments.map((apt) => ({
+            ...apt,
+            patientName: patientById.get(apt.patientId)?.name ?? apt.patientName,
+          }));
+          setPatients(freshPatients);
+          setAppointments(hydrated);
+          setBranches(freshBranches);
+          writeCachedSessionData({ patients: freshPatients, appointments: hydrated, branches: freshBranches }, currentUser.id);
         }
       } catch (error) {
         if (!cachedUser) {
@@ -120,6 +136,29 @@ export default function App() {
 
     initSession();
   }, []);
+
+
+  // Shared data-refresh function that can be called from polling, button click, or initial mount
+  const refreshData = React.useCallback(async () => {
+    if (!user) return;
+    try {
+      const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
+        getPatientsFromApi(),
+        getAppointmentsFromApi([]),
+        getBranchesFromApi(),
+      ]);
+      const patientById = new Map(freshPatients.map((p) => [p.id, p]));
+      const hydrated = freshAppointments.map((apt) => ({
+        ...apt,
+        patientName: patientById.get(apt.patientId)?.name ?? apt.patientName,
+      }));
+      setPatients(freshPatients);
+      setAppointments(hydrated);
+      setBranches(freshBranches);
+    } catch (err) {
+      console.error('refreshData error:', err);
+    }
+  }, [user]);
 
   // Initial Data Fetch
   const lastLoadedSessionRef = React.useRef<string | null>(null);
@@ -228,6 +267,13 @@ export default function App() {
       };
     }
   }, [user, view]);
+
+  // Data Polling (Auto-Sync) — updates every 5s without manual refresh
+  useEffect(() => {
+    if (!user || view !== 'APP') return;
+    const interval = setInterval(() => { refreshData(); }, 5000);
+    return () => clearInterval(interval);
+  }, [user, view, refreshData]);
 
 
   const doctorCurrentShiftBranchId = useMemo(() => {
@@ -597,6 +643,7 @@ export default function App() {
                   onUpdateStatus={handleStatusChange}
                   onOpenEncounter={handleOpenEncounter}
                   onProcessPayment={handleProcessPayment}
+                  onRefresh={refreshData}
                   userRole={user.role}
                 />
               </div>

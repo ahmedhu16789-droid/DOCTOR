@@ -9,6 +9,15 @@ class PatientResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // Get last visit from the latest completed appointment date
+        $lastVisit = $this->whenLoaded('appointments', function () {
+            return $this->appointments
+                ->where('status', 'COMPLETED')
+                ->sortByDesc('date')
+                ->first()
+                ?->date;
+        }, null);
+
         return [
             'id' => (string) $this->id,
             'name' => $this->name,
@@ -16,6 +25,7 @@ class PatientResource extends JsonResource
             'gender' => $this->gender,
             'age' => $this->age,
             'medicalHistorySummary' => $this->medical_history_summary,
+            'lastVisit' => $lastVisit,
         ];
     }
 }

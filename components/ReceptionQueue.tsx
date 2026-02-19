@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Appointment, AppointmentStatus, UserRole, PaymentStatus } from '../types';
-import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard } from 'lucide-react';
+import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard, RotateCw } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { useTranslation } from 'react-i18next';
 
@@ -9,14 +9,16 @@ interface ReceptionQueueProps {
   onUpdateStatus: (id: string, status: AppointmentStatus) => void;
   onOpenEncounter?: (appointment: Appointment) => void;
   onProcessPayment: (aptId: string, amount: number, method: any) => void;
+  onRefresh?: () => Promise<void>;
   userRole: UserRole;
 }
 
-export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, onUpdateStatus, onOpenEncounter, onProcessPayment, userRole }) => {
+export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, onUpdateStatus, onOpenEncounter, onProcessPayment, onRefresh, userRole }) => {
   const { t } = useTranslation();
   const [tvMode, setTvMode] = useState(false);
   const [filterDoc, setFilterDoc] = useState('ALL');
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Filter Logic
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -126,6 +128,20 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
             <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-amber-500 mr-1"></span> {t('waiting')}: {waiting.length}</span>
             <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-primary-500 mr-1"></span> {t('in_progress')}: {inProgress.length}</span>
           </div>
+          {onRefresh && (
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                await onRefresh();
+                setRefreshing(false);
+              }}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium disabled:opacity-60"
+              title="تحديث البيانات"
+            >
+              <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
           <button
             onClick={() => setTvMode(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all text-sm font-medium"

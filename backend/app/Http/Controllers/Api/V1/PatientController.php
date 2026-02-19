@@ -16,19 +16,15 @@ class PatientController extends Controller
         $phone = $request->string('phone')->value();
         $page = max(1, $request->integer('page', 1));
 
-        $patients = ApiCache::remember(
-            'patients.index',
-            $request->user()?->clinic_id,
-            md5(json_encode(['phone' => $phone, 'page' => $page])),
-            fn () => Patient::query()
+        $patients = Patient::query()
                 ->select(['id', 'clinic_id', 'name', 'phone', 'gender', 'age', 'medical_history_summary', 'created_at'])
+                ->with(['appointments:id,patient_id,date,status'])
                 ->when(
                     $request->filled('phone'),
                     fn ($query) => $query->where('phone', 'like', '%'.$phone.'%')
                 )
                 ->latest('created_at')
-                ->simplePaginate(50, ['*'], 'page', $page)
-        );
+                ->simplePaginate(50, ['*'], 'page', $page);
 
         return PatientResource::collection($patients);
     }

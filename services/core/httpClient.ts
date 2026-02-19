@@ -30,6 +30,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...(withAuth && token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers ?? {}),
       },

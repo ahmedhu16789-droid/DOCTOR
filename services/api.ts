@@ -86,6 +86,7 @@ interface ApiPatient {
   gender: 'Male' | 'Female';
   age: number;
   medicalHistorySummary: string;
+  lastVisit?: string | null;
 }
 
 interface ApiBranch {
@@ -245,8 +246,8 @@ const normalizePatient = (patient: ApiPatient): Patient => ({
   age: patient.age,
   gender: patient.gender,
   phone: patient.phone,
-  medicalHistorySummary: patient.medicalHistorySummary,
-  lastVisit: '-',
+  medicalHistorySummary: patient.medicalHistorySummary ?? 'New Patient',
+  lastVisit: patient.lastVisit ?? '-',
   balance: 0,
 });
 

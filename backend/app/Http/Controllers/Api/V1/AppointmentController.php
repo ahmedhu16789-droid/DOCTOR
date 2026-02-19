@@ -30,19 +30,20 @@ class AppointmentController extends Controller
             'page' => max(1, $request->integer('page', 1)),
         ];
 
-        $appointments = ApiCache::remember(
-            'appointments.index',
-            $request->user()?->clinic_id,
-            md5(json_encode($filters)),
-            fn () => Appointment::query()
+        // $appointments = ApiCache::remember(
+        //     'appointments.index',
+        //     $request->user()?->clinic_id,
+        //     md5(json_encode($filters)),
+        //     fn () => Appointment::query()
+        $appointments = Appointment::query()
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
                 ->with(['doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
                 ->latest('date')
-                ->simplePaginate(50, ['*'], 'page', $filters['page'])
-        );
+                ->simplePaginate(50, ['*'], 'page', $filters['page']);
+        // );
 
         return AppointmentResource::collection($appointments);
     }
@@ -117,7 +118,7 @@ class AppointmentController extends Controller
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
 
         $validated = $request->validate([
-            'status' => ['required', 'in:CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
+            'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
         ]);
 
         $status = $validated['status'];
