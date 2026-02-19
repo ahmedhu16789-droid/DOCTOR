@@ -12,11 +12,12 @@ interface AppointmentBookingProps {
   branches: Branch[];
   activeBranchId: string;
   onPatientCreated: (patient: Patient) => void;
+  onStepChange?: (step: BookingStep) => void;
 }
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
-export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated }) => {
+export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated, onStepChange }) => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
@@ -30,6 +31,10 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
 
   const activeBranch = useMemo(() => branches.find((branch) => branch.id === activeBranchId), [activeBranchId, branches]);
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   useEffect(() => {
     if (!activeBranchId) return;
@@ -54,8 +59,19 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       .catch(() => setSlotsByDoctor({}));
   }, [doctors, activeBranchId, selectedDate]);
 
+  useEffect(() => {
+    if (!selectedDoctor || !selectedTime) return;
+
+    const doctorSlots = slotsByDoctor[selectedDoctor.id] ?? [];
+    const selectedSlotExists = doctorSlots.some((slot) => slot.time === selectedTime && slot.available);
+
+    if (!selectedSlotExists) {
+      setSelectedDoctor(null);
+      setSelectedTime('');
+    }
+  }, [slotsByDoctor, selectedDoctor, selectedTime]);
+
   const handlePatientCreate = async (newPatientData: Partial<Patient>) => {
-    console.log('handlePatientCreate: Called with', newPatientData);
     const created = await createPatientViaApi({
       name: newPatientData.name ?? '',
       phone: newPatientData.phone ?? '',
@@ -63,7 +79,6 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       gender: (newPatientData.gender as 'Male' | 'Female') ?? 'Male',
       medicalHistorySummary: newPatientData.medicalHistorySummary,
     });
-    console.log('handlePatientCreate: API returned', created);
 
     onPatientCreated(created);
 
@@ -92,55 +107,64 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
 
   const renderDoctorRow = (doctor: User) => {
     const slots = slotsByDoctor[doctor.id] ?? [];
+    const availableSlots = slots.filter((slot) => slot.available);
 
     return (
-      <div key={doctor.id} className="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-center w-full sm:w-64 flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center">
-            <UserIcon className="w-5 h-5" />
+      <div key={doctor.id} className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center min-w-0">
+            <div className="w-12 h-12 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center flex-shrink-0">
+              <UserIcon className="w-5 h-5" />
+            </div>
+            <div className="ml-3 sm:ms-3 min-w-0">
+              <p className="font-bold text-gray-900 truncate">{doctor.name}</p>
+              <p className="text-xs text-gray-500 capitalize truncate">{doctor.specialty}</p>
+            </div>
           </div>
-          <div className="ml-3 sm:ms-3">
-            <p className="font-bold text-gray-900">{doctor.name}</p>
-            <p className="text-xs text-gray-500 capitalize">{doctor.specialty}</p>
-          </div>
+          <span className="text-xs bg-primary-50 text-primary-700 border border-primary-100 rounded-full px-2.5 py-1 font-semibold whitespace-nowrap">
+            {t('available_slots_count', { count: availableSlots.length })}
+          </span>
         </div>
 
-        <div className="flex-1 overflow-x-auto w-full">
-          <div className="flex gap-2 pb-2 sm:pb-0">
-            {slots.map(slot => (
-              <button
-                key={`${doctor.id}-${slot.time}`}
-                disabled={!slot.available}
-                onClick={() => {
-                  setSelectedDoctor(doctor);
-                  setSelectedTime(slot.time);
-                  setStep('CONFIRMATION');
-                }}
-                className={`flex-shrink-0 px-3 py-2 rounded-md text-xs font-bold transition-colors border ${slot.available
-                  ? 'bg-white border-primary-200 text-primary-700 hover:bg-primary-600 hover:text-white hover:border-primary-600'
-                  : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'}`}
-              >
-                {slot.time}
-              </button>
-            ))}
-            {slots.filter((slot) => slot.available).length === 0 && (
-              <span className="text-xs text-red-400 font-medium py-2">{t('no_slots')}</span>
-            )}
+        {availableSlots.length === 0 ? (
+          <div className="text-xs text-red-500 font-medium py-2">{t('no_slots')}</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {availableSlots.map((slot) => {
+              const isSelected = selectedDoctor?.id === doctor.id && selectedTime === slot.time;
+              return (
+                <button
+                  key={`${doctor.id}-${slot.time}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDoctor(doctor);
+                    setSelectedTime(slot.time);
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-bold transition-all border ${isSelected
+                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm ring-2 ring-primary-200'
+                    : 'bg-white border-primary-200 text-primary-700 hover:bg-primary-50 hover:border-primary-300'}`}
+                >
+                  {slot.time}
+                </button>
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     );
   };
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full max-h-[800px]">
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-900 flex items-center">
+      <div className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center min-w-0">
           <Calendar className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0 text-primary-600" />
-          {step === 'IDENTIFICATION' ? t('identification') : step === 'SELECTION' ? t('select_slot') : t('confirmation')}
+          <span className="truncate">
+            {step === 'IDENTIFICATION' ? t('identification') : step === 'SELECTION' ? t('select_slot') : t('confirmation')}
+          </span>
         </h2>
         {step !== 'IDENTIFICATION' && (
-          <button onClick={() => setStep('IDENTIFICATION')} className="text-sm text-gray-500 hover:text-primary-600">{t('change')}</button>
+          <button onClick={() => setStep('IDENTIFICATION')} className="text-sm text-gray-500 hover:text-primary-600 flex-shrink-0">{t('change')}</button>
         )}
       </div>
 
@@ -164,53 +188,104 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                 {t('no_active_branch_for_user')}
               </div>
             )}
-            <div className="flex flex-col md:flex-row gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('patient')}</label>
-                <div className="font-bold text-gray-900">{selectedPatient?.name}</div>
+                <div className="font-bold text-gray-900 mt-1 truncate">{selectedPatient?.name}</div>
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('branch')}</label>
-                <div className="font-bold text-gray-900">{activeBranch?.name ?? activeBranchId ?? '-'}</div>
+                <div className="font-bold text-gray-900 mt-1 truncate">{activeBranch?.name ?? activeBranchId ?? '-'}</div>
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('department')}</label>
-                <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value as Department)} className="block w-full mt-1 text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white">
-                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                <select
+                  value={selectedDept}
+                  onChange={(e) => {
+                    setSelectedDept(e.target.value as Department);
+                    setSelectedDoctor(null);
+                    setSelectedTime('');
+                  }}
+                  className="block w-full mt-1 text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
+                >
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('date')}</label>
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="block w-full mt-1 text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setSelectedDoctor(null);
+                    setSelectedTime('');
+                  }}
+                  className="block w-full mt-1 text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('available_doctors')}</h3>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t('available_doctors')}</h3>
+                <p className="text-xs text-gray-500">{t('choose_slot_hint')}</p>
+              </div>
+
               {!activeBranchId ? (
                 <div className="text-center py-8 text-amber-600 bg-amber-50 rounded-lg border border-dashed border-amber-300">{t('no_doctors_without_branch')}</div>
               ) : doctors.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">{t('no_doctors')}</div>
               ) : doctors.map(renderDoctorRow)}
             </div>
+
+            {selectedDoctor && selectedTime && (
+              <div className="sticky bottom-0 bg-white/95 backdrop-blur border border-primary-100 rounded-xl p-4 shadow-md">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-bold">{t('selected_slot')}</p>
+                    <p className="font-bold text-gray-900">{selectedDoctor.name} • {selectedTime}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep('CONFIRMATION')}
+                    className="px-4 py-2.5 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700"
+                  >
+                    {t('continue_to_confirmation')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {step === 'CONFIRMATION' && (
-          <div className="max-w-md mx-auto">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center mb-6">
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-5 sm:p-6 text-center mb-5 sm:mb-6">
               <CheckCircle className="w-10 h-10 mx-auto text-green-600 mb-2" />
-              <h3 className="text-xl font-bold text-green-800 mb-1">{t('confirm_title')}</h3>
+              <h3 className="text-2xl font-bold text-green-800 mb-1">{t('confirm_title')}</h3>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('patient')}</span><span className="font-bold">{selectedPatient?.name}</span></div>
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('service')}</span><span className="font-bold">{selectedDept}</span></div>
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('doctor')}</span><span className="font-bold">{selectedDoctor?.name}</span></div>
-              <div className="p-4 flex justify-between bg-gray-50"><span className="text-gray-500">{t('time')}</span><span className="font-bold text-primary-700">{selectedDate} @ {selectedTime}</span></div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('patient')}</span>
+                <span className="font-bold text-xl text-right break-words">{selectedPatient?.name}</span>
+              </div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('service')}</span>
+                <span className="font-bold text-xl text-right break-words">{selectedDept}</span>
+              </div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('doctor')}</span>
+                <span className="font-bold text-xl text-right break-words max-w-[70%]">{selectedDoctor?.name}</span>
+              </div>
+              <div className="p-4 sm:p-5 flex items-start justify-between gap-3 bg-gray-50">
+                <span className="text-gray-500 text-lg">{t('time')}</span>
+                <span className="font-bold text-xl text-primary-700 text-right break-words">{selectedDate} @ {selectedTime}</span>
+              </div>
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setStep('SELECTION')} className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50">{t('back')}</button>
-              <button onClick={handleConfirm} className="flex-[2] py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>
+              <button onClick={() => setStep('SELECTION')} className="flex-1 py-3.5 border border-gray-300 rounded-lg font-medium text-2xl sm:text-xl hover:bg-gray-50">{t('back')}</button>
+              <button onClick={handleConfirm} className="flex-[2] py-3.5 bg-primary-600 text-white rounded-lg font-bold text-xl hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>
             </div>
           </div>
         )}
