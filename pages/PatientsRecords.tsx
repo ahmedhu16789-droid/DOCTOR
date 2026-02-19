@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, XCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, CalendarDays, CheckCircle2, ChevronLeft, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus } from '../types';
 
@@ -59,6 +59,7 @@ export function PatientsRecords({
 }: PatientsRecordsProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const filteredPatients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -95,6 +96,14 @@ export function PatientsRecords({
     [selectedPatientVisits],
   );
 
+  useEffect(() => {
+    if (!selectedPatient || !detailsRef.current) {
+      return;
+    }
+
+    detailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedPatient]);
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -121,6 +130,7 @@ export function PatientsRecords({
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('contact')}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('last_visit')}</th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('history')}</th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -128,12 +138,25 @@ export function PatientsRecords({
               <tr
                 key={patient.id}
                 onClick={() => onSelectPatient(patient.id)}
-                className={`cursor-pointer transition-colors ${selectedPatientId === patient.id ? 'bg-primary-50' : 'hover:bg-gray-50'}`}
+                className={`cursor-pointer transition-colors ${selectedPatientId === patient.id ? 'bg-primary-50 ring-1 ring-primary-100' : 'hover:bg-gray-50'}`}
               >
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{patient.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{patient.phone}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{patient.lastVisit || '-'}</td>
                 <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{patient.medicalHistorySummary}</td>
+                <td className="px-6 py-4 text-sm text-end">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectPatient(patient.id);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-100"
+                  >
+                    {t('view_all')}
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -141,7 +164,7 @@ export function PatientsRecords({
       </div>
 
       {selectedPatient ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div ref={detailsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xl font-bold text-gray-900">{selectedPatient.name}</h3>
