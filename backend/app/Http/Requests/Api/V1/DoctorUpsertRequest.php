@@ -32,6 +32,8 @@ class DoctorUpsertRequest extends FormRequest
             'schedule.*.endTime' => ['required', 'date_format:H:i'],
             'schedule.*.slotDuration' => ['required', 'integer', 'min:5', 'max:120'],
             'schedule.*.branchId' => ['nullable', 'integer', 'exists:branches,id'],
+            'examFindingTemplates' => ['nullable', 'array', 'max:30'],
+            'examFindingTemplates.*' => ['string', 'min:2', 'max:180'],
         ];
     }
 }

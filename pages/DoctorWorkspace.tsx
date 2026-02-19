@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
-import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
+import { getDoctorProfileFromApi, getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
 import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,18 @@ interface DoctorWorkspaceProps {
     onAddService: (aptId: string, service: ServiceItem) => void;
     onRemoveService: (aptId: string, itemId: string) => void;
 }
+
+
+const DEFAULT_EXAM_TEMPLATES = [
+    'Conscious, oriented, cooperative',
+    'Chest: clear to auscultation bilaterally, no wheezes or crackles',
+    'Abdomen: soft, non-tender, no organomegaly',
+    'Throat: hyperemic, tonsils not enlarged',
+    'Skin: no rash, no jaundice',
+    'Neurological: intact, no focal deficit',
+    'CVS: S1 S2 heard, no murmurs',
+    'Lymph nodes: not enlarged',
+];
 
 type VisitHistoryItem = {
     id: string;
@@ -29,6 +41,7 @@ type VisitHistoryItem = {
 export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, patient, userRole, onClose, onComplete, onAddService, onRemoveService }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'VITALS' | 'NOTES' | 'RX' | 'SERVICES'>('VITALS');
+    const [examTemplates, setExamTemplates] = useState<string[]>(DEFAULT_EXAM_TEMPLATES);
 
     // Clinical State
     const [vitals, setVitals] = useState<VitalSigns>({ recordedBy: 'u1', timestamp: new Date().toISOString() });
@@ -94,6 +107,18 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     useEffect(() => {
         loadEncounter();
     }, [appointment.id]);
+
+    useEffect(() => {
+        getDoctorProfileFromApi()
+            .then((payload) => {
+                if (payload.examFindingTemplates?.length) {
+                    setExamTemplates(payload.examFindingTemplates);
+                }
+            })
+            .catch(() => {
+                setExamTemplates(DEFAULT_EXAM_TEMPLATES);
+            });
+    }, []);
 
     useEffect(() => {
         const handleEscape = (event: KeyboardEvent) => {
@@ -542,17 +567,6 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                 { code: 'R05', label: 'Cough' },
                             ];
 
-                            const EXAM_TEMPLATES = [
-                                'Conscious, oriented, cooperative',
-                                'Chest: clear to auscultation bilaterally, no wheezes or crackles',
-                                'Abdomen: soft, non-tender, no organomegaly',
-                                'Throat: hyperemic, tonsils not enlarged',
-                                'Skin: no rash, no jaundice',
-                                'Neurological: intact, no focal deficit',
-                                'CVS: S1 S2 heard, no murmurs',
-                                'Lymph nodes: not enlarged',
-                            ];
-
                             const PLAN_TEMPLATES = [
                                 'Rest for 3 days, plenty of fluids',
                                 'Follow up in 1 week if not improved',
@@ -576,7 +590,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                         <h3 className="font-bold text-gray-900 mb-3">{t('exam_findings')}</h3>
                                         <div className="flex flex-wrap gap-2 mb-3">
-                                            {EXAM_TEMPLATES.map(tmpl => (
+                                            {examTemplates.map(tmpl => (
                                                 <button key={tmpl} type="button"
                                                     onClick={() => setNotes(p => p ? p + '\n' + tmpl : tmpl)}
                                                     className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 text-gray-600 transition-colors"

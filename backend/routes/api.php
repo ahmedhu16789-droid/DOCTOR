@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AppointmentBillingController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DoctorProfileController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\Auth\AccessLinkController;
@@ -34,6 +35,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('doctors', [DoctorController::class, 'index']);
         Route::post('doctors', [DoctorController::class, 'store']);
         Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
+        Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
+        Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);

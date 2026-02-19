@@ -14,7 +14,7 @@ class DoctorController extends Controller
     public function index(Request $request)
     {
         $doctors = User::query()
-            ->select(['id', 'clinic_id', 'name', 'email', 'phone', 'role', 'specialty', 'consultation_fee', 'schedule', 'payroll'])
+            ->select(['id', 'clinic_id', 'name', 'email', 'phone', 'role', 'specialty', 'consultation_fee', 'schedule', 'payroll', 'exam_finding_templates'])
             ->with(['branches:id'])
             ->where('role', 'DOCTOR')
             ->when($request->filled('name'), fn ($query) => $query->where('name', 'like', '%'.$request->string('name')->value().'%'))
@@ -40,6 +40,7 @@ class DoctorController extends Controller
                 'consultation_fee' => $request->input('consultationFee'),
                 'schedule' => $request->input('schedule', []),
                 'payroll' => $request->input('payroll'),
+                'exam_finding_templates' => $request->input('examFindingTemplates', []),
             ]);
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
@@ -63,6 +64,7 @@ class DoctorController extends Controller
                 'consultation_fee' => $request->input('consultationFee'),
                 'schedule' => $request->input('schedule', []),
                 'payroll' => $request->input('payroll'),
+                'exam_finding_templates' => $request->input('examFindingTemplates', []),
             ]);
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
