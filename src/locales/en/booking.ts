@@ -34,6 +34,15 @@ export const booking = {
     "no_doctors_without_branch": "Cannot load doctors without an active branch.",
     "service": "Service",
     "time": "Time",
+    "queue_board.column.waiting_room": "Waiting Room",
+    "queue_board.column.in_progress": "In Progress",
+    "queue_board.column.completed": "Completed",
+    "queue_board.empty": "No patients",
+    "queue_board.move_to": "Move to {{status}}",
+    "queue_board.procedure_badge": "Procedure",
+    "queue_board.waiting_time": "Waiting {{minutes}}m",
+    "queue_board.status.IN_PROGRESS": "In Progress",
+    "queue_board.status.COMPLETED": "Completed",
 
     // Messages
     "confirm_title": "Confirm Booking",
