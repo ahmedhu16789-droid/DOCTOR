@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorProfileFromApi } from '../services/api';
 
 const DEFAULT_EXAM_TEMPLATES = [
@@ -33,6 +34,7 @@ const unique = (items: string[]) => [...new Set(items.map((item) => item.trim())
 type TemplateSectionProps = {
   title: string;
   placeholder: string;
+  addLabel: string;
   items: string[];
   draftValue: string;
   setDraftValue: React.Dispatch<React.SetStateAction<string>>;
@@ -44,6 +46,7 @@ type TemplateSectionProps = {
 const TemplateSection: React.FC<TemplateSectionProps> = ({
   title,
   placeholder,
+  addLabel,
   items,
   draftValue,
   setDraftValue,
@@ -79,7 +82,7 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
           disabled={!canAdd || disabled}
           className="px-4 py-2 rounded-lg bg-primary-600 text-white disabled:opacity-50 inline-flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" /> إضافة
+          <Plus className="w-4 h-4" /> {addLabel}
         </button>
       </div>
 
@@ -99,6 +102,7 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
 };
 
 export const DoctorProfile: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -132,9 +136,9 @@ export const DoctorProfile: React.FC = () => {
       setExamTemplates(normalized.examFindingTemplates);
       setDiagnosisTemplates(normalized.diagnosisTemplates);
       setPlanTemplates(normalized.planTemplates);
-      setMessage('تم الحفظ تلقائياً.');
+      setMessage(t('doctor_profile_auto_saved'));
     } catch {
-      setMessage('تعذر الحفظ حالياً، حاول مرة أخرى.');
+      setMessage(t('doctor_profile_save_failed'));
     } finally {
       setSaving(false);
     }
@@ -168,13 +172,14 @@ export const DoctorProfile: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Doctor Profile</h1>
-        <p className="text-sm text-gray-500">إدخال يدوي لقوالب الفحص والتشخيص وخطة المتابعة. زر الإضافة يحفظ مباشرة.</p>
+        <p className="text-sm text-gray-500">{t('doctor_profile_templates_desc')}</p>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
         <TemplateSection
           title="Examination Findings"
-          placeholder="اكتب جملة فحص متكررة..."
+          placeholder={t('doctor_profile_exam_template_placeholder')}
+          addLabel={t('add')}
           items={examTemplates}
           draftValue={newExamTemplate}
           setDraftValue={setNewExamTemplate}
@@ -192,7 +197,8 @@ export const DoctorProfile: React.FC = () => {
 
         <TemplateSection
           title="Diagnosis (ICD-10)"
-          placeholder="اكتب كود/جملة تشخيص، مثال: I10 – Essential Hypertension"
+          placeholder={t('doctor_profile_diagnosis_template_placeholder')}
+          addLabel={t('add')}
           items={diagnosisTemplates}
           draftValue={newDiagnosisTemplate}
           setDraftValue={setNewDiagnosisTemplate}
@@ -210,7 +216,8 @@ export const DoctorProfile: React.FC = () => {
 
         <TemplateSection
           title="Plan & Follow-up"
-          placeholder="اكتب جملة خطة/متابعة متكررة..."
+          placeholder={t('doctor_profile_plan_template_placeholder')}
+          addLabel={t('add')}
           items={planTemplates}
           draftValue={newPlanTemplate}
           setDraftValue={setNewPlanTemplate}

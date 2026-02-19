@@ -11,6 +11,12 @@ export const medical = {
     "print_rx": "Print Prescription",
     "add": "Add",
     "remove": "Remove",
+    "doctor_profile_auto_saved": "Saved automatically.",
+    "doctor_profile_save_failed": "Unable to save right now, please try again.",
+    "doctor_profile_templates_desc": "Manual entry for examination, diagnosis, and follow-up templates. Add saves immediately.",
+    "doctor_profile_exam_template_placeholder": "Type a frequently used examination sentence...",
+    "doctor_profile_diagnosis_template_placeholder": "Type diagnosis code/sentence, e.g. I10 – Essential Hypertension",
+    "doctor_profile_plan_template_placeholder": "Type a frequently used plan/follow-up sentence...",
 
     // Vitals
     "vitals_title": "Vital Signs",
