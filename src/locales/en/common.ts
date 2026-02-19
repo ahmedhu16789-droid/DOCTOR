@@ -78,6 +78,7 @@ export const common = {
     "done": "Done",
     "pay_now": "Pay Now",
     "billing": "Billing",
+    "refresh_data": "Refresh Data",
 
     // Patient Records
     "patient_records": "Patient Records",

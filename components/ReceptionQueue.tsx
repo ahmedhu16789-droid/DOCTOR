@@ -137,7 +137,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
               }}
               disabled={refreshing}
               className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium disabled:opacity-60"
-              title="تحديث البيانات"
+              title={t('refresh_data')}
             >
               <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
