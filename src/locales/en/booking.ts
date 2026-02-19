@@ -30,6 +30,8 @@ export const booking = {
     "available_doctors": "Available Doctors & Slots",
     "no_slots": "No slots available",
     "no_doctors": "No doctors found in this department.",
+    "no_active_branch_for_user": "There is no active branch for this user in the current shift. Please assign the receptionist to a branch/shift before booking.",
+    "no_doctors_without_branch": "Cannot load doctors without an active branch.",
     "service": "Service",
     "time": "Time",
 
