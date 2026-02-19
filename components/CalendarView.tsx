@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '../types';
-import { ChevronLeft, ChevronRight, User, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Calendar as CalendarIcon, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
   const { t, i18n } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isAgendaOpen, setIsAgendaOpen] = useState(true);
 
   // Helpers
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -127,15 +128,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
         </div>
 
         {/* Selected Day Agenda */}
-        <div className="w-full lg:w-80 bg-gray-50 border-l border-gray-200 flex flex-col h-full lg:max-h-full max-h-[300px]">
-          <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-            <h3 className="font-bold text-gray-900">
-              {selectedDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              {selectedDateAppointments.length} {t('appointment')}{selectedDateAppointments.length !== 1 ? 's' : ''}
-            </p>
-          </div>
+        <div className="lg:hidden border-t border-gray-200 bg-white px-4 py-2">
+          <button
+            type="button"
+            onClick={() => setIsAgendaOpen((prev) => !prev)}
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800"
+          >
+            {isAgendaOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+            {isAgendaOpen ? t('hide_day_agenda') : t('show_day_agenda')}
+          </button>
+        </div>
+
+        {isAgendaOpen && (
+          <div className="w-full lg:w-80 bg-gray-50 border-l border-gray-200 flex flex-col h-full lg:max-h-full max-h-[300px]">
+            <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-gray-900">
+                  {selectedDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedDateAppointments.length} {t('appointment')}{selectedDateAppointments.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAgendaOpen(false)}
+                className="hidden lg:inline-flex p-1.5 rounded-md text-gray-500 hover:text-primary-700 hover:bg-primary-50"
+                aria-label={t('hide_day_agenda')}
+              >
+                <PanelRightClose className="w-4 h-4" />
+              </button>
+            </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {selectedDateAppointments.length === 0 ? (
@@ -164,7 +187,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
               ))
             )}
           </div>
-        </div>
+          </div>
+        )}
+
+        {!isAgendaOpen && (
+          <button
+            type="button"
+            onClick={() => setIsAgendaOpen(true)}
+            className="hidden lg:flex w-12 border-l border-gray-200 bg-gray-50 items-center justify-center text-gray-500 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+            aria-label={t('show_day_agenda')}
+          >
+            <PanelRightOpen className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </div>
   );
