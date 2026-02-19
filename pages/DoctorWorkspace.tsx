@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
-import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi, searchMedicationsFromApi } from '../services/api';
+import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
+import { initializeRxNormAutocomplete } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
 
 interface DoctorWorkspaceProps {
@@ -62,18 +63,21 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     }, [appointment.id]);
 
     useEffect(() => {
-        const delay = window.setTimeout(async () => {
-            if (!rxSearch.trim()) {
-                setMedicationOptions([]);
-                return;
-            }
+        if (activeTab !== 'RX') {
+            return;
+        }
 
-            const options = await searchMedicationsFromApi(rxSearch);
-            setMedicationOptions(options);
-        }, 250);
+        const detachAutocomplete = initializeRxNormAutocomplete({
+            onResults: (names) => {
+                setMedicationOptions(names.map((name, index) => ({
+                    id: `${name}-${index}`,
+                    name,
+                })));
+            },
+        });
 
-        return () => window.clearTimeout(delay);
-    }, [rxSearch]);
+        return detachAutocomplete;
+    }, [activeTab]);
 
     const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
         setSaving(true);
@@ -546,7 +550,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 onChange={e => setRxSearch(e.target.value)}
                                             />
                                             <datalist id="meds">
-                                                {medicationOptions.map(m => <option key={m.id} value={m.name}>{m.activeIngredient}</option>)}
+                                                {medicationOptions.map(m => <option key={m.id} value={m.name} />)}
                                             </datalist>
                                         </div>
                                         <div className="md:col-span-2">
