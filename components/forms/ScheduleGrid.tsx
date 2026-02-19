@@ -3,6 +3,7 @@ import { useFieldArray, Control, useWatch } from 'react-hook-form';
 import { Plus, Trash2, AlertCircle, Copy, Clock, ArrowRight, MapPin, AlertTriangle, Building2 } from 'lucide-react';
 import { WeeklyShift, Branch } from '../../types';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface ScheduleGridProps {
   control: Control<any>;
@@ -20,6 +21,7 @@ const timeToMinutes = (time: string) => {
 };
 
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assignedBranchIds = [], branches }) => {
+  const { t } = useTranslation();
   // Default to the first assigned branch or empty
   const [activeBranchId, setActiveBranchId] = useState<string>(assignedBranchIds?.[0] || '');
 
@@ -41,7 +43,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
   }) || [];
 
   // Helper to get branch name
-  const getBranchName = (id: string) => branches.find(b => b.id === id)?.name || 'Unknown Branch';
+  const getBranchName = (id: string) => branches.find(b => b.id === id)?.name || t('schedule_unknown_branch');
 
   const handleAddShift = (dayIndex: number) => {
     if (!activeBranchId) return;
@@ -135,8 +137,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
     return (
       <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
         <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 font-medium">No branches assigned.</p>
-        <p className="text-xs text-gray-400">Please select branches above to configure schedule.</p>
+        <p className="text-gray-500 font-medium">{t('schedule_no_branches_assigned')}</p>
+        <p className="text-xs text-gray-400">{t('schedule_no_branches_assigned_helper')}</p>
       </div>
     );
   }
@@ -178,9 +180,9 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
       <div className="flex justify-between items-center">
         <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide flex items-center">
           <Clock className="w-4 h-4 mr-2 text-primary-600" />
-          Schedule for: <span className="text-gray-900 ml-1">{getBranchName(activeBranchId)}</span>
+          {t('schedule_for')}: <span className="text-gray-900 ml-1">{getBranchName(activeBranchId)}</span>
         </h4>
-        <span className="text-xs text-gray-400 font-medium">Auto-saves on change</span>
+        <span className="text-xs text-gray-400 font-medium">{t('schedule_auto_saves_on_change')}</span>
       </div>
 
       <div className="space-y-4 animate-in fade-in duration-300">
@@ -203,7 +205,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-gray-700 w-24 text-sm">{day}</span>
                   {!hasShifts && (
-                    <span className="text-xs text-gray-400 italic">No shifts configured</span>
+                    <span className="text-xs text-gray-400 italic">{t('schedule_no_shifts_configured')}</span>
                   )}
                 </div>
 
@@ -213,16 +215,16 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                       type="button"
                       onClick={() => copyToAllDays(dayIndex)}
                       className="text-xs text-gray-500 hover:text-primary-600 font-medium flex items-center gap-1 px-2 py-1 rounded hover:bg-white transition-colors"
-                      title="Copy this day's schedule to all other days for this branch"
+                      title={t('schedule_copy_to_all_title')}
                     >
-                      <Copy className="w-3 h-3" /> Copy to All
+                      <Copy className="w-3 h-3" /> {t('schedule_copy_to_all')}
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => handleAddShift(dayIndex)}
                     className="p-1.5 rounded-md bg-white border border-gray-200 text-primary-600 hover:bg-primary-50 hover:border-primary-200 shadow-sm transition-all"
-                    title="Add Shift"
+                    title={t('schedule_add_shift')}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -243,7 +245,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                       )}>
                         <div className="flex items-center gap-2">
                           <div className="flex flex-col">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Start</label>
+                            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">{t('schedule_time_start')}</label>
                             <input
                               type="time"
                               {...control.register(`${name}.${field.index}.startTime`)}
@@ -255,7 +257,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                           </div>
                           <ArrowRight className="w-4 h-4 text-gray-300 mt-4" />
                           <div className="flex flex-col">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">End</label>
+                            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">{t('schedule_time_end')}</label>
                             <input
                               type="time"
                               {...control.register(`${name}.${field.index}.endTime`)}
@@ -272,8 +274,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                           <div className="flex items-center text-xs text-red-600 font-bold bg-white px-2 py-1 rounded border border-red-100 ml-2 shadow-sm">
                             <AlertTriangle className="w-3 h-3 mr-1" />
                             {conflict.isOtherBranch
-                              ? `Overlap in ${conflict.branchName}`
-                              : "Overlap"}
+                              ? t('schedule_overlap_in_branch', { branchName: conflict.branchName })
+                              : t('schedule_overlap')}
                           </div>
                         )}
 
@@ -281,7 +283,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                           type="button"
                           onClick={() => remove(field.index)}
                           className="ml-auto text-gray-400 hover:text-red-500 p-2 hover:bg-gray-100 rounded-full transition-colors absolute top-2 right-2 sm:static"
-                          title="Remove shift"
+                          title={t('schedule_remove_shift')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
