@@ -56,4 +56,7 @@ export const medical = {
     "patient_history": "سجل المريض",
     "previous_visits": "الزيارات السابقة",
     "allergies": "الحساسية",
+    "visit_details": "تفاصيل الزيارة",
+    "visit_date": "تاريخ الزيارة",
+    "close": "إغلاق",
 };

@@ -56,4 +56,7 @@ export const medical = {
     "patient_history": "Patient History",
     "previous_visits": "Previous Visits",
     "allergies": "Allergies",
+    "visit_details": "Visit Details",
+    "visit_date": "Visit Date",
+    "close": "Close",
 };
