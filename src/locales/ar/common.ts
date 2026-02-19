@@ -160,6 +160,7 @@ export const common = {
     "male": "ذكر",
     "female": "أنثى",
     "years": "سنة",
+    "loading_profiles": "جاري تحميل الملفات",
     "close": "إغلاق",
     "cancel": "إلغاء",
     "create_select": "إنشاء واختيار",

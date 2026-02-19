@@ -119,7 +119,7 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
             </div>
           )}
 
-          {isSearching && <div className="text-xs text-gray-400">Loading profiles...</div>}
+          {isSearching && <div className="text-xs text-gray-400">{t('loading_profiles')}</div>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {results.map(patient => (
