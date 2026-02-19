@@ -44,9 +44,9 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
 
   const getPaymentStatusBadge = (billing: any) => {
     const due = billing.total - billing.paidAmount;
-    if (due <= 0) return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold border border-green-200">PAID</span>;
+    if (due <= 0) return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold border border-green-200">{t('PAID')}</span>;
     if (billing.paidAmount > 0) return <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold border border-amber-200">PARTIAL -{due}</span>;
-    return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold border border-red-200">UNPAID {due}</span>;
+    return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold border border-red-200">{t('UNPAID')} {due}</span>;
   };
 
   // Extract unique doctors from today's appointments for the filter

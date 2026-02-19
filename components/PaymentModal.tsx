@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Appointment, BillingDetails, PaymentMethod, PaymentStatus, Transaction } from '../types';
 import { X, Printer, CreditCard, Banknote, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PaymentModalProps {
   appointment: Appointment;
@@ -9,7 +10,9 @@ interface PaymentModalProps {
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose, onProcessPayment }) => {
+  const { t } = useTranslation();
   const billing = appointment.billing;
+  const clinicName = t('clinic_name');
   const dueAmount = billing.total - billing.paidAmount;
   
   const [paymentAmount, setPaymentAmount] = useState(dueAmount.toString());
@@ -48,7 +51,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 print:hidden">
           <h2 className="text-lg font-bold text-gray-900">
-            {step === 'INPUT' ? 'Process Payment' : 'Payment Success'}
+            {step === 'INPUT' ? t('process_payment') : t('payment_success')}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full">
             <X className="w-5 h-5 text-gray-500" />
@@ -61,7 +64,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
             <div className="space-y-6">
                 {/* Invoice Summary */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                   <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Invoice Summary</h3>
+                   <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">{t('invoice_summary')}</h3>
                    <div className="space-y-2 mb-4">
                        {billing.items.map(item => (
                            <div key={item.id} className="flex justify-between text-sm">
@@ -71,20 +74,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                        ))}
                    </div>
                    <div className="border-t border-gray-300 pt-2 flex justify-between items-center font-bold text-lg">
-                       <span>Total Due</span>
-                       <span>{dueAmount.toFixed(2)} EGP</span>
+                       <span>{t('total_due')}</span>
+                       <span>{dueAmount.toFixed(2)} {t('currency_egp')}</span>
                    </div>
                 </div>
 
                 {/* Payment Form */}
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('payment_method')}</label>
                         <div className="grid grid-cols-3 gap-3">
                             {[
-                                { id: PaymentMethod.CASH, label: 'Cash', icon: Banknote },
-                                { id: PaymentMethod.CARD, label: 'Card', icon: CreditCard },
-                                { id: PaymentMethod.INSURANCE, label: 'Insurance', icon: ShieldCheck },
+                                { id: PaymentMethod.CASH, label: t('payment_method_cash'), icon: Banknote },
+                                { id: PaymentMethod.CARD, label: t('payment_method_card'), icon: CreditCard },
+                                { id: PaymentMethod.INSURANCE, label: t('payment_method_insurance'), icon: ShieldCheck },
                             ].map(m => (
                                 <button
                                     key={m.id}
@@ -104,7 +107,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                     </div>
 
                     <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Amount Tendered (EGP)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('amount_tendered_egp')}</label>
                         <input 
                             type="number"
                             min="1"
@@ -121,7 +124,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                         disabled={parseFloat(paymentAmount) <= 0}
                         className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-200 transition-all disabled:opacity-50"
                     >
-                        Process Payment
+                        {t('process_payment')}
                     </button>
                 </form>
             </div>
@@ -132,20 +135,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 print:hidden">
                       <ShieldCheck className="w-8 h-8 text-green-600" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1 print:hidden">Payment Successful</h3>
-                  <p className="text-gray-500 mb-6 print:hidden">Transaction recorded successfully.</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-1 print:hidden">{t('payment_successful')}</h3>
+                  <p className="text-gray-500 mb-6 print:hidden">{t('transaction_recorded_successfully')}</p>
 
                   {/* Printable Receipt Area */}
                   <div className="bg-white border-2 border-dashed border-gray-300 p-6 rounded-xl text-left font-mono text-sm mb-6 print:border-none print:p-0">
                       <div className="text-center border-b border-gray-300 pb-4 mb-4">
-                          <h2 className="font-bold text-xl uppercase">Al-Fath Clinic</h2>
-                          <p>Receipt #{receiptTx.reference}</p>
+                          <h2 className="font-bold text-xl uppercase">{t('receipt_header_clinic_name', { clinicName })}</h2>
+                          <p>{t('receipt_number', { reference: receiptTx.reference })}</p>
                           <p>{new Date().toLocaleString()}</p>
                       </div>
                       
                       <div className="mb-4">
-                          <p>Patient: {appointment.patientName}</p>
-                          <p>Doctor: {appointment.doctorName}</p>
+                          <p>{t('receipt_patient', { patientName: appointment.patientName })}</p>
+                          <p>{t('receipt_doctor', { doctorName: appointment.doctorName })}</p>
                       </div>
 
                       <div className="space-y-1 mb-4 border-b border-gray-300 pb-4">
@@ -158,27 +161,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                       </div>
 
                       <div className="flex justify-between font-bold text-lg mb-2">
-                          <span>Total</span>
+                          <span>{t('receipt_total')}</span>
                           <span>{billing.total.toFixed(2)}</span>
                       </div>
                        <div className="flex justify-between text-gray-600">
-                          <span>Paid ({method})</span>
+                          <span>{t('receipt_paid', { method: t(`payment_method_${method.toLowerCase()}`) })}</span>
                           <span>{receiptTx.amount.toFixed(2)}</span>
                       </div>
                        <div className="flex justify-between text-gray-600">
-                          <span>Remaining</span>
+                          <span>{t('receipt_remaining')}</span>
                           <span>{(billing.total - (billing.paidAmount + receiptTx.amount)).toFixed(2)}</span>
                       </div>
                       
                       <div className="mt-8 text-center text-xs text-gray-400">
-                          Thank you for choosing Al-Fath Clinic
+                          {t('receipt_thank_you_message', { clinicName })}
                       </div>
                   </div>
 
                   <div className="flex gap-3 print:hidden">
-                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50">Close</button>
+                      <button onClick={onClose} className="flex-1 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50">{t('close')}</button>
                       <button onClick={handlePrint} className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 flex items-center justify-center gap-2">
-                          <Printer className="w-4 h-4" /> Print Receipt
+                          <Printer className="w-4 h-4" /> {t('print_receipt')}
                       </button>
                   </div>
               </div>
