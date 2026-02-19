@@ -77,6 +77,8 @@ export const admin = {
     "payroll_hybrid": "Hybrid",
     "base_salary": "Base Salary",
     "commission_percentage": "Commission %",
+    "additional_services_commission_enabled": "Enable additional services commission",
+    "additional_services_commission_percentage": "Additional services commission %",
     "consultation_fee": "Consultation Fee",
     "email": "Email",
 

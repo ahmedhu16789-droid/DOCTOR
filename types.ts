@@ -48,6 +48,8 @@ export interface PayrollConfig {
   model: 'FIXED_SALARY' | 'PERCENTAGE' | 'HYBRID';
   baseSalary: number;
   commissionPercentage?: number; // 0-100
+  additionalServicesCommissionEnabled?: boolean;
+  additionalServicesCommissionPercentage?: number; // 0-100
   effectiveDate: string;
 }
 

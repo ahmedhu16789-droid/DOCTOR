@@ -94,10 +94,44 @@ class DoctorEarningsCalculator
 
         $basisAmount = $this->resolveCommissionBasis($invoice, $transactionAmount, $policy);
 
-        $rate = (float) ($contract->commission_percentage ?? 0);
-        $amount = round($basisAmount * ($rate / 100), 2);
+        $defaultRate = (float) ($contract->commission_percentage ?? 0);
+        $additionalServicesEnabled = (bool) ($contract->additional_services_commission_enabled ?? false);
 
-        if ($amount === 0.0) {
+        if (! $additionalServicesEnabled) {
+            $amount = round($basisAmount * ($defaultRate / 100), 2);
+
+            if ($amount === 0.0) {
+                return;
+            }
+
+            DoctorEarningsLedger::query()->create([
+                'clinic_id' => $appointment->clinic_id,
+                'doctor_id' => $appointment->doctor_id,
+                'appointment_id' => $appointment->id,
+                'invoice_id' => $invoice->id,
+                'transaction_id' => $transaction->id,
+                'period_month' => $paymentDate->format('Y-m'),
+                'earning_type' => 'COMMISSION',
+                'basis_amount' => $basisAmount,
+                'rate' => $defaultRate,
+                'amount' => $amount,
+                'currency' => $currency,
+                'status' => 'PENDING',
+                'notes' => sprintf('Commission generated using clinic policy basis %s.', $policy['commission_basis']),
+            ]);
+
+            return;
+        }
+
+        $breakdown = $this->resolvePaidServiceBreakdown($invoice, $basisAmount, $transactionAmount);
+        $additionalRate = (float) ($contract->additional_services_commission_percentage ?? 0);
+
+        $direction = $basisAmount < 0 ? -1 : 1;
+        $consultationAmount = round($breakdown['consultation'] * ($defaultRate / 100), 2) * $direction;
+        $additionalAmount = round($breakdown['additionalServices'] * ($additionalRate / 100), 2) * $direction;
+        $totalAmount = round($consultationAmount + $additionalAmount, 2);
+
+        if ($totalAmount === 0.0) {
             return;
         }
 
@@ -110,12 +144,48 @@ class DoctorEarningsCalculator
             'period_month' => $paymentDate->format('Y-m'),
             'earning_type' => 'COMMISSION',
             'basis_amount' => $basisAmount,
-            'rate' => $rate,
-            'amount' => $amount,
+            'rate' => null,
+            'amount' => $totalAmount,
             'currency' => $currency,
             'status' => 'PENDING',
-            'notes' => sprintf('Commission generated using clinic policy basis %s.', $policy['commission_basis']),
+            'notes' => sprintf(
+                'Commission split: consultation %.2f%%, additional services %.2f%%. Policy basis %s.',
+                $defaultRate,
+                $additionalRate,
+                $policy['commission_basis']
+            ),
         ]);
+    }
+
+    /**
+     * @return array{consultation: float, additionalServices: float}
+     */
+    private function resolvePaidServiceBreakdown(Invoice $invoice, float $basisAmount, float $transactionAmount): array
+    {
+        $items = $invoice->relationLoaded('items') ? $invoice->items : $invoice->items()->get();
+
+        $consultationTotal = (float) $items
+            ->filter(fn ($item) => strtoupper((string) ($item->category ?? '')) === 'CONSULTATION')
+            ->sum('total');
+
+        $itemsTotal = max((float) $items->sum('total'), 0.0);
+        $additionalServicesTotal = max($itemsTotal - $consultationTotal, 0.0);
+
+        if ($itemsTotal <= 0.0) {
+            return [
+                'consultation' => $basisAmount,
+                'additionalServices' => 0.0,
+            ];
+        }
+
+        $invoiceTotal = max((float) $invoice->total, 0.0);
+        $coveredTotal = $invoiceTotal > 0 ? min(abs($transactionAmount) / $invoiceTotal, 1) * $itemsTotal : $itemsTotal;
+        $basisCoverageRatio = min($coveredTotal / $itemsTotal, 1);
+
+        return [
+            'consultation' => round($consultationTotal * $basisCoverageRatio, 2),
+            'additionalServices' => round($additionalServicesTotal * $basisCoverageRatio, 2),
+        ];
     }
 
     /**
