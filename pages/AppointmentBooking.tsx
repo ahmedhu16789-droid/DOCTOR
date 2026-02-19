@@ -161,7 +161,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
           <div className="space-y-6">
             {!activeBranchId && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-700 text-sm">
-                لا يوجد فرع فعال لهذا المستخدم في الشيفت الحالي. برجاء ربط موظف الاستقبال بفرع/شيفت قبل الحجز.
+                {t('no_active_branch_for_user')}
               </div>
             )}
             <div className="flex flex-col md:flex-row gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -188,7 +188,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
             <div>
               <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('available_doctors')}</h3>
               {!activeBranchId ? (
-                <div className="text-center py-8 text-amber-600 bg-amber-50 rounded-lg border border-dashed border-amber-300">لا يمكن تحميل الأطباء بدون فرع فعال.</div>
+                <div className="text-center py-8 text-amber-600 bg-amber-50 rounded-lg border border-dashed border-amber-300">{t('no_doctors_without_branch')}</div>
               ) : doctors.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">{t('no_doctors')}</div>
               ) : doctors.map(renderDoctorRow)}
