@@ -2,6 +2,7 @@ import React from 'react';
 import { TimeSlot } from '../types';
 import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface DoctorSlotPickerProps {
   slots: TimeSlot[];
@@ -33,7 +34,7 @@ export const DoctorSlotPicker: React.FC<DoctorSlotPickerProps> = ({ slots, selec
             }
           `}
         >
-          {slot.time}
+          {formatTimeTo12Hour(slot.time)}
           {!slot.available && (
             <span className="absolute inset-0 flex items-center justify-center">
               <div className="w-full border-t border-gray-300 transform -rotate-12"></div>

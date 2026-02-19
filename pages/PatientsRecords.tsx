@@ -3,6 +3,7 @@ import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stetho
 import { useTranslation } from 'react-i18next';
 import { getMedicalEncounterFromApi, MedicalEncounterWithHistory } from '../services/api';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus } from '../types';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface PatientsRecordsProps {
   patients: Patient[];
@@ -278,7 +279,7 @@ export function PatientsRecords({
                             <CalendarDays className="w-4 h-4" />
                             <span>{visit.date}</span>
                             <Clock3 className="w-4 h-4 ms-2" />
-                            <span>{visit.timeSlot}</span>
+                            <span>{formatTimeTo12Hour(visit.timeSlot)}</span>
                           </div>
                         </div>
                         <div className="text-sm flex items-center gap-2">

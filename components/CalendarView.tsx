@@ -3,6 +3,7 @@ import { Appointment, AppointmentStatus } from '../types';
 import { ChevronLeft, ChevronRight, User, Calendar as CalendarIcon, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface CalendarViewProps {
   appointments: Appointment[];
@@ -81,7 +82,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
             <div className="mt-2 w-full space-y-1">
               {dailyAppointments.slice(0, 2).map((apt, i) => (
                 <div key={i} className="text-[10px] bg-primary-100 text-primary-700 px-1 py-0.5 rounded truncate w-full text-left font-medium border border-primary-200">
-                  {apt.timeSlot} {apt.patientName.split(' ')[0]}
+                  {formatTimeTo12Hour(apt.timeSlot)} {apt.patientName.split(' ')[0]}
                 </div>
               ))}
               {dailyAppointments.length > 2 && (
@@ -169,7 +170,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ appointments }) => {
               selectedDateAppointments.map(apt => (
                 <div key={apt.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm border-l-4 border-l-primary-500 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-1">
-                    <span className="font-bold text-gray-900 text-sm">{apt.timeSlot}</span>
+                    <span className="font-bold text-gray-900 text-sm">{formatTimeTo12Hour(apt.timeSlot)}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium
                           ${apt.status === AppointmentStatus.SCHEDULED ? 'bg-blue-100 text-blue-700' : ''}
                           ${apt.status === AppointmentStatus.IN_PROGRESS ? 'bg-amber-100 text-amber-700' : ''}

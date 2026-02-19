@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Appointment, AppointmentStatus, UserRole, PaymentStatus } from '../types';
 import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard, RotateCw } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
+import { formatTimeTo12Hour } from '../utils/time';
 import { useTranslation } from 'react-i18next';
 
 interface ReceptionQueueProps {
@@ -166,7 +167,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
             {filtered.map((apt) => (
               <tr key={apt.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {apt.timeSlot}
+                  {formatTimeTo12Hour(apt.timeSlot)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">

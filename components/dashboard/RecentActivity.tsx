@@ -2,6 +2,7 @@ import React from 'react';
 import { Appointment, AppointmentStatus } from '../../types';
 import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatTimeTo12Hour } from '../../utils/time';
 
 interface RecentActivityProps {
   appointments: Appointment[];
@@ -57,7 +58,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ appointments }) 
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-end text-sm text-gray-500 font-medium">
                   <div className="flex items-center justify-end gap-1">
-                      <Clock className="w-3 h-3" /> {apt.timeSlot}
+                      <Clock className="w-3 h-3" /> {formatTimeTo12Hour(apt.timeSlot)}
                   </div>
                 </td>
               </tr>
