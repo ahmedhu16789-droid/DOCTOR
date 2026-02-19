@@ -36,6 +36,11 @@ export const admin = {
     "visits_by_dept": "Visits by Department",
     "patient_distribution": "Patient Distribution",
 
+    "quick_actions.new_appointment": "New Appointment",
+    "quick_actions.register_patient": "Register Patient",
+    "quick_actions.payment": "Payment",
+    "quick_actions.consultation": "Consultation",
+
     // Staff Table
     "staff_directory": "Staff Directory",
     "add_doctor": "Add Doctor",

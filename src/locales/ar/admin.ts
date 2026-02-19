@@ -35,6 +35,11 @@ export const admin = {
     "visits_by_dept": "الزيارات حسب القسم",
     "patient_distribution": "توزيع المرضى",
 
+    "quick_actions.new_appointment": "موعد جديد",
+    "quick_actions.register_patient": "تسجيل مريض",
+    "quick_actions.payment": "الدفع",
+    "quick_actions.consultation": "استشارة",
+
     // Staff Table
     "staff_directory": "دليل الموظفين",
     "add_doctor": "إضافة طبيب",
