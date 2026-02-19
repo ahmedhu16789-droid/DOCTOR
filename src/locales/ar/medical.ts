@@ -51,6 +51,7 @@ export const medical = {
     "qty": "الكمية",
     "price": "السعر",
     "base_fee": "الرسوم الأساسية",
+    "services_used": "الخدمات المستخدمة",
 
     // Patient Info
     "patient_history": "سجل المريض",
