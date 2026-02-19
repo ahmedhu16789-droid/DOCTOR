@@ -31,6 +31,7 @@ class User extends Authenticatable
         'consultation_fee',
         'schedule',
         'payroll',
+        'exam_finding_templates',
     ];
 
     protected $hidden = [
@@ -46,6 +47,7 @@ class User extends Authenticatable
             'consultation_fee' => 'decimal:2',
             'schedule' => 'array',
             'payroll' => 'array',
+            'exam_finding_templates' => 'array',
         ];
     }
 
