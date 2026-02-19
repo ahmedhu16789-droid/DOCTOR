@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
@@ -17,32 +17,6 @@ interface DoctorWorkspaceProps {
 }
 
 
-const DEFAULT_EXAM_TEMPLATES = [
-    'Conscious, oriented, cooperative',
-    'Chest: clear to auscultation bilaterally, no wheezes or crackles',
-    'Abdomen: soft, non-tender, no organomegaly',
-    'Throat: hyperemic, tonsils not enlarged',
-    'Skin: no rash, no jaundice',
-    'Neurological: intact, no focal deficit',
-    'CVS: S1 S2 heard, no murmurs',
-    'Lymph nodes: not enlarged',
-];
-
-const DEFAULT_DIAGNOSIS_TEMPLATES = [
-    'J06.9 – Upper Respiratory Infection',
-    'I10 – Essential Hypertension',
-    'E11.9 – Type 2 Diabetes Mellitus',
-    'R05 – Cough',
-    'N39.0 – Urinary Tract Infection',
-];
-
-const DEFAULT_PLAN_TEMPLATES = [
-    'Rest for 3 days, plenty of fluids',
-    'Follow up in 1 week if not improved',
-    'Labs ordered, result follow-up',
-    'Patient educated about medication compliance',
-];
-
 type VisitHistoryItem = {
     id: string;
     date?: string;
@@ -57,9 +31,21 @@ type VisitHistoryItem = {
 export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, patient, userRole, onClose, onComplete, onAddService, onRemoveService }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'VITALS' | 'NOTES' | 'RX' | 'SERVICES'>('VITALS');
-    const [examTemplates, setExamTemplates] = useState<string[]>(DEFAULT_EXAM_TEMPLATES);
-    const [diagnosisTemplates, setDiagnosisTemplates] = useState<string[]>(DEFAULT_DIAGNOSIS_TEMPLATES);
-    const [planTemplates, setPlanTemplates] = useState<string[]>(DEFAULT_PLAN_TEMPLATES);
+    const defaultExamTemplates = useMemo(
+        () => [1, 2, 3, 4, 5, 6, 7, 8].map((index) => t(`doctor_profile_default_exam_${index}`)),
+        [t],
+    );
+    const defaultDiagnosisTemplates = useMemo(
+        () => [1, 2, 3, 4, 5].map((index) => t(`doctor_profile_default_diagnosis_${index}`)),
+        [t],
+    );
+    const defaultPlanTemplates = useMemo(
+        () => [1, 2, 3, 4].map((index) => t(`doctor_profile_default_plan_${index}`)),
+        [t],
+    );
+    const [examTemplates, setExamTemplates] = useState<string[]>(defaultExamTemplates);
+    const [diagnosisTemplates, setDiagnosisTemplates] = useState<string[]>(defaultDiagnosisTemplates);
+    const [planTemplates, setPlanTemplates] = useState<string[]>(defaultPlanTemplates);
 
     // Clinical State
     const [vitals, setVitals] = useState<VitalSigns>({ recordedBy: 'u1', timestamp: new Date().toISOString() });
@@ -137,9 +123,11 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                 if (payload.planTemplates?.length) setPlanTemplates(payload.planTemplates);
             })
             .catch(() => {
-                setExamTemplates(DEFAULT_EXAM_TEMPLATES);
+                setExamTemplates(defaultExamTemplates);
+                setDiagnosisTemplates(defaultDiagnosisTemplates);
+                setPlanTemplates(defaultPlanTemplates);
             });
-    }, []);
+    }, [defaultDiagnosisTemplates, defaultExamTemplates, defaultPlanTemplates]);
 
     useEffect(() => {
         const handleEscape = (event: KeyboardEvent) => {
@@ -289,7 +277,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     </button>
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">{patient.name}</h1>
-                        <p className="text-xs text-gray-500">{patient.age}yo {patient.gender} • ID: {patient.id}</p>
+                        <p className="text-xs text-gray-500">{t('doctor_workspace_patient_meta', { age: patient.age, gender: patient.gender, id: patient.id })}</p>
                     </div>
                     <div className="h-8 w-px bg-gray-200 mx-2"></div>
                     <div className="flex gap-2">
@@ -304,7 +292,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     {autoSaved && (
                         <span className="text-xs text-emerald-600 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                            {t('auto_saved') || 'Auto-saved'} {autoSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {t('auto_saved')} {autoSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                     )}
                     <button disabled={saving} onClick={() => persistEncounter('DRAFT')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-60">
@@ -331,7 +319,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{t('previous_visits')}</h4>
                         <div className="space-y-4">
                             {history.length === 0 && (
-                                <div className="text-sm text-gray-500">No previous visits</div>
+                                <div className="text-sm text-gray-500">{t('no_previous_visits')}</div>
                             )}
                             {history.map((visit) => (
                                 <button
@@ -407,7 +395,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             : 'border-red-300 bg-red-50 text-red-700';
 
                             const statusLabel = (s: string) =>
-                                s === 'ok' ? 'Normal' : s === 'warn' ? 'Elevated' : s === 'low' ? 'Low' : 'High';
+                                s === 'ok' ? t('status_normal') : s === 'warn' ? t('status_elevated') : s === 'low' ? t('status_low') : t('status_high');
 
                             const VitalCard = ({ label, children, status, range }: { label: string; children: React.ReactNode; status: string; range: string }) => (
                                 <div className={`rounded-xl border-2 p-5 transition-all ${statusColor(status)}`}>
@@ -428,15 +416,15 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                                         {/* Blood Pressure */}
-                                        <VitalCard label={t('blood_pressure')} status={bpStatus} range="Normal: 90–120 / 60–80 mmHg">
+                                        <VitalCard label={t('blood_pressure')} status={bpStatus} range={t('bp_normal_range')}>
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1">
-                                                    <div className="text-xs text-gray-500 mb-1">Systolic</div>
+                                                    <div className="text-xs text-gray-500 mb-1">{t('systolic')}</div>
                                                     <input
                                                         type="number" min={60} max={220}
                                                         value={vitals.bpSystolic ?? ''}
                                                         onChange={e => setVitals({ ...vitals, bpSystolic: Number(e.target.value) || undefined })}
-                                                        placeholder="120"
+                                                        placeholder={t('bp_systolic_placeholder')}
                                                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-lg font-mono font-bold focus:outline-none focus:border-primary-400 bg-white"
                                                     />
                                                     <input type="range" min={60} max={220} value={vitals.bpSystolic ?? 120}
@@ -446,12 +434,12 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 </div>
                                                 <span className="text-2xl text-gray-300 font-light">/</span>
                                                 <div className="flex-1">
-                                                    <div className="text-xs text-gray-500 mb-1">Diastolic</div>
+                                                    <div className="text-xs text-gray-500 mb-1">{t('diastolic')}</div>
                                                     <input
                                                         type="number" min={40} max={130}
                                                         value={vitals.bpDiastolic ?? ''}
                                                         onChange={e => setVitals({ ...vitals, bpDiastolic: Number(e.target.value) || undefined })}
-                                                        placeholder="80"
+                                                        placeholder={t('bp_diastolic_placeholder')}
                                                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-lg font-mono font-bold focus:outline-none focus:border-primary-400 bg-white"
                                                     />
                                                     <input type="range" min={40} max={130} value={vitals.bpDiastolic ?? 80}
@@ -461,7 +449,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mt-3">
-                                                {[['120/80', 'Normal'], ['90/60', 'Low BP'], ['140/90', 'High BP']].map(([val, lbl]) => (
+                                                {[[t('bp_preset_normal_value'), t('bp_preset_normal_label')], [t('bp_preset_low_value'), t('bp_preset_low_label')], [t('bp_preset_high_value'), t('bp_preset_high_label')]].map(([val, lbl]) => (
                                                     <button key={val} type="button"
                                                         onClick={() => { const [s, d] = val.split('/'); setVitals({ ...vitals, bpSystolic: +s, bpDiastolic: +d }); }}
                                                         className="text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-600">{lbl}</button>
@@ -470,7 +458,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         </VitalCard>
 
                                         {/* Heart Rate */}
-                                        <VitalCard label={`${t('heart_rate')} (BPM)`} status={hrStatus} range="Normal: 60–100 bpm">
+                                        <VitalCard label={`${t('heart_rate')} (BPM)`} status={hrStatus} range={t('hr_normal_range')}>
                                             <input
                                                 type="number" min={30} max={250}
                                                 value={vitals.heartRate ?? ''}
@@ -492,7 +480,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         </VitalCard>
 
                                         {/* Temperature */}
-                                        <VitalCard label={`${t('temp')} (°C)`} status={tempStatus} range="Normal: 36.1–37.5 °C">
+                                        <VitalCard label={`${t('temp')} (°C)`} status={tempStatus} range={t('temp_normal_range')}>
                                             <input
                                                 type="number" step="0.1" min={34} max={42}
                                                 value={vitals.temperature ?? ''}
@@ -514,7 +502,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         </VitalCard>
 
                                         {/* O2 Saturation */}
-                                        <VitalCard label={`${t('oxygen')} (%)`} status={spo2Status} range="Normal: 95–100%">
+                                        <VitalCard label={`${t('oxygen')} (%)`} status={spo2Status} range={t('oxygen_normal_range')}>
                                             <input
                                                 type="number" min={70} max={100}
                                                 value={vitals.oxygenSat ?? ''}
@@ -538,21 +526,21 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         {/* Weight */}
                                         <div className="md:col-span-2 rounded-xl border-2 border-gray-200 bg-gray-50 p-5">
                                             <div className="flex justify-between items-center mb-3">
-                                                <span className="text-sm font-semibold text-gray-700">{t('weight')} (kg)</span>
+                                                <span className="text-sm font-semibold text-gray-700">{t('weight_with_unit')}</span>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <input
                                                     type="number" min={1} max={300}
                                                     value={vitals.weight ?? ''}
                                                     onChange={e => setVitals({ ...vitals, weight: Number(e.target.value) || undefined })}
-                                                    placeholder="70"
+                                                    placeholder={t('weight_placeholder')}
                                                     className="w-32 px-3 py-2 border-2 border-gray-200 rounded-lg text-2xl font-mono font-bold focus:outline-none focus:border-primary-400 bg-white text-center"
                                                 />
                                                 <input type="range" min={1} max={200} value={vitals.weight ?? 70}
                                                     onChange={e => setVitals({ ...vitals, weight: Number(e.target.value) })}
                                                     className="flex-1 accent-primary-500"
                                                 />
-                                                <span className="text-gray-400 font-medium">kg</span>
+                                                <span className="text-gray-400 font-medium">{t('weight_unit')}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -600,7 +588,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             onChange={e => setNotes(e.target.value)}
                                         />
                                         <div className="flex justify-end mt-1">
-                                            <span className="text-xs text-gray-400">{notes.length} chars</span>
+                                            <span className="text-xs text-gray-400">{t('character_count', { count: notes.length })}</span>
                                         </div>
                                     </div>
 
@@ -611,7 +599,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             <input
                                                 type="text"
                                                 className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 text-sm"
-                                                placeholder="Search by name or code, e.g. 'Hypertension' or 'I10'"
+                                                placeholder={t('diagnosis_search_placeholder')}
                                                 value={diagnosis}
                                                 onChange={e => setDiagnosis(e.target.value)}
                                             />
@@ -729,16 +717,16 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                                                     {t('dosage')}
-                                                    {loadingDosages && <span className="ml-2 text-gray-400 font-normal normal-case">Loading…</span>}
+                                                    {loadingDosages && <span className="ml-2 text-gray-400 font-normal normal-case">{t('loading')}</span>}
                                                     {dosageOptions.length > 0 && !loadingDosages && (
-                                                        <span className="ml-2 text-emerald-600 font-normal normal-case">{dosageOptions.length} options</span>
+                                                        <span className="ml-2 text-emerald-600 font-normal normal-case">{t('options_count', { count: dosageOptions.length })}</span>
                                                     )}
                                                 </label>
                                                 <input
                                                     type="text"
                                                     list="dosage-opts"
                                                     className="w-full p-2 border border-gray-300 rounded"
-                                                    placeholder="e.g. 500mg — or pick from list"
+                                                    placeholder={t('dosage_placeholder')}
                                                     value={newMed.dosage}
                                                     onChange={e => setNewMed({ ...newMed, dosage: e.target.value })}
                                                 />
@@ -757,12 +745,12 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                     type="text"
                                                     list="freq-options"
                                                     className="w-full p-2 border border-gray-300 rounded"
-                                                    placeholder="e.g. 3 times daily"
+                                                    placeholder={t('frequency_placeholder')}
                                                     value={newMed.frequency}
                                                     onChange={e => setNewMed({ ...newMed, frequency: e.target.value })}
                                                 />
                                                 <datalist id="freq-options">
-                                                    {['Once daily', 'Twice daily', 'Three times daily', 'Every 8 hours', 'Every 12 hours', 'As needed (PRN)', 'At bedtime'].map(f => <option key={f} value={f} />)}
+                                                    {[t('frequency_once_daily'), t('frequency_twice_daily'), t('frequency_three_times_daily'), t('frequency_every_8_hours'), t('frequency_every_12_hours'), t('frequency_as_needed'), t('frequency_at_bedtime')].map(f => <option key={f} value={f} />)}
                                                 </datalist>
                                             </div>
                                             <div className="md:col-span-4">
@@ -771,16 +759,16 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                     type="text"
                                                     list="dur-options"
                                                     className="w-full p-2 border border-gray-300 rounded"
-                                                    placeholder="e.g. 5 days"
+                                                    placeholder={t('duration_placeholder')}
                                                     value={newMed.duration}
                                                     onChange={e => setNewMed({ ...newMed, duration: e.target.value })}
                                                 />
                                                 <datalist id="dur-options">
-                                                    {['3 days', '5 days', '7 days', '10 days', '14 days', '1 month', 'Ongoing'].map(d => <option key={d} value={d} />)}
+                                                    {[t('duration_3_days'), t('duration_5_days'), t('duration_7_days'), t('duration_10_days'), t('duration_14_days'), t('duration_1_month'), t('duration_ongoing')].map(d => <option key={d} value={d} />)}
                                                 </datalist>
                                             </div>
                                             <div className="md:col-span-3">
-                                                <button onClick={handleAddMedication} className="w-full p-2 bg-primary-600 text-white rounded font-bold hover:bg-primary-700">+ Add</button>
+                                                <button onClick={handleAddMedication} className="w-full p-2 bg-primary-600 text-white rounded font-bold hover:bg-primary-700">{t('add_with_plus')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -793,11 +781,11 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         <div>
                                             <h1 className="text-3xl font-serif font-bold text-gray-900">{t('rx_header_title')}</h1>
                                             <p className="text-gray-600">{t('rx_header_subtitle')}</p>
-                                            <p className="text-gray-600">Tel: +20 123 456 7890</p>
+                                            <p className="text-gray-600">{t('rx_phone')}</p>
                                         </div>
                                         <div className="text-right rtl:text-left">
-                                            <h2 className="text-xl font-bold">Dr. Sarah Ahmed</h2>
-                                            <p className="text-gray-600">Cardiology Specialist</p>
+                                            <h2 className="text-xl font-bold">{t('rx_doctor_name')}</h2>
+                                            <p className="text-gray-600">{t('rx_doctor_specialty')}</p>
                                         </div>
                                     </div>
 
@@ -805,7 +793,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         <div>
                                             <div className="flex gap-8 mb-2">
                                                 <p><span className="font-bold text-gray-900">{t('patient')}:</span> {patient.name}</p>
-                                                <p><span className="font-bold text-gray-900">Age:</span> {patient.age}</p>
+                                                <p><span className="font-bold text-gray-900">{t('age_label')}:</span> {patient.age}</p>
                                             </div>
                                             <p><span className="font-bold text-gray-900">{t('date')}:</span> {new Date().toLocaleDateString()}</p>
                                             {nextVisitDate && <p><span className="font-bold text-gray-900">{t('next_visit_date')}:</span> {nextVisitDate}</p>}
@@ -816,7 +804,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     </div>
 
                                     <div className="space-y-6">
-                                        <div className="text-4xl font-serif text-gray-900 italic mb-4">Rx</div>
+                                        <div className="text-4xl font-serif text-gray-900 italic mb-4">{t('rx_mark')}</div>
                                         {prescription.length === 0 ? (
                                             <p className="text-gray-400 italic print:hidden">{t('no_meds')}</p>
                                         ) : (
@@ -831,7 +819,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                             <button onClick={() => setPrescription(prescription.filter(m => m.id !== med.id))} className="text-red-400 hover:text-red-600 print:hidden text-sm">{t('remove')}</button>
                                                         </div>
                                                         <div className="text-gray-700 mt-1 pl-4 rtl:pr-4 rtl:pl-0">
-                                                            {med.frequency} for {med.duration}
+                                                            {t('medication_frequency_for_duration', { frequency: med.frequency, duration: med.duration })}
                                                         </div>
                                                     </li>
                                                 ))}
