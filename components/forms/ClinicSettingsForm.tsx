@@ -18,7 +18,12 @@ export const ClinicSettingsForm: React.FC = () => {
             website: '',
             timezone: 'Africa/Cairo',
             currency: 'EGP',
-            logoUrl: ''
+            logoUrl: '',
+            commission_basis: 'PAID_AMOUNT',
+            apply_on_discounted_amount: true,
+            include_tax: true,
+            clawback_on_refund: true,
+            accrual_day_of_month: 1,
         }
     });
 
@@ -130,6 +135,37 @@ export const ClinicSettingsForm: React.FC = () => {
                                 <label className="block text-sm font-medium text-gray-700">{t('main_phone')}</label>
                                 <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 text-start direction-ltr" />
                             </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
+                            Doctor payroll policy
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Commission basis</label>
+                                <select {...register('commission_basis')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
+                                    <option value="PAID_AMOUNT">Paid amount</option>
+                                    <option value="INVOICE_TOTAL">Invoice total</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Accrual day of month</label>
+                                <input type="number" min={1} max={28} {...register('accrual_day_of_month', { valueAsNumber: true })} className="mt-1 block w-full rounded-md border-gray-300 border p-2" />
+                            </div>
+                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" {...register('apply_on_discounted_amount')} className="rounded border-gray-300" />
+                                Apply commission on discounted amount
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" {...register('include_tax')} className="rounded border-gray-300" />
+                                Include tax in commission basis
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" {...register('clawback_on_refund')} className="rounded border-gray-300" />
+                                Apply clawback on refund transactions
+                            </label>
                         </div>
                     </div>
 

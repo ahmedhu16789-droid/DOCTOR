@@ -22,6 +22,11 @@ class ClinicSettingsController extends Controller
                 'timezone' => $settings['timezone'] ?? 'Africa/Cairo',
                 'currency' => $settings['currency'] ?? 'EGP',
                 'logoUrl' => $settings['logoUrl'] ?? '',
+                'commission_basis' => $settings['commission_basis'] ?? 'PAID_AMOUNT',
+                'apply_on_discounted_amount' => $settings['apply_on_discounted_amount'] ?? true,
+                'include_tax' => $settings['include_tax'] ?? true,
+                'clawback_on_refund' => $settings['clawback_on_refund'] ?? true,
+                'accrual_day_of_month' => $settings['accrual_day_of_month'] ?? 1,
             ],
         ]);
     }
@@ -36,6 +41,11 @@ class ClinicSettingsController extends Controller
             'timezone' => ['required', 'string', 'max:64'],
             'currency' => ['required', 'string', 'size:3'],
             'logoUrl' => ['nullable', 'string', 'max:1000'],
+            'commission_basis' => ['required', 'string', 'in:PAID_AMOUNT,INVOICE_TOTAL'],
+            'apply_on_discounted_amount' => ['required', 'boolean'],
+            'include_tax' => ['required', 'boolean'],
+            'clawback_on_refund' => ['required', 'boolean'],
+            'accrual_day_of_month' => ['required', 'integer', 'min:1', 'max:28'],
         ]);
 
         $clinic = $request->user()->clinic;

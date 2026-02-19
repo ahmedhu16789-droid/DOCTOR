@@ -143,6 +143,11 @@ export interface ClinicSettingsPayload {
   timezone: string;
   currency: string;
   logoUrl: string;
+  commission_basis: 'PAID_AMOUNT' | 'INVOICE_TOTAL';
+  apply_on_discounted_amount: boolean;
+  include_tax: boolean;
+  clawback_on_refund: boolean;
+  accrual_day_of_month: number;
 }
 
 export interface FinancialSummary {
