@@ -10,7 +10,9 @@ use App\Models\Transaction;
 use App\Services\DoctorEarningsCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class AppointmentBillingController extends Controller
 {
@@ -86,7 +88,16 @@ class AppointmentBillingController extends Controller
                 'paid_at' => now(),
             ]);
 
-            $this->doctorEarningsCalculator->recordForPayment($appointment, $invoice, $transaction);
+            try {
+                $this->doctorEarningsCalculator->recordForPayment($appointment, $invoice, $transaction);
+            } catch (RuntimeException $exception) {
+                Log::warning('Skipping doctor earnings ledger creation during payment processing.', [
+                    'appointment_id' => $appointment->id,
+                    'invoice_id' => $invoice->id,
+                    'transaction_id' => $transaction->id,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
         });
 
         $appointment->load('invoice.items');
