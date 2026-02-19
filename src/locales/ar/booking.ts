@@ -34,6 +34,15 @@ export const booking = {
     "no_doctors_without_branch": "لا يمكن تحميل الأطباء بدون فرع فعال.",
     "service": "الخدمة",
     "time": "الوقت",
+    "queue_board.column.waiting_room": "غرفة الانتظار",
+    "queue_board.column.in_progress": "قيد التنفيذ",
+    "queue_board.column.completed": "مكتمل",
+    "queue_board.empty": "لا يوجد مرضى",
+    "queue_board.move_to": "نقل إلى {{status}}",
+    "queue_board.procedure_badge": "إجراء",
+    "queue_board.waiting_time": "منتظر منذ {{minutes}} د",
+    "queue_board.status.IN_PROGRESS": "قيد التنفيذ",
+    "queue_board.status.COMPLETED": "مكتمل",
 
     // Messages
     "confirm_title": "تأكيد الحجز",
