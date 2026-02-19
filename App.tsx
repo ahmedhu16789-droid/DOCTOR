@@ -574,6 +574,7 @@ export default function App() {
           branches={branches}
           activeBranchId={activeBranchId}
           visibleAppointments={visibleAppointments}
+          allAppointments={appointments}
           selectedPatientId={selectedPatientId}
           onStatusChange={handleStatusChange}
           onBook={handleNewBooking}
