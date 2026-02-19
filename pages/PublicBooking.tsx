@@ -4,6 +4,7 @@ import { BRANCHES, DEPARTMENTS, MOCK_USERS } from '../constants';
 import { generateTimeSlots, MOCK_PATIENTS } from '../services/mockData';
 import { Calendar, MapPin, Search, Star, Clock, ArrowRight, Phone, CheckCircle, UserPlus, User, ChevronLeft, CreditCard, Banknote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface PublicBookingProps {
   onBackToLogin: () => void;
@@ -219,7 +220,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
                             onClick={() => handleSlotClick(doc, slot.time)}
                             className="px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-semibold hover:bg-primary-600 hover:text-white transition-colors border border-primary-100"
                           >
-                            {slot.time}
+                            {formatTimeTo12Hour(slot.time)}
                           </button>
                         ))}
                         {slots.length === 0 && (
@@ -248,7 +249,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
               </div>
               <div className="flex justify-between items-center text-sm mb-1">
                 <span className="text-gray-500">{t('time')}</span>
-                <span className="font-bold text-primary-700">{selectedDate} @ {selectedSlot}</span>
+                <span className="font-bold text-primary-700">{selectedDate} @ {formatTimeTo12Hour(selectedSlot)}</span>
               </div>
               <div className="flex justify-between items-center text-sm border-t border-primary-100 pt-2 mt-2">
                 <span className="text-gray-500">{t('visit_fee')}</span>
@@ -388,7 +389,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
               </div>
               <div>
                 <label className="text-xs text-gray-400 uppercase tracking-wider">{t('time')}</label>
-                <p className="font-bold text-green-700">{selectedDate} @ {selectedSlot}</p>
+                <p className="font-bold text-green-700">{selectedDate} @ {formatTimeTo12Hour(selectedSlot)}</p>
               </div>
 
               <div className="pt-4 mt-4 border-t border-gray-100">

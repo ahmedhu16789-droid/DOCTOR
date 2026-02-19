@@ -5,6 +5,7 @@ import { PatientLookup } from '../components/PatientLookup';
 import { CheckCircle, Calendar, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface AppointmentBookingProps {
   onBook: (apt: Partial<Appointment>) => void;
@@ -144,7 +145,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                     ? 'bg-primary-600 text-white border-primary-600 shadow-sm ring-2 ring-primary-200'
                     : 'bg-white border-primary-200 text-primary-700 hover:bg-primary-50 hover:border-primary-300'}`}
                 >
-                  {slot.time}
+                  {formatTimeTo12Hour(slot.time)}
                 </button>
               );
             })}
@@ -244,7 +245,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-bold">{t('selected_slot')}</p>
-                    <p className="font-bold text-gray-900">{selectedDoctor.name} • {selectedTime}</p>
+                    <p className="font-bold text-gray-900">{selectedDoctor.name} • {formatTimeTo12Hour(selectedTime)}</p>
                   </div>
                   <button
                     type="button"
@@ -280,7 +281,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
               </div>
               <div className="p-4 sm:p-5 flex items-start justify-between gap-3 bg-gray-50">
                 <span className="text-gray-500 text-lg">{t('time')}</span>
-                <span className="font-bold text-xl text-primary-700 text-right break-words">{selectedDate} @ {selectedTime}</span>
+                <span className="font-bold text-xl text-primary-700 text-right break-words">{selectedDate} @ {formatTimeTo12Hour(selectedTime)}</span>
               </div>
             </div>
             <div className="flex gap-4">

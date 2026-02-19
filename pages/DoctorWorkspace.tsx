@@ -5,6 +5,7 @@ import { MOCK_SERVICES } from '../services/mockData';
 import { getDoctorProfileFromApi, getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
 import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
+import { formatDateTo12Hour } from '../utils/time';
 
 interface DoctorWorkspaceProps {
     appointment: Appointment;
@@ -292,7 +293,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     {autoSaved && (
                         <span className="text-xs text-emerald-600 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                            {t('auto_saved')} {autoSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {t('auto_saved')} {formatDateTo12Hour(autoSaved)}
                         </span>
                     )}
                     <button disabled={saving} onClick={() => persistEncounter('DRAFT')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-60">

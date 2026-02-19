@@ -2,6 +2,7 @@ import React from 'react';
 import { Appointment, AppointmentStatus } from '../types';
 import { Clock, CheckCircle, PlayCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatTimeTo12Hour } from '../utils/time';
 
 interface QueueBoardProps {
   appointments: Appointment[];
@@ -39,7 +40,7 @@ const StatusColumn = ({
           <div className="flex justify-between items-start mb-2">
             <div>
               <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 uppercase tracking-wider mb-1">
-                {apt.timeSlot}
+                {formatTimeTo12Hour(apt.timeSlot)}
               </span>
               <h4 className="font-semibold text-gray-900">{apt.patientName}</h4>
             </div>
