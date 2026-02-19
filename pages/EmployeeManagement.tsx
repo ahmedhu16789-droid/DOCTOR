@@ -199,7 +199,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
                 {isCreating ? t('add_new_employee') : t('edit_user', { name: selectedEmp?.name })}
               </h2>
               <button onClick={() => { setIsCreating(false); setSelectedEmp(null); }} className="p-2 hover:bg-gray-100 rounded-full">
-                <span className="sr-only">Close</span>
+                <span className="sr-only">{t('close')}</span>
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>

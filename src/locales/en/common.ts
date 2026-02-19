@@ -137,6 +137,7 @@ export const common = {
     "male": "Male",
     "female": "Female",
     "years": "years",
+    "loading_profiles": "Loading profiles",
     "close": "Close",
     "cancel": "Cancel",
     "create_select": "Create & Select",
