@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorProfileController;
+use App\Http\Controllers\Api\V1\DoctorPayrollController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\Auth\AccessLinkController;
@@ -53,6 +54,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
         Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
+        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
+        Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
+        Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle']);
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
         Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
     });
