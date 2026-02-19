@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
-import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
+import { getDoctorProfileFromApi, getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
 import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,33 @@ interface DoctorWorkspaceProps {
     onAddService: (aptId: string, service: ServiceItem) => void;
     onRemoveService: (aptId: string, itemId: string) => void;
 }
+
+
+const DEFAULT_EXAM_TEMPLATES = [
+    'Conscious, oriented, cooperative',
+    'Chest: clear to auscultation bilaterally, no wheezes or crackles',
+    'Abdomen: soft, non-tender, no organomegaly',
+    'Throat: hyperemic, tonsils not enlarged',
+    'Skin: no rash, no jaundice',
+    'Neurological: intact, no focal deficit',
+    'CVS: S1 S2 heard, no murmurs',
+    'Lymph nodes: not enlarged',
+];
+
+const DEFAULT_DIAGNOSIS_TEMPLATES = [
+    'J06.9 – Upper Respiratory Infection',
+    'I10 – Essential Hypertension',
+    'E11.9 – Type 2 Diabetes Mellitus',
+    'R05 – Cough',
+    'N39.0 – Urinary Tract Infection',
+];
+
+const DEFAULT_PLAN_TEMPLATES = [
+    'Rest for 3 days, plenty of fluids',
+    'Follow up in 1 week if not improved',
+    'Labs ordered, result follow-up',
+    'Patient educated about medication compliance',
+];
 
 type VisitHistoryItem = {
     id: string;
@@ -29,6 +56,9 @@ type VisitHistoryItem = {
 export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, patient, userRole, onClose, onComplete, onAddService, onRemoveService }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'VITALS' | 'NOTES' | 'RX' | 'SERVICES'>('VITALS');
+    const [examTemplates, setExamTemplates] = useState<string[]>(DEFAULT_EXAM_TEMPLATES);
+    const [diagnosisTemplates, setDiagnosisTemplates] = useState<string[]>(DEFAULT_DIAGNOSIS_TEMPLATES);
+    const [planTemplates, setPlanTemplates] = useState<string[]>(DEFAULT_PLAN_TEMPLATES);
 
     // Clinical State
     const [vitals, setVitals] = useState<VitalSigns>({ recordedBy: 'u1', timestamp: new Date().toISOString() });
@@ -94,6 +124,18 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     useEffect(() => {
         loadEncounter();
     }, [appointment.id]);
+
+    useEffect(() => {
+        getDoctorProfileFromApi()
+            .then((payload) => {
+                if (payload.examFindingTemplates?.length) setExamTemplates(payload.examFindingTemplates);
+                if (payload.diagnosisTemplates?.length) setDiagnosisTemplates(payload.diagnosisTemplates);
+                if (payload.planTemplates?.length) setPlanTemplates(payload.planTemplates);
+            })
+            .catch(() => {
+                setExamTemplates(DEFAULT_EXAM_TEMPLATES);
+            });
+    }, []);
 
     useEffect(() => {
         const handleEscape = (event: KeyboardEvent) => {
@@ -524,49 +566,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
 
 
                         {activeTab === 'NOTES' && (() => {
-                            const ICD10_COMMON = [
-                                { code: 'J06.9', label: 'Upper Respiratory Infection' },
-                                { code: 'I10', label: 'Essential Hypertension' },
-                                { code: 'E11.9', label: 'Type 2 Diabetes Mellitus' },
-                                { code: 'J18.9', label: 'Pneumonia, unspecified' },
-                                { code: 'K21.0', label: 'GERD with esophagitis' },
-                                { code: 'M54.5', label: 'Low Back Pain' },
-                                { code: 'J45.9', label: 'Asthma, unspecified' },
-                                { code: 'A09', label: 'Gastroenteritis' },
-                                { code: 'R51', label: 'Headache' },
-                                { code: 'N39.0', label: 'Urinary Tract Infection' },
-                                { code: 'F41.1', label: 'Generalized Anxiety Disorder' },
-                                { code: 'J00', label: 'Common Cold' },
-                                { code: 'B34.9', label: 'Viral Infection, unspecified' },
-                                { code: 'L50.0', label: 'Allergic Urticaria' },
-                                { code: 'R05', label: 'Cough' },
-                            ];
-
-                            const EXAM_TEMPLATES = [
-                                'Conscious, oriented, cooperative',
-                                'Chest: clear to auscultation bilaterally, no wheezes or crackles',
-                                'Abdomen: soft, non-tender, no organomegaly',
-                                'Throat: hyperemic, tonsils not enlarged',
-                                'Skin: no rash, no jaundice',
-                                'Neurological: intact, no focal deficit',
-                                'CVS: S1 S2 heard, no murmurs',
-                                'Lymph nodes: not enlarged',
-                            ];
-
-                            const PLAN_TEMPLATES = [
-                                'Rest for 3 days, plenty of fluids',
-                                'Follow up in 1 week if not improved',
-                                'Referred to specialist',
-                                'Labs ordered, result follow-up',
-                                'Patient educated about medication compliance',
-                                'Return if fever > 38.5°C',
-                                'Lifestyle modification advised',
-                                'Blood pressure monitoring at home',
-                            ];
-
-                            const icdFiltered = ICD10_COMMON.filter(d =>
-                                diagnosis.length >= 1 &&
-                                (d.label.toLowerCase().includes(diagnosis.toLowerCase()) || d.code.includes(diagnosis))
+                            const icdFiltered = diagnosisTemplates.filter((template) =>
+                                diagnosis.length >= 1 && template.toLowerCase().includes(diagnosis.toLowerCase())
                             );
 
                             return (
@@ -576,7 +577,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                         <h3 className="font-bold text-gray-900 mb-3">{t('exam_findings')}</h3>
                                         <div className="flex flex-wrap gap-2 mb-3">
-                                            {EXAM_TEMPLATES.map(tmpl => (
+                                            {examTemplates.map(tmpl => (
                                                 <button key={tmpl} type="button"
                                                     onClick={() => setNotes(p => p ? p + '\n' + tmpl : tmpl)}
                                                     className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 text-gray-600 transition-colors"
@@ -609,13 +610,12 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             />
                                             {icdFiltered.length > 0 && (
                                                 <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                                                    {icdFiltered.map(d => (
-                                                        <button key={d.code} type="button"
-                                                            onClick={() => setDiagnosis(`${d.code} – ${d.label}`)}
+                                                    {icdFiltered.map((template) => (
+                                                        <button key={template} type="button"
+                                                            onClick={() => setDiagnosis(template)}
                                                             className="w-full text-left px-4 py-2.5 hover:bg-primary-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
                                                         >
-                                                            <span className="font-mono text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded font-bold">{d.code}</span>
-                                                            <span className="text-sm text-gray-800">{d.label}</span>
+                                                            <span className="text-sm text-gray-800">{template}</span>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -623,12 +623,12 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         </div>
                                         {/* Common quick-pick chips */}
                                         <div className="flex flex-wrap gap-2 mt-3">
-                                            {ICD10_COMMON.slice(0, 6).map(d => (
-                                                <button key={d.code} type="button"
-                                                    onClick={() => setDiagnosis(`${d.code} – ${d.label}`)}
+                                            {diagnosisTemplates.slice(0, 6).map((template) => (
+                                                <button key={template} type="button"
+                                                    onClick={() => setDiagnosis(template)}
                                                     className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 text-gray-600 transition-colors"
                                                 >
-                                                    {d.code} {d.label}
+                                                    {template}
                                                 </button>
                                             ))}
                                         </div>
@@ -638,7 +638,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                         <h3 className="font-bold text-gray-900 mb-3">{t('plan')}</h3>
                                         <div className="flex flex-wrap gap-2 mb-3">
-                                            {PLAN_TEMPLATES.map(tmpl => (
+                                            {planTemplates.map(tmpl => (
                                                 <button key={tmpl} type="button"
                                                     onClick={() => setPlan(p => p ? p + '\n' + tmpl : tmpl)}
                                                     className="text-xs px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 border border-gray-200 text-gray-600 transition-colors"

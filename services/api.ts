@@ -15,6 +15,9 @@ interface ApiUser {
   assignedBranches?: string[];
   schedule?: User['schedule'];
   activeBranchId?: string | null;
+  examFindingTemplates?: string[];
+  diagnosisTemplates?: string[];
+  planTemplates?: string[];
 }
 
 interface ApiLoginResponse {
@@ -108,6 +111,9 @@ interface ApiDoctor {
   assignedBranches: string[];
   schedule?: User['schedule'];
   payroll?: User['payroll'];
+  examFindingTemplates?: string[];
+  diagnosisTemplates?: string[];
+  planTemplates?: string[];
 }
 
 
@@ -209,6 +215,9 @@ const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
     schedule: apiUser.schedule ?? fallbackUser?.schedule,
     activeBranchId: apiUser.activeBranchId ?? undefined,
     avatarUrl: fallbackUser?.avatarUrl,
+    examFindingTemplates: apiUser.examFindingTemplates ?? fallbackUser?.examFindingTemplates ?? [],
+    diagnosisTemplates: apiUser.diagnosisTemplates ?? fallbackUser?.diagnosisTemplates ?? [],
+    planTemplates: apiUser.planTemplates ?? fallbackUser?.planTemplates ?? [],
   };
 };
 
@@ -223,6 +232,9 @@ const normalizeDoctor = (doctor: ApiDoctor): User => ({
   assignedBranches: doctor.assignedBranches ?? [],
   schedule: doctor.schedule ?? [],
   payroll: doctor.payroll,
+  examFindingTemplates: doctor.examFindingTemplates ?? [],
+  diagnosisTemplates: doctor.diagnosisTemplates ?? [],
+  planTemplates: doctor.planTemplates ?? [],
   status: 'ACTIVE',
 });
 
@@ -629,6 +641,23 @@ export const getFinancialReportFromApi = async (params?: { from?: string; to?: s
   return payload.data;
 };
 
+
+export interface DoctorProfilePayload {
+  examFindingTemplates: string[];
+  diagnosisTemplates: string[];
+  planTemplates: string[];
+}
+
+export const getDoctorProfileFromApi = async (): Promise<DoctorProfilePayload> => {
+  return apiFetch<DoctorProfilePayload>('/doctor-profile');
+};
+
+export const updateDoctorProfileFromApi = async (payload: DoctorProfilePayload): Promise<DoctorProfilePayload> => {
+  return apiFetch<DoctorProfilePayload>('/doctor-profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
 export const getClinicSettingsFromApi = async (): Promise<ClinicSettingsPayload> => {
   const payload = await apiFetch<{ data: ClinicSettingsPayload }>('/clinic/settings');
   return payload.data;

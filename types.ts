@@ -68,6 +68,9 @@ export interface User {
   payroll?: PayrollConfig;
   activeBranchId?: string;
   joinDate?: string;
+  examFindingTemplates?: string[];
+  diagnosisTemplates?: string[];
+  planTemplates?: string[];
 }
 
 export interface Employee extends User {

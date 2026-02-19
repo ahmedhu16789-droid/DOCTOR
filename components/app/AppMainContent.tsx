@@ -7,9 +7,10 @@ import { AdminDashboard } from '../../pages/AdminDashboard';
 import { EmployeeManagement } from '../../pages/EmployeeManagement';
 import { BranchManagement } from '../../pages/BranchManagement';
 import { ClinicSettings } from '../../pages/ClinicSettings';
+import { DoctorProfile } from '../../pages/DoctorProfile';
 import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
-import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User } from '../../types';
+import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
 
 interface AppMainContentProps {
   activeTab: string;
@@ -114,7 +115,7 @@ export function AppMainContent({
       )}
 
       {activeTab === 'settings' && user && (
-        <ClinicSettings />
+        user.role === UserRole.DOCTOR ? <DoctorProfile /> : <ClinicSettings />
       )}
 
       {activeTab === 'finance' && user && (

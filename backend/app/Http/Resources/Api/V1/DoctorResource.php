@@ -28,6 +28,9 @@ class DoctorResource extends JsonResource
                     'branchId' => isset($shift['branchId']) ? (string) $shift['branchId'] : null,
                 ];
             })->values()->all(),
+            'examFindingTemplates' => $this->exam_finding_templates ?? [],
+            'diagnosisTemplates' => $this->diagnosis_templates ?? [],
+            'planTemplates' => $this->plan_templates ?? [],
             'payroll' => [
                 'model' => $this->payroll['model'] ?? 'PERCENTAGE',
                 'baseSalary' => (float) ($this->payroll['baseSalary'] ?? 0),
