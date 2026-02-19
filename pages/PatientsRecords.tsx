@@ -152,7 +152,7 @@ export function PatientsRecords({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-              placeholder={t('search_placeholder') || 'ابحث بالاسم أو رقم الهاتف'}
+              placeholder={t('search_placeholder')}
             />
           </div>
         </div>
