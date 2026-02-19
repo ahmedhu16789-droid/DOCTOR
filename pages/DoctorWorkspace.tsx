@@ -3,7 +3,7 @@ import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } f
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
 import { getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
-import { initializeRxNormAutocomplete } from '../services/rxnormAutocomplete';
+import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
 
 interface DoctorWorkspaceProps {
@@ -26,8 +26,23 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [notes, setNotes] = useState('');
     const [plan, setPlan] = useState('');
     const [prescription, setPrescription] = useState<Medication[]>([]);
-    const [medicationOptions, setMedicationOptions] = useState<{ id: string; name: string; activeIngredient?: string }[]>([]);
+    const [drugSuggestions, setDrugSuggestions] = useState<string[]>([]);
+    const [selectedDrug, setSelectedDrug] = useState('');
+    const [dosageOptions, setDosageOptions] = useState<string[]>([]);
+    const [loadingDosages, setLoadingDosages] = useState(false);
+    const [showDrugDropdown, setShowDrugDropdown] = useState(false);
+    const dosageMapRef = React.useRef<Record<string, string[]>>({});
+    // keep legacy for any other code that references medicationOptions
+    const medicationOptions: { id: string; name: string; activeIngredient?: string }[] = [];
     const [saving, setSaving] = useState(false);
+    const [autoSaved, setAutoSaved] = useState<Date | null>(null);
+    const hasDraftLoaded = React.useRef(false);
+    // Refs to always hold latest values inside async setTimeout (avoids stale closure)
+    const latestVitals = React.useRef(vitals);
+    const latestNotes = React.useRef(notes);
+    const latestDiagnosis = React.useRef(diagnosis);
+    const latestPlan = React.useRef(plan);
+    const latestPrescription = React.useRef(prescription);
     const [history, setHistory] = useState<{ id: string; date?: string; diagnosis?: string; plan?: string; doctorId?: string; }[]>([]);
 
     // Rx Builder State
@@ -41,7 +56,10 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
         setHistory(payload.history ?? []);
 
         const data = payload.data;
-        if (!data) return;
+        if (!data) {
+            hasDraftLoaded.current = true; // nothing to load, allow auto-save immediately
+            return;
+        }
 
         setVitals({ ...data.vitals, recordedBy: data.vitals?.recordedBy ?? 'u1', timestamp: data.vitals?.timestamp ?? new Date().toISOString() });
         setNotes(data.examFindings ?? '');
@@ -56,28 +74,76 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
             duration: medication.duration ?? '',
             instructions: medication.instructions,
         })));
+        // Mark as loaded — subsequent changes will trigger auto-save
+        setTimeout(() => { hasDraftLoaded.current = true; }, 200);
     };
 
     useEffect(() => {
         loadEncounter();
     }, [appointment.id]);
 
+    // React drug name search — ClinicalTables API works from 2 chars, returns names + dosages together
     useEffect(() => {
-        if (activeTab !== 'RX') {
+        const query = typeof rxSearch === 'string' ? rxSearch : String(rxSearch ?? '');
+        if (!query.trim() || query === selectedDrug) {
+            setDrugSuggestions([]);
+            setShowDrugDropdown(false);
             return;
         }
+        if (query.trim().length < 2) {
+            setDrugSuggestions([]);
+            return;
+        }
+        const timer = window.setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?ef=STRENGTHS_AND_FORMS&terms=${encodeURIComponent(query)}`
+                );
+                if (!res.ok) return;
+                const data = await res.json();  // [count, null, {STRENGTHS_AND_FORMS: string[][]}, string[]]
+                const names: string[] = data[3] ?? [];
+                const strengthsArr: string[][] = data[2]?.STRENGTHS_AND_FORMS ?? [];
+                // Cache dosages per drug name
+                const map: Record<string, string[]> = {};
+                names.forEach((name: string, i: number) => {
+                    map[name] = [...new Set<string>(strengthsArr[i] ?? [])];
+                });
+                dosageMapRef.current = map;
+                setDrugSuggestions(names.slice(0, 10));
+                setShowDrugDropdown(names.length > 0);
+            } catch { /* silent */ }
+        }, 250);
+        return () => window.clearTimeout(timer);
+    }, [rxSearch, selectedDrug]);
 
-        const detachAutocomplete = initializeRxNormAutocomplete({
-            onResults: (names) => {
-                setMedicationOptions(names.map((name, index) => ({
-                    id: `${name}-${index}`,
-                    name,
-                })));
-            },
-        });
+    // Keep refs in sync with latest state (solves stale closure in auto-save timer)
+    useEffect(() => { latestVitals.current = vitals; }, [vitals]);
+    useEffect(() => { latestNotes.current = notes; }, [notes]);
+    useEffect(() => { latestDiagnosis.current = diagnosis; }, [diagnosis]);
+    useEffect(() => { latestPlan.current = plan; }, [plan]);
+    useEffect(() => { latestPrescription.current = prescription; }, [prescription]);
 
-        return detachAutocomplete;
-    }, [activeTab]);
+    // Auto-save DRAFT 1.5s after any clinical change — refs guarantee latest data
+    useEffect(() => {
+        if (!hasDraftLoaded.current) return;
+        const timer = window.setTimeout(async () => {
+            try {
+                await saveMedicalEncounterViaApi(appointment.id, {
+                    vitals: latestVitals.current,
+                    examFindings: latestNotes.current,
+                    diagnosis: latestDiagnosis.current,
+                    plan: latestPlan.current,
+                    status: 'DRAFT',
+                    prescription: latestPrescription.current,
+                });
+                setAutoSaved(new Date());
+            } catch (err) {
+                console.error('Auto-save failed:', err);
+            }
+        }, 1500);
+        return () => window.clearTimeout(timer);
+    }, [vitals, notes, diagnosis, plan, prescription]);
+
 
     const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
         setSaving(true);
@@ -100,16 +166,19 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     };
 
     const handleAddMedication = () => {
-        if (rxSearch && newMed.dosage) {
+        const drugName = String(selectedDrug || rxSearch || '').trim();
+        if (drugName && newMed.dosage) {
             setPrescription([...prescription, {
                 id: Math.random().toString(),
-                name: rxSearch,
-                activeIngredient: medicationOptions.find(option => option.name === rxSearch)?.activeIngredient,
+                name: drugName,
                 dosage: newMed.dosage || '',
                 frequency: newMed.frequency || '',
                 duration: newMed.duration || ''
             }]);
             setRxSearch('');
+            setSelectedDrug('');
+            setDrugSuggestions([]);
+            setDosageOptions([]);
             setNewMed({ dosage: '', frequency: '', duration: '' });
         }
     };
@@ -139,7 +208,13 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                         ))}
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
+                    {autoSaved && (
+                        <span className="text-xs text-emerald-600 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                            {t('auto_saved') || 'Auto-saved'} {autoSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    )}
                     <button disabled={saving} onClick={() => persistEncounter('DRAFT')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-60">
                         <Save className="w-4 h-4" /> {t('save_draft')}
                     </button>
@@ -538,53 +613,108 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                             <div className="max-w-4xl mx-auto">
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 print:hidden">
                                     <h3 className="font-bold text-gray-900 mb-4">{t('rx_builder')}</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <div className="md:col-span-4">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('medication')}</label>
-                                            <input
-                                                type="text"
-                                                list="meds"
-                                                className="w-full p-2 border border-gray-300 rounded"
-                                                placeholder={t('search_drug')}
-                                                value={rxSearch}
-                                                onChange={e => setRxSearch(e.target.value)}
-                                            />
-                                            <datalist id="meds">
-                                                {medicationOptions.map(m => <option key={m.id} value={m.name} />)}
-                                            </datalist>
+                                    <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+
+                                        {/* Step 1: Drug Name with live autocomplete */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('medication')}</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border border-gray-300 rounded"
+                                                        placeholder={t('search_drug')}
+                                                        value={rxSearch}
+                                                        autoComplete="off"
+                                                        onChange={e => {
+                                                            setRxSearch(e.target.value);
+                                                            setSelectedDrug('');
+                                                            setDosageOptions([]);
+                                                            setNewMed({ ...newMed, dosage: '' });
+                                                        }}
+                                                        onFocus={() => { if (drugSuggestions.length > 0) setShowDrugDropdown(true); }}
+                                                        onBlur={() => setTimeout(() => setShowDrugDropdown(false), 150)}
+                                                    />
+                                                    {showDrugDropdown && drugSuggestions.length > 0 && (
+                                                        <div className="absolute z-30 top-full left-0 right-0 mt-0.5 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                                                            {drugSuggestions.map((name, i) => (
+                                                                <button key={i} type="button"
+                                                                    onMouseDown={() => {
+                                                                        setRxSearch(name);
+                                                                        setSelectedDrug(name);
+                                                                        setShowDrugDropdown(false);
+                                                                        setDrugSuggestions([]);
+                                                                        // Dosages already cached from the search response — no extra API call
+                                                                        const cached = dosageMapRef.current[name] ?? [];
+                                                                        setDosageOptions(cached);
+                                                                    }}
+                                                                    className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 hover:text-primary-700 border-b border-gray-50 last:border-0 capitalize"
+                                                                >
+                                                                    {name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Dosage — suggestions from RxNorm but user can type freely */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                                    {t('dosage')}
+                                                    {loadingDosages && <span className="ml-2 text-gray-400 font-normal normal-case">Loading…</span>}
+                                                    {dosageOptions.length > 0 && !loadingDosages && (
+                                                        <span className="ml-2 text-emerald-600 font-normal normal-case">{dosageOptions.length} options</span>
+                                                    )}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    list="dosage-opts"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    placeholder="e.g. 500mg — or pick from list"
+                                                    value={newMed.dosage}
+                                                    onChange={e => setNewMed({ ...newMed, dosage: e.target.value })}
+                                                />
+                                                <datalist id="dosage-opts">
+                                                    {dosageOptions.map((d, i) => <option key={i} value={d} />)}
+                                                </datalist>
+                                            </div>
+
                                         </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('dosage')}</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-2 border border-gray-300 rounded"
-                                                placeholder="e.g. 500mg"
-                                                value={newMed.dosage}
-                                                onChange={e => setNewMed({ ...newMed, dosage: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-3">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('frequency')}</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-2 border border-gray-300 rounded"
-                                                placeholder="e.g. 3 times daily"
-                                                value={newMed.frequency}
-                                                onChange={e => setNewMed({ ...newMed, frequency: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('duration')}</label>
-                                            <input
-                                                type="text"
-                                                className="w-full p-2 border border-gray-300 rounded"
-                                                placeholder="e.g. 5 days"
-                                                value={newMed.duration}
-                                                onChange={e => setNewMed({ ...newMed, duration: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-1">
-                                            <button onClick={handleAddMedication} className="w-full p-2 bg-primary-600 text-white rounded font-bold hover:bg-primary-700">+</button>
+
+                                        {/* Frequency, Duration, Add */}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                            <div className="md:col-span-5">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('frequency')}</label>
+                                                <input
+                                                    type="text"
+                                                    list="freq-options"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    placeholder="e.g. 3 times daily"
+                                                    value={newMed.frequency}
+                                                    onChange={e => setNewMed({ ...newMed, frequency: e.target.value })}
+                                                />
+                                                <datalist id="freq-options">
+                                                    {['Once daily', 'Twice daily', 'Three times daily', 'Every 8 hours', 'Every 12 hours', 'As needed (PRN)', 'At bedtime'].map(f => <option key={f} value={f} />)}
+                                                </datalist>
+                                            </div>
+                                            <div className="md:col-span-4">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('duration')}</label>
+                                                <input
+                                                    type="text"
+                                                    list="dur-options"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    placeholder="e.g. 5 days"
+                                                    value={newMed.duration}
+                                                    onChange={e => setNewMed({ ...newMed, duration: e.target.value })}
+                                                />
+                                                <datalist id="dur-options">
+                                                    {['3 days', '5 days', '7 days', '10 days', '14 days', '1 month', 'Ongoing'].map(d => <option key={d} value={d} />)}
+                                                </datalist>
+                                            </div>
+                                            <div className="md:col-span-3">
+                                                <button onClick={handleAddMedication} className="w-full p-2 bg-primary-600 text-white rounded font-bold hover:bg-primary-700">+ Add</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
