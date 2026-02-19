@@ -60,7 +60,7 @@ export const FinancialReports: React.FC = () => {
                 </button>
             </div>
 
-            {isLoading && <div className="text-sm text-gray-500">Loading financial report...</div>}
+            {isLoading && <div className="text-sm text-gray-500">{t('financial_loading')}</div>}
             {errorMessage && <div className="text-sm text-red-600">{errorMessage}</div>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -3,32 +3,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorProfileFromApi } from '../services/api';
 
-const DEFAULT_EXAM_TEMPLATES = [
-  'Conscious, oriented, cooperative',
-  'Chest: clear to auscultation bilaterally, no wheezes or crackles',
-  'Abdomen: soft, non-tender, no organomegaly',
-  'Throat: hyperemic, tonsils not enlarged',
-  'Skin: no rash, no jaundice',
-  'Neurological: intact, no focal deficit',
-  'CVS: S1 S2 heard, no murmurs',
-  'Lymph nodes: not enlarged',
-];
-
-const DEFAULT_DIAGNOSIS_TEMPLATES = [
-  'J06.9 – Upper Respiratory Infection',
-  'I10 – Essential Hypertension',
-  'E11.9 – Type 2 Diabetes Mellitus',
-  'R05 – Cough',
-  'N39.0 – Urinary Tract Infection',
-];
-
-const DEFAULT_PLAN_TEMPLATES = [
-  'Rest for 3 days, plenty of fluids',
-  'Follow up in 1 week if not improved',
-  'Labs ordered, result follow-up',
-  'Patient educated about medication compliance',
-];
-
 const unique = (items: string[]) => [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 
 type TemplateSectionProps = {
@@ -54,6 +28,7 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
   onRemove,
   disabled,
 }) => {
+  const { t } = useTranslation();
   const canAdd = useMemo(() => {
     const value = draftValue.trim();
     return value.length >= 2 && !items.includes(value);
@@ -96,7 +71,7 @@ const TemplateSection: React.FC<TemplateSectionProps> = ({
           </div>
         ))}
       </div>
-      <span className="text-xs text-gray-400">{items.length} templates</span>
+      <span className="text-xs text-gray-400">{t('doctor_profile_templates_count', { count: items.length })}</span>
     </div>
   );
 };
@@ -115,10 +90,23 @@ export const DoctorProfile: React.FC = () => {
   const [newDiagnosisTemplate, setNewDiagnosisTemplate] = useState('');
   const [newPlanTemplate, setNewPlanTemplate] = useState('');
 
+  const defaultExamTemplates = useMemo(
+    () => [1, 2, 3, 4, 5, 6, 7, 8].map((index) => t(`doctor_profile_default_exam_${index}`)),
+    [t],
+  );
+  const defaultDiagnosisTemplates = useMemo(
+    () => [1, 2, 3, 4, 5].map((index) => t(`doctor_profile_default_diagnosis_${index}`)),
+    [t],
+  );
+  const defaultPlanTemplates = useMemo(
+    () => [1, 2, 3, 4].map((index) => t(`doctor_profile_default_plan_${index}`)),
+    [t],
+  );
+
   const fallbackProfile: DoctorProfilePayload = {
-    examFindingTemplates: DEFAULT_EXAM_TEMPLATES,
-    diagnosisTemplates: DEFAULT_DIAGNOSIS_TEMPLATES,
-    planTemplates: DEFAULT_PLAN_TEMPLATES,
+    examFindingTemplates: defaultExamTemplates,
+    diagnosisTemplates: defaultDiagnosisTemplates,
+    planTemplates: defaultPlanTemplates,
   };
 
   const normalizeProfile = (payload?: Partial<DoctorProfilePayload>): DoctorProfilePayload => ({
@@ -165,19 +153,19 @@ export const DoctorProfile: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div className="bg-white p-6 rounded-xl border border-gray-200 text-sm text-gray-500">Loading doctor profile...</div>;
+    return <div className="bg-white p-6 rounded-xl border border-gray-200 text-sm text-gray-500">{t('doctor_profile_loading')}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Doctor Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('doctor_profile_title')}</h1>
         <p className="text-sm text-gray-500">{t('doctor_profile_templates_desc')}</p>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
         <TemplateSection
-          title="Examination Findings"
+          title={t('exam_findings')}
           placeholder={t('doctor_profile_exam_template_placeholder')}
           addLabel={t('add')}
           items={examTemplates}
@@ -196,7 +184,7 @@ export const DoctorProfile: React.FC = () => {
         />
 
         <TemplateSection
-          title="Diagnosis (ICD-10)"
+          title={t('diagnosis')}
           placeholder={t('doctor_profile_diagnosis_template_placeholder')}
           addLabel={t('add')}
           items={diagnosisTemplates}
@@ -215,7 +203,7 @@ export const DoctorProfile: React.FC = () => {
         />
 
         <TemplateSection
-          title="Plan & Follow-up"
+          title={t('plan')}
           placeholder={t('doctor_profile_plan_template_placeholder')}
           addLabel={t('add')}
           items={planTemplates}

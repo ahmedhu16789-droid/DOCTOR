@@ -10,6 +10,7 @@ export const admin = {
     "staff_doctors": "الموظفين والأطباء",
     "financial_reports": "التقارير المالية",
     "financial_desc": "تحليل الإيرادات وتقارير الأرباح في الوقت الفعلي",
+    "financial_loading": "جاري تحميل التقرير المالي...",
     "employee_mgmt": "إدارة الموظفين",
     "employee_desc": "إدارة الموارد البشرية، إعدادات الرواتب، وشفتات العمل",
 

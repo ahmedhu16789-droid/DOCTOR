@@ -11,6 +11,7 @@ export const admin = {
     "staff_doctors": "Staff & Doctors",
     "financial_reports": "Financial Reports",
     "financial_desc": "Real-time revenue analysis and earnings report",
+    "financial_loading": "Loading financial report...",
     "employee_mgmt": "Employee Management",
     "employee_desc": "Manage HR, Payroll configuration, and Staff Shifts",
 
