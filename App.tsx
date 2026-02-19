@@ -378,7 +378,7 @@ export default function App() {
     ));
 
     updateAppointmentStatusViaApi(id, newStatus).catch(() => {
-      setToast({ type: 'error', message: 'تعذر تحديث حالة الموعد حالياً' });
+      setToast({ type: 'error', message: t('appointment_status_update_failed') });
       getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
     });
   };
@@ -415,12 +415,12 @@ export default function App() {
       await createAppointmentViaApi(newApt);
       const refreshedAppointments = await getAppointmentsFromApi(patients);
       setAppointments(refreshedAppointments);
-      setToast({ type: 'success', message: `تم حفظ الحجز لـ ${newApt.patientName}` });
+      setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
     } catch (error) {
       setAppointments((prev) => [...prev, newApt]);
       setToast({
         type: 'error',
-        message: error instanceof Error ? error.message : `تعذر حفظ الحجز على السيرفر لـ ${newApt.patientName}`,
+        message: error instanceof Error ? error.message : t('booking_save_failed_for_patient', { patientName: newApt.patientName }),
       });
     }
   };
@@ -463,7 +463,7 @@ export default function App() {
         },
       } : apt)));
     } catch {
-      setToast({ type: 'error', message: 'تعذر إضافة الخدمة حالياً' });
+      setToast({ type: 'error', message: t('service_add_failed') });
     }
   };
 
@@ -482,7 +482,7 @@ export default function App() {
         },
       } : apt)));
     } catch {
-      setToast({ type: 'error', message: 'تعذر حذف الخدمة حالياً' });
+      setToast({ type: 'error', message: t('service_remove_failed') });
     }
   };
 
@@ -501,7 +501,7 @@ export default function App() {
         },
       } : apt)));
     } catch {
-      setToast({ type: 'error', message: 'تعذر تسجيل الدفعة حالياً' });
+      setToast({ type: 'error', message: t('payment_record_failed') });
     }
   };
 
