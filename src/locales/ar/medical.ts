@@ -11,6 +11,12 @@ export const medical = {
     "print_rx": "طباعة الروشتة",
     "add": "إضافة",
     "remove": "حذف",
+    "doctor_profile_auto_saved": "تم الحفظ تلقائياً.",
+    "doctor_profile_save_failed": "تعذر الحفظ حالياً، حاول مرة أخرى.",
+    "doctor_profile_templates_desc": "إدخال يدوي لقوالب الفحص والتشخيص وخطة المتابعة. زر الإضافة يحفظ مباشرة.",
+    "doctor_profile_exam_template_placeholder": "اكتب جملة فحص متكررة...",
+    "doctor_profile_diagnosis_template_placeholder": "اكتب كود/جملة تشخيص، مثال: I10 – Essential Hypertension",
+    "doctor_profile_plan_template_placeholder": "اكتب جملة خطة/متابعة متكررة...",
 
     // Vitals
     "vitals_title": "العلامات الحيوية",
