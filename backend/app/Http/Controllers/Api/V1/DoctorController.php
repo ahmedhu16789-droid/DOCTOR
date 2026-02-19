@@ -45,6 +45,16 @@ class DoctorController extends Controller
                 'plan_templates' => $request->input('planTemplates', []),
             ]);
 
+            $doctor->payrollContracts()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'model' => $request->input('payroll.model'),
+                'base_salary' => $request->input('payroll.baseSalary'),
+                'commission_percentage' => $request->input('payroll.commissionPercentage'),
+                'effective_from' => now()->toDateString(),
+                'effective_to' => null,
+                'is_active' => true,
+            ]);
+
             $doctor->branches()->sync($this->branchPivotPayload($request));
 
             return $doctor->load('branches');
@@ -69,6 +79,24 @@ class DoctorController extends Controller
                 'exam_finding_templates' => $request->input('examFindingTemplates', []),
                 'diagnosis_templates' => $request->input('diagnosisTemplates', []),
                 'plan_templates' => $request->input('planTemplates', []),
+            ]);
+
+            $doctor->payrollContracts()
+                ->where('is_active', true)
+                ->whereNull('effective_to')
+                ->update([
+                    'effective_to' => now()->toDateString(),
+                    'is_active' => false,
+                ]);
+
+            $doctor->payrollContracts()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'model' => $request->input('payroll.model'),
+                'base_salary' => $request->input('payroll.baseSalary'),
+                'commission_percentage' => $request->input('payroll.commissionPercentage'),
+                'effective_from' => now()->toDateString(),
+                'effective_to' => null,
+                'is_active' => true,
             ]);
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
