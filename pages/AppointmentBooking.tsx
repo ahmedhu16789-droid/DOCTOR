@@ -156,13 +156,15 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full max-h-[800px]">
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-900 flex items-center">
+      <div className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center min-w-0">
           <Calendar className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0 text-primary-600" />
-          {step === 'IDENTIFICATION' ? t('identification') : step === 'SELECTION' ? t('select_slot') : t('confirmation')}
+          <span className="truncate">
+            {step === 'IDENTIFICATION' ? t('identification') : step === 'SELECTION' ? t('select_slot') : t('confirmation')}
+          </span>
         </h2>
         {step !== 'IDENTIFICATION' && (
-          <button onClick={() => setStep('IDENTIFICATION')} className="text-sm text-gray-500 hover:text-primary-600">{t('change')}</button>
+          <button onClick={() => setStep('IDENTIFICATION')} className="text-sm text-gray-500 hover:text-primary-600 flex-shrink-0">{t('change')}</button>
         )}
       </div>
 
@@ -258,20 +260,32 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
         )}
 
         {step === 'CONFIRMATION' && (
-          <div className="max-w-md mx-auto">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center mb-6">
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-5 sm:p-6 text-center mb-5 sm:mb-6">
               <CheckCircle className="w-10 h-10 mx-auto text-green-600 mb-2" />
-              <h3 className="text-xl font-bold text-green-800 mb-1">{t('confirm_title')}</h3>
+              <h3 className="text-2xl font-bold text-green-800 mb-1">{t('confirm_title')}</h3>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('patient')}</span><span className="font-bold">{selectedPatient?.name}</span></div>
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('service')}</span><span className="font-bold">{selectedDept}</span></div>
-              <div className="p-4 border-b border-gray-100 flex justify-between"><span className="text-gray-500">{t('doctor')}</span><span className="font-bold">{selectedDoctor?.name}</span></div>
-              <div className="p-4 flex justify-between bg-gray-50"><span className="text-gray-500">{t('time')}</span><span className="font-bold text-primary-700">{selectedDate} @ {selectedTime}</span></div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('patient')}</span>
+                <span className="font-bold text-xl text-right break-words">{selectedPatient?.name}</span>
+              </div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('service')}</span>
+                <span className="font-bold text-xl text-right break-words">{selectedDept}</span>
+              </div>
+              <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
+                <span className="text-gray-500 text-lg">{t('doctor')}</span>
+                <span className="font-bold text-xl text-right break-words max-w-[70%]">{selectedDoctor?.name}</span>
+              </div>
+              <div className="p-4 sm:p-5 flex items-start justify-between gap-3 bg-gray-50">
+                <span className="text-gray-500 text-lg">{t('time')}</span>
+                <span className="font-bold text-xl text-primary-700 text-right break-words">{selectedDate} @ {selectedTime}</span>
+              </div>
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setStep('SELECTION')} className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50">{t('back')}</button>
-              <button onClick={handleConfirm} className="flex-[2] py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>
+              <button onClick={() => setStep('SELECTION')} className="flex-1 py-3.5 border border-gray-300 rounded-lg font-medium text-2xl sm:text-xl hover:bg-gray-50">{t('back')}</button>
+              <button onClick={handleConfirm} className="flex-[2] py-3.5 bg-primary-600 text-white rounded-lg font-bold text-xl hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>
             </div>
           </div>
         )}
