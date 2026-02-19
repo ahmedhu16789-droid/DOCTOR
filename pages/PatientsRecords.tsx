@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus } from '../types';
 
@@ -8,47 +8,6 @@ interface PatientsRecordsProps {
   appointments: Appointment[];
   selectedPatientId: string | null;
   onSelectPatient: (patientId: string | null) => void;
-}
-
-const dateTimeValue = (appointment: Appointment) => new Date(`${appointment.date}T${appointment.timeSlot}`).getTime();
-
-const VISIT_PROGRESS_STEPS: AppointmentStatus[] = [
-  AppointmentStatus.SCHEDULED,
-  AppointmentStatus.WAITING,
-  AppointmentStatus.CALLED,
-  AppointmentStatus.IN_PROGRESS,
-  AppointmentStatus.COMPLETED,
-];
-
-function getStatusColor(status: AppointmentStatus) {
-  switch (status) {
-    case AppointmentStatus.COMPLETED:
-      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
-    case AppointmentStatus.IN_PROGRESS:
-      return 'text-indigo-700 bg-indigo-50 border-indigo-200';
-    case AppointmentStatus.CALLED:
-      return 'text-violet-700 bg-violet-50 border-violet-200';
-    case AppointmentStatus.WAITING:
-      return 'text-amber-700 bg-amber-50 border-amber-200';
-    case AppointmentStatus.CANCELLED:
-    case AppointmentStatus.NO_SHOW:
-      return 'text-rose-700 bg-rose-50 border-rose-200';
-    default:
-      return 'text-slate-700 bg-slate-50 border-slate-200';
-  }
-}
-
-function getPaymentStatusColor(status: PaymentStatus) {
-  switch (status) {
-    case PaymentStatus.PAID:
-      return 'text-emerald-700 bg-emerald-50 border-emerald-200';
-    case PaymentStatus.PARTIAL:
-      return 'text-amber-700 bg-amber-50 border-amber-200';
-    case PaymentStatus.REFUNDED:
-      return 'text-rose-700 bg-rose-50 border-rose-200';
-    default:
-      return 'text-slate-700 bg-slate-50 border-slate-200';
-  }
 }
 
 const dateTimeValue = (appointment: Appointment) => new Date(`${appointment.date}T${appointment.timeSlot}`).getTime();
