@@ -19,6 +19,7 @@ interface AppMainContentProps {
   branches: Branch[];
   activeBranchId: string;
   visibleAppointments: Appointment[];
+  allAppointments: Appointment[];
   selectedPatientId: string | null;
   onStatusChange: (id: string, newStatus: AppointmentStatus) => void;
   onBook: (apt: Partial<Appointment>) => Promise<void>;
@@ -26,7 +27,7 @@ interface AppMainContentProps {
   onOpenEncounter: (apt: Appointment) => void;
   onProcessPayment: (aptId: string, amount: number, method: PaymentMethod) => Promise<void>;
   onRefresh: () => Promise<void>;
-  onSelectPatient: (patientId: string) => void;
+  onSelectPatient: (patientId: string | null) => void;
   patientQueueLabel: string;
 }
 
@@ -38,6 +39,7 @@ export function AppMainContent({
   branches,
   activeBranchId,
   visibleAppointments,
+  allAppointments,
   selectedPatientId,
   onStatusChange,
   onBook,
@@ -122,7 +124,7 @@ export function AppMainContent({
       {activeTab === 'patients' && (
         <PatientsRecords
           patients={patients}
-          appointments={visibleAppointments}
+          appointments={allAppointments}
           selectedPatientId={selectedPatientId}
           onSelectPatient={onSelectPatient}
         />
