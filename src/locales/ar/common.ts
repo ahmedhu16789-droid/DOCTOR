@@ -84,6 +84,15 @@ export const common = {
     "contact": "الاتصال",
     "last_visit": "آخر زيارة",
     "history": "السجل الطبي",
+    "total_visits": "إجمالي الزيارات",
+    "completed_visits": "الزيارات المكتملة",
+    "upcoming_visits": "الزيارات القادمة",
+    "department": "القسم",
+    "appointment_type": "نوع الموعد",
+    "payment_status": "حالة الدفع",
+    "clinical_notes": "ملاحظات سريرية",
+    "no_visits_for_patient": "لا توجد زيارات مسجلة لهذا المريض حتى الآن",
+    "select_patient_to_view_visits": "اختر مريضًا لعرض جميع تفاصيل الزيارات ومتابعة الحالة بدقة",
 
     // Calendar
     "months": [
