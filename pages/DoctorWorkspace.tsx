@@ -41,6 +41,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [dosageOptions, setDosageOptions] = useState<string[]>([]);
     const [loadingDosages, setLoadingDosages] = useState(false);
     const [showDrugDropdown, setShowDrugDropdown] = useState(false);
+    const drugSearchRef = React.useRef<HTMLDivElement | null>(null);
     const dosageMapRef = React.useRef<Record<string, string[]>>({});
     // keep legacy for any other code that references medicationOptions
     const medicationOptions: { id: string; name: string; activeIngredient?: string }[] = [];
@@ -118,6 +119,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
             setDrugSuggestions([]);
             return;
         }
+        let isCancelled = false;
         const timer = window.setTimeout(async () => {
             try {
                 const res = await fetch(
@@ -126,6 +128,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                 if (!res.ok) return;
                 const data = await res.json();  // [count, null, {STRENGTHS_AND_FORMS: string[][]}, string[]]
                 const names: string[] = data[3] ?? [];
+                if (isCancelled) return;
                 const strengthsArr: string[][] = data[2]?.STRENGTHS_AND_FORMS ?? [];
                 // Cache dosages per drug name
                 const map: Record<string, string[]> = {};
@@ -137,8 +140,24 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                 setShowDrugDropdown(names.length > 0);
             } catch { /* silent */ }
         }, 250);
-        return () => window.clearTimeout(timer);
+        return () => {
+            isCancelled = true;
+            window.clearTimeout(timer);
+        };
     }, [rxSearch, selectedDrug]);
+
+    // Close drug dropdown when clicking outside of the search block
+    useEffect(() => {
+        const handleOutsideClick = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (!drugSearchRef.current?.contains(target)) {
+                setShowDrugDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, []);
 
     // Keep refs in sync with latest state (solves stale closure in auto-save timer)
     useEffect(() => { latestVitals.current = vitals; }, [vitals]);
@@ -651,7 +670,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('medication')}</label>
-                                                <div className="relative">
+                                                <div className="relative" ref={drugSearchRef}>
                                                     <input
                                                         type="text"
                                                         className="w-full p-2 border border-gray-300 rounded"
