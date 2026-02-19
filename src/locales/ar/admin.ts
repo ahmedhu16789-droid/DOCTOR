@@ -118,4 +118,12 @@ export const admin = {
     "save_employee": "حفظ الموظف",
     "pharmacy_manager": "مدير الصيدلية",
     "branch_manager": "مدير الفرع",
+    "branch_selector_selected_count": "تم تحديد {{count}}",
+    "branch_selector_assigned_branches": "الفروع المُعيّنة",
+    "branch_selector_search_placeholder": "ابحث عن الفروع...",
+    "branch_selector_toggle_visible": "تبديل المعروض",
+    "branch_selector_no_results": "لم يتم العثور على فروع تطابق \"{{query}}\"",
+    "branch_selector_inactive_branch": "فرع غير نشط",
+    "branch_selector_showing_count": "عرض {{shown}} من أصل {{total}} فرع",
+    "branch_selector_selection_required": "الاختيار مطلوب",
 };

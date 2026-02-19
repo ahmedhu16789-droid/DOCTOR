@@ -118,4 +118,12 @@ export const admin = {
     "save_employee": "Save Employee",
     "pharmacy_manager": "Pharmacy Manager",
     "branch_manager": "Branch Manager",
+    "branch_selector_selected_count": "{{count}} selected",
+    "branch_selector_assigned_branches": "Assigned Branches",
+    "branch_selector_search_placeholder": "Search branches...",
+    "branch_selector_toggle_visible": "Toggle Visible",
+    "branch_selector_no_results": "No branches found matching \"{{query}}\"",
+    "branch_selector_inactive_branch": "Inactive Branch",
+    "branch_selector_showing_count": "Showing {{shown}} of {{total}} branches",
+    "branch_selector_selection_required": "Selection required",
 };
