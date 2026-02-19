@@ -15,10 +15,26 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
-    {
+   public function down(): void
+{
+    // SQLite may not have the column (or migration state may be out of sync)
+    if (Schema::hasColumn('users', 'exam_finding_templates')) {
         Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn(['exam_finding_templates', 'diagnosis_templates', 'plan_templates']);
+            $table->dropColumn('exam_finding_templates');
         });
     }
+
+    if (Schema::hasColumn('users', 'diagnosis_templates')) {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('diagnosis_templates');
+        });
+    }
+
+    if (Schema::hasColumn('users', 'plan_templates')) {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('plan_templates');
+        });
+    }
+}
+
 };
