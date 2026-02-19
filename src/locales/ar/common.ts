@@ -134,6 +134,7 @@ export const common = {
     "male": "ذكر",
     "female": "أنثى",
     "years": "سنة",
+    "close": "إغلاق",
     "cancel": "إلغاء",
     "create_select": "إنشاء واختيار",
     "search_result_hint": "أدخل الاسم أو الرقم للبحث",

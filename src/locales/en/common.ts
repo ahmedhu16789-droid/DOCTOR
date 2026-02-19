@@ -134,6 +134,7 @@ export const common = {
     "male": "Male",
     "female": "Female",
     "years": "years",
+    "close": "Close",
     "cancel": "Cancel",
     "create_select": "Create & Select",
     "search_result_hint": "Enter name or phone to search",

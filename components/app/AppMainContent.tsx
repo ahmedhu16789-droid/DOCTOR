@@ -27,7 +27,7 @@ interface AppMainContentProps {
   onOpenEncounter: (apt: Appointment) => void;
   onProcessPayment: (aptId: string, amount: number, method: PaymentMethod) => Promise<void>;
   onRefresh: () => Promise<void>;
-  onSelectPatient: (patientId: string) => void;
+  onSelectPatient: (patientId: string | null) => void;
   patientQueueLabel: string;
 }
 
