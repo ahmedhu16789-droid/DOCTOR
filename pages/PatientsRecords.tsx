@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getMedicalEncounterFromApi, MedicalEncounterWithHistory } from '../services/api';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus } from '../types';
 
 interface PatientsRecordsProps {
@@ -59,6 +60,7 @@ export function PatientsRecords({
 }: PatientsRecordsProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const [visitEncounters, setVisitEncounters] = useState<Record<string, MedicalEncounterWithHistory['data']>>({});
   const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const filteredPatients = useMemo(() => {
@@ -95,6 +97,46 @@ export function PatientsRecords({
     () => selectedPatientVisits.reduce((sum, visit) => sum + Math.max(visit.billing.total - visit.billing.paidAmount, 0), 0),
     [selectedPatientVisits],
   );
+
+  useEffect(() => {
+    let active = true;
+
+    if (selectedPatientVisits.length === 0) {
+      setVisitEncounters({});
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadVisitsEncounters = async () => {
+      const loaded = await Promise.allSettled(
+        selectedPatientVisits.map(async (visit) => {
+          const encounterPayload = await getMedicalEncounterFromApi(visit.id);
+          return [visit.id, encounterPayload.data] as const;
+        }),
+      );
+
+      if (!active) {
+        return;
+      }
+
+      const nextMap: Record<string, MedicalEncounterWithHistory['data']> = {};
+      loaded.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          const [appointmentId, encounter] = result.value;
+          nextMap[appointmentId] = encounter;
+        }
+      });
+
+      setVisitEncounters(nextMap);
+    };
+
+    void loadVisitsEncounters();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedPatientVisits]);
 
   return (
     <div className="space-y-6">
@@ -219,6 +261,10 @@ export function PatientsRecords({
               <div className="space-y-3">
                 {selectedPatientVisits.map((visit) => {
                   const stepIndex = VISIT_PROGRESS_STEPS.indexOf(visit.status);
+                  const encounter = visitEncounters[visit.id];
+                  const bloodPressure = encounter?.vitals?.bpSystolic && encounter?.vitals?.bpDiastolic
+                    ? `${encounter.vitals.bpSystolic}/${encounter.vitals.bpDiastolic}`
+                    : '-';
 
                   return (
                     <div key={visit.id} className="rounded-xl border border-gray-200 p-4">
@@ -291,6 +337,73 @@ export function PatientsRecords({
                         <div className="rounded-md bg-gray-50 px-3 py-2">
                           <span className="text-gray-500">{t('payment_status')}:</span>
                           <span className="font-medium text-gray-900 ms-2">{t(visit.billing.status)}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 rounded-lg border border-gray-100 p-3 space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">{t('diagnosis')}</p>
+                          <p className="text-sm text-gray-900 font-medium">{encounter?.diagnosis || '-'}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-500 mb-2">{t('vitals_title')}</p>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                            <div className="rounded-md bg-gray-50 px-3 py-2">
+                              <span className="text-gray-500">{t('blood_pressure')}:</span>
+                              <span className="font-medium text-gray-900 ms-2">{bloodPressure}</span>
+                            </div>
+                            <div className="rounded-md bg-gray-50 px-3 py-2">
+                              <span className="text-gray-500">{t('heart_rate')}:</span>
+                              <span className="font-medium text-gray-900 ms-2">{encounter?.vitals?.heartRate ?? '-'}</span>
+                            </div>
+                            <div className="rounded-md bg-gray-50 px-3 py-2">
+                              <span className="text-gray-500">{t('temp')}:</span>
+                              <span className="font-medium text-gray-900 ms-2">{encounter?.vitals?.temperature ?? '-'}</span>
+                            </div>
+                            <div className="rounded-md bg-gray-50 px-3 py-2">
+                              <span className="text-gray-500">{t('oxygen')}:</span>
+                              <span className="font-medium text-gray-900 ms-2">{encounter?.vitals?.oxygenSat ?? '-'}</span>
+                            </div>
+                            <div className="rounded-md bg-gray-50 px-3 py-2">
+                              <span className="text-gray-500">{t('weight')}:</span>
+                              <span className="font-medium text-gray-900 ms-2">{encounter?.vitals?.weight ?? '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-2">{t('tab_rx')}</p>
+                            {encounter?.prescription && encounter.prescription.length > 0 ? (
+                              <ul className="space-y-1 text-sm text-gray-700 list-disc ps-5">
+                                {encounter.prescription.map((med) => (
+                                  <li key={med.id}>
+                                    <span className="font-medium text-gray-900">{med.name}</span>
+                                    <span className="text-gray-600"> — {[med.dosage, med.frequency, med.duration].filter(Boolean).join(' • ')}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-gray-500">{t('no_meds')}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500 mb-2">{t('services_used')}</p>
+                            {visit.billing.items.length > 0 ? (
+                              <ul className="space-y-1 text-sm text-gray-700">
+                                {visit.billing.items.map((item) => (
+                                  <li key={item.id} className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-3 py-2">
+                                    <span>{item.name}</span>
+                                    <span className="font-medium text-gray-900">{item.quantity} × {item.unitPrice.toFixed(2)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-gray-500">-</p>
+                            )}
+                          </div>
                         </div>
                       </div>
 
