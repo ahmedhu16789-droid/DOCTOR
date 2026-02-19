@@ -12,11 +12,12 @@ interface AppointmentBookingProps {
   branches: Branch[];
   activeBranchId: string;
   onPatientCreated: (patient: Patient) => void;
+  onStepChange?: (step: BookingStep) => void;
 }
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
-export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated }) => {
+export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated, onStepChange }) => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
@@ -30,6 +31,10 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
 
   const activeBranch = useMemo(() => branches.find((branch) => branch.id === activeBranchId), [activeBranchId, branches]);
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   useEffect(() => {
     if (!activeBranchId) return;

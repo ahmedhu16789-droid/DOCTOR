@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dashboard } from '../../pages/Dashboard';
 import { CalendarView } from '../CalendarView';
 import { AppointmentBooking } from '../../pages/AppointmentBooking';
@@ -11,6 +11,8 @@ import { DoctorProfile } from '../../pages/DoctorProfile';
 import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
 import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
+
+type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
 interface AppMainContentProps {
   activeTab: string;
@@ -51,6 +53,9 @@ export function AppMainContent({
   onSelectPatient,
   patientQueueLabel,
 }: AppMainContentProps) {
+  const [bookingStep, setBookingStep] = useState<BookingStep>('IDENTIFICATION');
+  const shouldExpandBooking = bookingStep === 'IDENTIFICATION' || bookingStep === 'SELECTION';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -70,17 +75,18 @@ export function AppMainContent({
       )}
 
       {activeTab === 'appointments' && user && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
-          <div className="lg:col-span-2 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-140px)]">
+          <div className={`${shouldExpandBooking ? 'lg:col-span-3' : 'lg:col-span-4'} h-full transition-all duration-300`}>
             <CalendarView appointments={visibleAppointments} />
           </div>
-          <div className="h-full">
+          <div className={`${shouldExpandBooking ? 'lg:col-span-2' : 'lg:col-span-1'} h-full transition-all duration-300`}>
             <AppointmentBooking
               onBook={onBook}
               patients={patients}
               branches={branches}
               activeBranchId={activeBranchId}
               onPatientCreated={onPatientCreated}
+              onStepChange={setBookingStep}
             />
           </div>
         </div>

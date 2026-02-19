@@ -59,6 +59,8 @@ export const common = {
     "no_appointments": "لا توجد مواعيد لهذا اليوم",
     "appointment": "موعد",
     "appointments_count": "مواعيد",
+    "show_day_agenda": "إظهار جدول اليوم",
+    "hide_day_agenda": "إخفاء جدول اليوم",
 
     // Queue & Reception
     "patient_queue": "قائمة انتظار المرضى",

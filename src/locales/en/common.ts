@@ -59,6 +59,8 @@ export const common = {
     "no_appointments": "No appointments for this day",
     "appointment": "Appointment",
     "appointments_count": "Appointments",
+    "show_day_agenda": "Show day agenda",
+    "hide_day_agenda": "Hide day agenda",
 
     // Queue & Reception
     "patient_queue": "Patient Queue",
