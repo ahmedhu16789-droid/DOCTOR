@@ -83,7 +83,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
           onClick={toggleLanguage}
           className="text-sm font-bold text-gray-500 hover:text-primary-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200"
         >
-          {language === 'en' ? 'العربية' : 'English'}
+          {t(language === 'en' ? 'language.switch_to_ar' : 'language.switch_to_en', { keySeparator: false })}
         </button>
       </div>
 
