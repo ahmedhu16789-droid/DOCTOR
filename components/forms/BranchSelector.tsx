@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Branch } from '../../types';
 import { Search, MapPin, Check, Building2, Info } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface BranchSelectorProps {
   branches: Branch[];
@@ -11,6 +12,7 @@ interface BranchSelectorProps {
 }
 
 export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, selectedIds = [], onChange, error }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredBranches = branches.filter(b => 
@@ -48,9 +50,9 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center mb-1">
-        <label className="block text-sm font-medium text-gray-700">Assigned Branches</label>
+        <label className="block text-sm font-medium text-gray-700">{t('branch_selector_assigned_branches')}</label>
         <span className="text-xs text-gray-500">
-          {selectedIds.length} selected
+          {t('branch_selector_selected_count', { count: selectedIds.length })}
         </span>
       </div>
 
@@ -63,7 +65,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
           <Search className="w-4 h-4 text-gray-400 ml-1" />
           <input 
             type="text" 
-            placeholder="Search branches..." 
+            placeholder={t('branch_selector_search_placeholder')}
             className="flex-1 bg-transparent border-none text-sm focus:ring-0 placeholder-gray-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -74,7 +76,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
               onClick={handleSelectAll}
               className="text-xs font-medium text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-white transition-colors"
             >
-              Toggle Visible
+              {t('branch_selector_toggle_visible')}
             </button>
           )}
         </div>
@@ -84,7 +86,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
           {filteredBranches.length === 0 ? (
             <div className="py-8 text-center text-gray-400 text-sm">
               <Building2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
-              No branches found matching "{searchQuery}"
+              {t('branch_selector_no_results', { query: searchQuery })}
             </div>
           ) : (
             filteredBranches.map(branch => {
@@ -120,7 +122,7 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
                     </div>
                     {!branch.isActive && (
                       <div className="flex items-center text-[10px] text-amber-600 mt-1 font-medium bg-amber-50 inline-flex px-1.5 py-0.5 rounded">
-                        <Info className="w-3 h-3 mr-1" /> Inactive Branch
+                        <Info className="w-3 h-3 mr-1" /> {t('branch_selector_inactive_branch')}
                       </div>
                     )}
                   </div>
@@ -132,8 +134,8 @@ export const BranchSelector: React.FC<BranchSelectorProps> = ({ branches, select
         
         {/* Footer Summary */}
         <div className="bg-gray-50 p-2 text-xs text-gray-400 border-t border-gray-100 flex justify-between items-center">
-             <span>Showing {filteredBranches.length} of {branches.length} branches</span>
-             {selectedIds.length === 0 && <span className="text-red-400 font-medium">Selection required</span>}
+             <span>{t('branch_selector_showing_count', { shown: filteredBranches.length, total: branches.length })}</span>
+             {selectedIds.length === 0 && <span className="text-red-400 font-medium">{t('branch_selector_selection_required')}</span>}
         </div>
       </div>
       
