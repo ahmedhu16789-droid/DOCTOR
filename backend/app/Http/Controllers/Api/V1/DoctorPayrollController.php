@@ -23,27 +23,70 @@ class DoctorPayrollController extends Controller
         $this->ensureMonthlyFixedSalaryAccruals((int) $request->user()->clinic_id, $periodMonth, $doctorId ?: null);
 
         $rows = DoctorEarningsLedger::query()
-            ->selectRaw(
-                'doctor_id, period_month,
-                SUM(CASE WHEN earning_type IN (?, ?, ?) THEN amount ELSE 0 END) as total_earned,
-                SUM(CASE WHEN earning_type = ? THEN amount ELSE 0 END) as total_adjustments',
-                ['COMMISSION', 'FIXED_SALARY_ACCRUAL', 'CLAWBACK', 'ADJUSTMENT']
-            )
             ->with('doctor:id,name')
             ->when($periodMonth, fn ($query) => $query->where('period_month', $periodMonth))
             ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
             ->when($branchId, function ($query) use ($branchId): void {
                 $query->whereHas('doctor.branches', fn ($doctorQuery) => $doctorQuery->where('branches.id', (int) $branchId));
             })
-            ->groupBy('doctor_id', 'period_month')
             ->orderByDesc('period_month')
-            ->get();
+            ->orderBy('doctor_id')
+            ->get()
+            ->groupBy(fn (DoctorEarningsLedger $entry) => $entry->doctor_id.'|'.$entry->period_month);
 
-        $data = $rows->map(function (DoctorEarningsLedger $row): array {
+        $data = $rows->map(function ($entries): array {
+            $first = $entries->first();
+            $doctorId = (int) $first->doctor_id;
+            $periodMonthKey = (string) $first->period_month;
+
+            $totalEarned = (float) $entries
+                ->filter(fn (DoctorEarningsLedger $entry) => in_array($entry->earning_type, ['COMMISSION', 'FIXED_SALARY_ACCRUAL', 'CLAWBACK'], true))
+                ->sum('amount');
+
+            $totalAdjustments = (float) $entries
+                ->filter(fn (DoctorEarningsLedger $entry) => $entry->earning_type === 'ADJUSTMENT')
+                ->sum('amount');
+
+            $commissionDetails = [
+                'consultationBasis' => 0.0,
+                'consultationAmount' => 0.0,
+                'consultationRate' => null,
+                'servicesBasis' => 0.0,
+                'servicesAmount' => 0.0,
+                'servicesRate' => null,
+            ];
+
+            $entries
+                ->filter(fn (DoctorEarningsLedger $entry) => $entry->earning_type === 'COMMISSION')
+                ->each(function (DoctorEarningsLedger $entry) use (&$commissionDetails): void {
+                    $notePayload = json_decode((string) $entry->notes, true);
+                    if (! is_array($notePayload)) {
+                        return;
+                    }
+
+                    $consultationBasis = (float) data_get($notePayload, 'consultation_basis', 0);
+                    $consultationRate = (float) data_get($notePayload, 'consultation_rate', 0);
+                    $servicesBasis = (float) data_get($notePayload, 'services_basis', 0);
+                    $servicesRate = (float) data_get($notePayload, 'services_rate', 0);
+
+                    $commissionDetails['consultationBasis'] += $consultationBasis;
+                    $commissionDetails['servicesBasis'] += $servicesBasis;
+                    $commissionDetails['consultationAmount'] += round($consultationBasis * ($consultationRate / 100), 2);
+                    $commissionDetails['servicesAmount'] += round($servicesBasis * ($servicesRate / 100), 2);
+
+                    if ($commissionDetails['consultationRate'] === null && $consultationRate > 0) {
+                        $commissionDetails['consultationRate'] = $consultationRate;
+                    }
+
+                    if ($commissionDetails['servicesRate'] === null && $servicesRate > 0) {
+                        $commissionDetails['servicesRate'] = $servicesRate;
+                    }
+                });
+
             $period = DoctorPayrollPeriod::query()->firstOrCreate(
                 [
-                    'doctor_id' => $row->doctor_id,
-                    'period_month' => $row->period_month,
+                    'doctor_id' => $doctorId,
+                    'period_month' => $periodMonthKey,
                 ],
                 [
                     'total_earned' => 0,
@@ -54,20 +97,28 @@ class DoctorPayrollController extends Controller
             );
 
             $period->forceFill([
-                'total_earned' => (float) $row->total_earned,
-                'total_adjustments' => (float) $row->total_adjustments,
+                'total_earned' => $totalEarned,
+                'total_adjustments' => $totalAdjustments,
             ])->save();
 
             return [
                 'periodId' => $period->id,
-                'doctorId' => (int) $row->doctor_id,
-                'doctorName' => $row->doctor?->name,
-                'periodMonth' => $row->period_month,
+                'doctorId' => $doctorId,
+                'doctorName' => $first->doctor?->name,
+                'periodMonth' => $periodMonthKey,
                 'totalEarned' => (float) $period->total_earned,
                 'totalAdjustments' => (float) $period->total_adjustments,
                 'totalSettled' => (float) $period->total_settled,
                 'status' => $period->status,
                 'closedAt' => optional($period->closed_at)?->toISOString(),
+                'commissionDetails' => [
+                    'consultationBasis' => round($commissionDetails['consultationBasis'], 2),
+                    'consultationAmount' => round($commissionDetails['consultationAmount'], 2),
+                    'consultationRate' => $commissionDetails['consultationRate'],
+                    'servicesBasis' => round($commissionDetails['servicesBasis'], 2),
+                    'servicesAmount' => round($commissionDetails['servicesAmount'], 2),
+                    'servicesRate' => $commissionDetails['servicesRate'],
+                ],
             ];
         })->values();
 

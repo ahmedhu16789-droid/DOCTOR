@@ -90,6 +90,70 @@ class DoctorPayrollControllerTest extends TestCase
         $this->assertSame(300.0, (float) data_get($response->json(), 'data.0.totalEarned') + (float) data_get($response->json(), 'data.0.totalAdjustments'));
     }
 
+
+    public function test_report_returns_commission_breakdown_when_services_commission_enabled(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => '2026-04',
+            'earning_type' => 'COMMISSION',
+            'basis_amount' => 1000,
+            'rate' => null,
+            'amount' => 170,
+            'currency' => 'EGP',
+            'status' => 'PENDING',
+            'notes' => json_encode([
+                'consultation_basis' => 700,
+                'consultation_rate' => 20,
+                'services_basis' => 300,
+                'services_rate' => 10,
+            ]),
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->getJson('/api/v1/reports/doctor-payroll?period_month=2026-04')->assertOk();
+
+        $response->assertJsonPath('data.0.commissionDetails.consultationBasis', 700.0);
+        $response->assertJsonPath('data.0.commissionDetails.consultationAmount', 140.0);
+        $response->assertJsonPath('data.0.commissionDetails.servicesBasis', 300.0);
+        $response->assertJsonPath('data.0.commissionDetails.servicesAmount', 30.0);
+    }
+
+    public function test_report_returns_zero_services_breakdown_when_services_commission_disabled(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => '2026-05',
+            'earning_type' => 'COMMISSION',
+            'basis_amount' => 700,
+            'rate' => 20,
+            'amount' => 140,
+            'currency' => 'EGP',
+            'status' => 'PENDING',
+            'notes' => json_encode([
+                'consultation_basis' => 700,
+                'consultation_rate' => 20,
+                'services_basis' => 0,
+                'services_rate' => 0,
+            ]),
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->getJson('/api/v1/reports/doctor-payroll?period_month=2026-05')->assertOk();
+
+        $response->assertJsonPath('data.0.commissionDetails.consultationBasis', 700.0);
+        $response->assertJsonPath('data.0.commissionDetails.servicesBasis', 0.0);
+        $response->assertJsonPath('data.0.commissionDetails.servicesAmount', 0.0);
+    }
+
     public function test_it_closes_and_settles_period(): void
     {
         [$actor, $doctor] = $this->createUsersInSameClinic();

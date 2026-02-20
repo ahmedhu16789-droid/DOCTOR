@@ -114,9 +114,12 @@ class DoctorEarningsCalculator
                     'amount' => 0,
                     'currency' => $currency,
                     'status' => 'PENDING',
-                    'notes' => sprintf(
-                        'Commission is 0.00 because no CONSULTATION item was found. Policy basis %s.',
-                        $policy['commission_basis']
+                    'notes' => $this->buildCommissionNotes(
+                        consultationBasis: 0.0,
+                        consultationRate: $defaultRate,
+                        servicesBasis: 0.0,
+                        servicesRate: 0.0,
+                        policyBasis: (string) $policy['commission_basis']
                     ),
                 ]);
 
@@ -143,7 +146,13 @@ class DoctorEarningsCalculator
                 'amount' => $amount,
                 'currency' => $currency,
                 'status' => 'PENDING',
-                'notes' => sprintf('Commission generated from CONSULTATION items only. Policy basis %s.', $policy['commission_basis']),
+                'notes' => $this->buildCommissionNotes(
+                    consultationBasis: $consultationBasis,
+                    consultationRate: $defaultRate,
+                    servicesBasis: 0.0,
+                    servicesRate: 0.0,
+                    policyBasis: (string) $policy['commission_basis']
+                ),
             ]);
 
             return;
@@ -174,13 +183,30 @@ class DoctorEarningsCalculator
             'amount' => $totalAmount,
             'currency' => $currency,
             'status' => 'PENDING',
-            'notes' => sprintf(
-                'Commission split: consultation %.2f%%, additional services %.2f%%. Policy basis %s.',
-                $defaultRate,
-                $additionalRate,
-                $policy['commission_basis']
+            'notes' => $this->buildCommissionNotes(
+                consultationBasis: $breakdown['consultation'] * $direction,
+                consultationRate: $defaultRate,
+                servicesBasis: $breakdown['additionalServices'] * $direction,
+                servicesRate: $additionalRate,
+                policyBasis: (string) $policy['commission_basis']
             ),
         ]);
+    }
+
+    private function buildCommissionNotes(
+        float $consultationBasis,
+        float $consultationRate,
+        float $servicesBasis,
+        float $servicesRate,
+        string $policyBasis
+    ): string {
+        return (string) json_encode([
+            'consultation_basis' => round($consultationBasis, 2),
+            'consultation_rate' => round($consultationRate, 4),
+            'services_basis' => round($servicesBasis, 2),
+            'services_rate' => round($servicesRate, 4),
+            'policy_basis' => $policyBasis,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
