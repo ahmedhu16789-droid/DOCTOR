@@ -10,19 +10,21 @@ import { useTranslation } from 'react-i18next';
 import { ApiDepartmentOption } from '../../services/api';
 
 const doctorSchema = z.object({
-    name: z.string().min(3, 'Name is required'),
+    name: z.string().min(3, 'Name must be at least 3 characters'),
     phone: z.string().trim().optional().or(z.literal('')),
-    email: z.string().email().optional().or(z.literal('')),
-    specialty: z.nativeEnum(Department),
+    // Allow empty string OR valid email
+    email: z.union([z.literal(''), z.string().email('Invalid email')]).optional(),
+    // Accept any string from the specialty select
+    specialty: z.string().min(1, 'Specialty is required'),
     role: z.literal(UserRole.DOCTOR),
     consultationFee: z.number().min(0),
     assignedBranches: z.array(z.string()).min(1, 'Select at least one branch'),
     payroll: z.object({
         model: z.enum(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID']),
         baseSalary: z.number().min(0),
-        commissionPercentage: z.number().min(0).max(100).optional(),
+        commissionPercentage: z.number().min(0).max(100).optional().nullable(),
         additionalServicesCommissionEnabled: z.boolean().optional(),
-        additionalServicesCommissionPercentage: z.number().min(0).max(100).optional(),
+        additionalServicesCommissionPercentage: z.number().min(0).max(100).optional().nullable(),
     }),
     schedule: z.array(z.object({
         id: z.string().optional(),
@@ -42,9 +44,10 @@ interface DoctorFormProps {
     departments: ApiDepartmentOption[];
     onSave: (data: User) => Promise<void> | void;
     onCancel: () => void;
+    isSaving?: boolean;
 }
 
-export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, departments, onSave, onCancel }) => {
+export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, departments, onSave, onCancel, isSaving }) => {
     const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<'BASIC' | 'SCHEDULE' | 'PAYMENT'>('BASIC');
 
@@ -77,14 +80,31 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
             id: initialData?.id || Math.random().toString(),
             status: 'ACTIVE',
             ...data,
+            specialty: data.specialty as any,
             schedule: data.schedule?.map(s => ({ ...s, id: s.id || Math.random().toString(), branchId: s.branchId || assignedBranchIds[0] }))
         } as User;
 
         await onSave(userPayload);
     };
 
+    const onValidationError = (fieldErrors: any) => {
+        console.error('[DoctorForm] Zod validation failed:', JSON.stringify(fieldErrors, null, 2));
+    };
+
+    // Determine which tabs have errors to highlight them
+    const basicErrors = errors.name || errors.email || errors.phone || errors.specialty || errors.consultationFee;
+    const scheduleErrors = errors.assignedBranches;
+    const paymentErrors = errors.payroll;
+    const allErrorMessages = [
+        errors.name?.message,
+        errors.email?.message,
+        errors.assignedBranches?.message,
+        (errors.payroll as any)?.model?.message,
+        (errors.payroll as any)?.baseSalary?.message,
+    ].filter(Boolean);
+
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
+        <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="h-full flex flex-col">
             <div className="flex border-b border-gray-200 bg-gray-50 px-6">
                 <button type="button" onClick={() => setActiveTab('BASIC')} className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'BASIC' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                     <Stethoscope className="w-4 h-4" /> {t('basic_info')}
@@ -96,6 +116,17 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                     <Wallet className="w-4 h-4" /> {t('financial_reports')}
                 </button>
             </div>
+
+            {/* Validation error banner */}
+            {allErrorMessages.length > 0 && (
+                <div className="mx-6 mt-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                    <p className="font-bold mb-1">⚠ Please fix the following:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                        {allErrorMessages.map((msg, i) => <li key={i}>{msg as string}</li>)}
+                    </ul>
+                    {scheduleErrors && <p className="mt-1 font-medium">Branches tab: {scheduleErrors.message as string}</p>}
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-6">
                 {activeTab === 'BASIC' && (
@@ -201,8 +232,8 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
 
             <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
                 <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">{t('cancel')}</button>
-                <button type="submit" disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center">
-                    {isSubmitting ? t('saving') : <><Save className="w-4 h-4 mr-2" /> {initialData ? t('save_changes') : t('add_doctor')}</>}
+                <button type="submit" disabled={isSubmitting || isSaving} className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center">
+                    {(isSubmitting || isSaving) ? t('saving') : <><Save className="w-4 h-4 mr-2" /> {initialData ? t('save_changes') : t('add_doctor')}</>}
                 </button>
             </div>
         </form>

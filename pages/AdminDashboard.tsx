@@ -22,6 +22,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
     const [searchTerm, setSearchTerm] = useState('');
     const [departmentFilter, setDepartmentFilter] = useState('ALL');
     const [branchFilter, setBranchFilter] = useState('ALL');
+    const [formError, setFormError] = useState<string | null>(null);
+    const [formSaving, setFormSaving] = useState(false);
 
     const isSuperAdmin = currentUser.role === UserRole.ADMIN;
     const managedBranches = currentUser.assignedBranches;
@@ -81,14 +83,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
     };
 
     const handleSaveUser = async (savedUser: User) => {
-        const persisted = isCreatingUser ? await createDoctorViaApi(savedUser) : await updateDoctorViaApi(savedUser);
-        if (isCreatingUser) {
-            setUsers([...users, persisted]);
-        } else {
-            setUsers(users.map(u => u.id === persisted.id ? persisted : u));
+        setFormError(null);
+        setFormSaving(true);
+        try {
+            const persisted = isCreatingUser ? await createDoctorViaApi(savedUser) : await updateDoctorViaApi(savedUser);
+            if (isCreatingUser) {
+                setUsers([...users, persisted]);
+            } else {
+                setUsers(users.map(u => u.id === persisted.id ? persisted : u));
+            }
+            setIsCreatingUser(false);
+            setEditingUser(null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save doctor';
+            setFormError(message);
+        } finally {
+            setFormSaving(false);
         }
-        setIsCreatingUser(false);
-        setEditingUser(null);
     };
 
     return (
@@ -205,15 +216,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                     <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                         <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                             <h2 className="text-lg font-bold text-gray-900">{isCreatingUser ? t('add_new_doctor') : t('edit_user', { name: editingUser?.name })}</h2>
-                            <button onClick={() => { setIsCreatingUser(false); setEditingUser(null); }} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><XCircle className="w-5 h-5 text-gray-500" /></button>
+                            <button onClick={() => { setIsCreatingUser(false); setEditingUser(null); setFormError(null); }} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><XCircle className="w-5 h-5 text-gray-500" /></button>
                         </div>
+                        {formError && (
+                            <div className="mx-4 mt-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start gap-2">
+                                <span className="font-bold shrink-0">⚠</span>
+                                <span>{formError}</span>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-hidden">
                             <DoctorForm
                                 initialData={editingUser || undefined}
                                 branches={branches}
                                 departments={departments}
                                 onSave={handleSaveUser}
-                                onCancel={() => { setIsCreatingUser(false); setEditingUser(null); }}
+                                onCancel={() => { setIsCreatingUser(false); setEditingUser(null); setFormError(null); }}
+                                isSaving={formSaving}
                             />
                         </div>
                     </div>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MediCare Clinic - Appointment Booking</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col">
+<!-- Navbar -->
+<header class="sticky top-0 z-50 w-full bg-white dark:bg-[#1a2632] border-b border-slate-200 dark:border-slate-700">
+<div class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">local_hospital</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">MediCare Clinic</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors" href="#">Services</a>
+<a class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors" href="#">Doctors</a>
+<a class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors" href="#">Contact</a>
+<button class="bg-primary hover:bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm shadow-blue-200 dark:shadow-none">
+                    My Account
+                </button>
+</nav>
+<button class="md:hidden text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+<!-- Left Sidebar: Clinic Info -->
+<aside class="lg:col-span-4 flex flex-col gap-6">
+<!-- Info Card -->
+<div class="bg-white dark:bg-[#1a2632] rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm sticky top-24">
+<div class="mb-6">
+<h2 class="text-2xl font-bold mb-2">Clinic Information</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm">
+                            We specialize in advanced medical care with a focus on Orthopedics, Dentistry, and Ophthalmology.
+                        </p>
+</div>
+<!-- Alert Box -->
+<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-4 mb-6 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">info</span>
+<div>
+<h3 class="text-sm font-bold text-primary mb-1">Important Notice</h3>
+<p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Please be advised that our current roster consists entirely of male specialists.
+                            </p>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-start gap-3">
+<div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined text-[20px]">location_on</span>
+</div>
+<div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Location</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">123 Health Blvd, Medical City</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</div>
+<div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Phone</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">+1 (555) 019-2834</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+</div>
+<div>
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Working Hours</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">Mon-Fri: 8am - 6pm</p>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+<div class="relative w-full h-32 rounded-lg overflow-hidden bg-slate-200">
+<img alt="Modern clinic interior blur" class="w-full h-full object-cover opacity-80" data-alt="blurred view of a modern medical clinic interior" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZcl5bDa2ePQhd_XYlpL1zwHPjP04qCDaH7cpt3SsJU_uwQzEPDxJFlvPL_umburB2l_jQzg1G19_DFU0-qTHwN826_YrUu58SZ_yQNkCwWDoNI2uY3tH6GpkCyL1VcX2rfpaRXd40PstmgfA_TSmu8PHavazKZrzA_VS75KlAEcg7mYPO7qNhy88CWPoAA2foTeXOJZ5YrdBToqQTPiz-db1EcyyZyJvZlxCCo5dD7M_BCkOH8jKWHz3C7oJVTIOtwDDuSviZcA"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/10">
+<button class="bg-white/90 backdrop-blur-sm text-slate-900 text-xs font-bold px-3 py-1.5 rounded shadow-sm hover:bg-white transition-colors">
+                                    View on Map
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Right Side: Booking Form -->
+<section class="lg:col-span-8 flex flex-col gap-6">
+<div class="bg-white dark:bg-[#1a2632] rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col h-full">
+<!-- Header -->
+<div class="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Book Your Appointment</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Complete the steps below to schedule your visit with our specialists.</p>
+<!-- Stepper (Visual Only) -->
+<div class="flex items-center gap-2 mt-6 text-sm">
+<span class="flex items-center gap-2 text-primary font-bold">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs">1</span>
+                                Selection
+                            </span>
+<div class="h-px w-8 bg-slate-300 dark:bg-slate-600"></div>
+<span class="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+<span class="flex items-center justify-center w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 text-xs">2</span>
+                                Schedule
+                            </span>
+<div class="h-px w-8 bg-slate-300 dark:bg-slate-600"></div>
+<span class="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+<span class="flex items-center justify-center w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 text-xs">3</span>
+                                Details
+                            </span>
+</div>
+</div>
+<div class="p-6 md:p-8 flex-grow flex flex-col gap-8">
+<!-- Step 1: Selection -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Select Specialty</label>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-3 pr-10">
+<option>Orthopedics</option>
+<option>Dentistry</option>
+<option>Ophthalmology</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+<span class="material-symbols-outlined text-xl">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Select Doctor</label>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-3 pr-10">
+<option>Dr. Ahmed Al-Mansour</option>
+<option>Dr. Khaled Youssef</option>
+<option>Dr. Omar Fayed</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+<span class="material-symbols-outlined text-xl">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<hr class="border-slate-100 dark:border-slate-700"/>
+<!-- Step 2: Calendar & Time -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Calendar -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-base font-bold text-slate-900 dark:text-white">Select Date</h3>
+<div class="flex gap-1">
+<button class="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<span class="text-sm font-semibold self-center px-2">October 2023</span>
+<button class="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
+<span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+</div>
+<div class="grid grid-cols-7 gap-2">
+<!-- Empty days -->
+<span class="aspect-square"></span><span class="aspect-square"></span><span class="aspect-square"></span>
+<!-- Days -->
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">1</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">2</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">3</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">4</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm bg-primary text-white shadow-md shadow-blue-200 dark:shadow-none font-bold">5</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">6</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">7</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">8</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">9</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">10</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">11</button>
+<button class="aspect-square flex items-center justify-center rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium">12</button>
+</div>
+</div>
+<!-- Time Slots -->
+<div class="flex flex-col gap-4">
+<h3 class="text-base font-bold text-slate-900 dark:text-white">Available Slots</h3>
+<div class="grid grid-cols-3 gap-3">
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">09:00 AM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">09:30 AM</button>
+<button class="py-2 px-3 rounded-lg bg-primary text-white text-sm font-bold shadow-sm">10:00 AM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">10:30 AM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed line-through decoration-slate-400" disabled="">11:00 AM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">11:30 AM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">01:00 PM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">01:30 PM</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-all">02:00 PM</button>
+</div>
+<p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary inline-block"></span> Selected
+                                    <span class="w-2 h-2 rounded-full bg-slate-300 inline-block ml-2"></span> Available
+                                    <span class="w-2 h-2 rounded-full border border-slate-300 inline-block ml-2"></span> Unavailable
+                                </p>
+</div>
+</div>
+<hr class="border-slate-100 dark:border-slate-700"/>
+<!-- Step 3: Patient Info -->
+<div class="flex flex-col gap-4">
+<h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Patient Details</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="col-span-1 md:col-span-2">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Full Name</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-3" placeholder="e.g. John Doe" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Phone Number</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-3" placeholder="+1 (555) 000-0000" type="tel"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Age</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-3" placeholder="28" type="number"/>
+</div>
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Gender</label>
+<div class="flex gap-4 items-center h-[46px]">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 focus:ring-primary focus:ring-2" name="gender" type="radio"/>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary">Male</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group opacity-60">
+<input class="w-4 h-4 text-slate-400 bg-slate-100 border-slate-300 focus:ring-slate-400 focus:ring-2" name="gender" type="radio"/>
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Female</span>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / CTA -->
+<div class="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-base">lock</span>
+                            Your personal data is secure and HIPAA compliant.
+                        </p>
+<button class="w-full md:w-auto bg-primary hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-blue-200 dark:shadow-none transition-all transform active:scale-95 flex items-center justify-center gap-2">
+<span>Confirm Appointment</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Simple Footer -->
+<footer class="w-full py-6 mt-8 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1a2632]">
+<div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500 dark:text-slate-400">
+<p>© 2023 MediCare Clinic. All rights reserved.</p>
+<div class="flex gap-4 mt-2 md:mt-0">
+<a class="hover:text-primary" href="#">Privacy Policy</a>
+<a class="hover:text-primary" href="#">Terms of Service</a>
+</div>
+</div>
+</footer>
+</body></html>

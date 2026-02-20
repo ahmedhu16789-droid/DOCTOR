@@ -21,7 +21,7 @@ class DoctorUpsertRequest extends FormRequest
             'specialty' => ['required', Rule::in(['Orthopedics', 'Cardiology', 'Dentistry', 'Internal Medicine', 'Pediatrics', 'Dermatology'])],
             'consultationFee' => ['required', 'numeric', 'min:0'],
             'assignedBranches' => ['required', 'array', 'min:1'],
-            'assignedBranches.*' => ['integer', 'exists:branches,id'],
+            'assignedBranches.*' => ['nullable', 'exists:branches,id'],
             'payroll' => ['required', 'array'],
             'payroll.model' => ['required', Rule::in(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'])],
             'payroll.baseSalary' => ['required', 'numeric', 'min:0'],
