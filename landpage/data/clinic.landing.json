@@ -22,7 +22,7 @@
   },
   "header": {
     "ctaLabel": "Book Appointment",
-    "ctaHref": "#booking",
+    "ctaHref": "/appointment",
     "navLinks": [
       {
         "label": "Specialties",
@@ -50,7 +50,7 @@
     "description": "Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.",
     "primaryCta": {
       "label": "Book Appointment",
-      "href": "#booking"
+      "href": "/appointment"
     },
     "secondaryCta": {
       "label": "Contact Us",
@@ -85,21 +85,21 @@
         "title": "Orthopedics",
         "description": "Advanced care for bones, joints, and musculoskeletal injuries including surgical and joint replacement surgery.",
         "iconName": "orthopedics",
-        "href": "#booking"
+        "href": "/appointment"
       },
       {
         "id": "dentistry",
         "title": "Dentistry",
         "description": "Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.",
         "iconName": "dentistry",
-        "href": "#booking"
+        "href": "/appointment"
       },
       {
         "id": "ophthalmology",
         "title": "Ophthalmology",
         "description": "Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.",
         "iconName": "ophthalmology",
-        "href": "#booking"
+        "href": "/appointment"
       }
     ],
     "learnMoreLabel": "Learn More"
