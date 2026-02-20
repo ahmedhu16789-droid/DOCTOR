@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\InvoiceItem;
+use Illuminate\Validation\Rule;
 use App\Models\Transaction;
 use App\Services\DoctorEarningsCalculator;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,7 @@ class AppointmentBillingController extends Controller
         $validated = $request->validate([
             'serviceId' => ['nullable', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'max:100'],
+            'category' => ['required', 'string', Rule::in(InvoiceItem::ALLOWED_CATEGORIES)],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
             'unitPrice' => ['required', 'numeric', 'min:0'],
         ]);
@@ -44,7 +45,7 @@ class AppointmentBillingController extends Controller
                 'invoice_id' => $invoice->id,
                 'service_id' => $validated['serviceId'] ?? null,
                 'name' => $validated['name'],
-                'category' => $validated['category'] ?? null,
+                'category' => $validated['category'],
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'total' => $quantity * $unitPrice,

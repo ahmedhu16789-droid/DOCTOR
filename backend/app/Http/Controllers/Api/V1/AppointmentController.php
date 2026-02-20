@@ -205,7 +205,7 @@ class AppointmentController extends Controller
                 'invoice_id' => $invoice->id,
                 'service_id' => 'srv_cns',
                 'name' => 'Consultation Fee',
-                'category' => 'CONSULTATION',
+                'category' => InvoiceItem::CATEGORY_CONSULTATION,
                 'quantity' => 1,
                 'unit_price' => (float) $request->input('billing.total', 0),
                 'total' => (float) $request->input('billing.total', 0),
