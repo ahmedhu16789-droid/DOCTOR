@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Lock, Wallet } from 'lucide-react';
+import { CheckCircle2, Lock, Wallet, X } from 'lucide-react';
 import { KPICard } from '../components/dashboard/KPICard';
 import {
   DoctorPayrollReportFilters,
@@ -26,6 +26,8 @@ export const DoctorPayrollReports: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [settlementRow, setSettlementRow] = useState<DoctorPayrollReportRecord | null>(null);
+  const [settlementAmount, setSettlementAmount] = useState('');
 
   const loadReport = async (nextFilters?: DoctorPayrollReportFilters) => {
     try {
@@ -87,41 +89,42 @@ export const DoctorPayrollReports: React.FC = () => {
     }
   };
 
-  const onSettle = async (row: DoctorPayrollReportRecord) => {
+  const onOpenSettlementModal = (row: DoctorPayrollReportRecord) => {
+    const remainingAmount = Math.max(row.totalEarned + row.totalAdjustments - row.totalSettled, 0);
+    if (remainingAmount <= 0 || !row.canSettle) return;
+
+    setErrorMessage('');
+    setSettlementRow(row);
+    setSettlementAmount(String(remainingAmount));
+  };
+
+  const onConfirmSettlement = async () => {
+    if (!settlementRow) return;
+
     try {
-      setActionLoadingId(row.periodId);
-      const baseEarned = row.totalEarned;
-      const remainingAmount = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
-      if (remainingAmount <= 0) return;
+      setActionLoadingId(settlementRow.periodId);
+      const remainingAmount = Math.max(settlementRow.totalEarned + settlementRow.totalAdjustments - settlementRow.totalSettled, 0);
+      const amount = Number(settlementAmount);
 
-      if (!row.periodEnded) {
-        setErrorMessage('لا يمكن تنفيذ التسوية قبل نهاية الشهر.');
-        return;
-      }
-
-      const rawAmount = window.prompt(`أدخل مبلغ التسوية (المتبقي ${remainingAmount.toLocaleString()} EGP):`, String(remainingAmount));
-      if (rawAmount === null) {
-        return;
-      }
-
-      const settlementAmount = Number(rawAmount);
-      if (!Number.isFinite(settlementAmount) || settlementAmount <= 0) {
+      if (!Number.isFinite(amount) || amount <= 0) {
         setErrorMessage('برجاء إدخال مبلغ صحيح أكبر من صفر.');
         return;
       }
 
-      if (settlementAmount > remainingAmount) {
+      if (amount > remainingAmount) {
         setErrorMessage('مبلغ التسوية لا يمكن أن يتجاوز المتبقي للطبيب.');
         return;
       }
 
-      await settleDoctorPayrollPeriod(row.periodId, {
+      await settleDoctorPayrollPeriod(settlementRow.periodId, {
         settlement_date: new Date().toISOString().slice(0, 10),
-        amount: settlementAmount,
+        amount,
         method: 'cash',
-        reference: `PAY-${row.periodMonth}`,
+        reference: `PAY-${settlementRow.periodMonth}`,
       });
 
+      setSettlementRow(null);
+      setSettlementAmount('');
       await loadReport();
     } catch (error) {
       console.error('Failed to settle payroll period', error);
@@ -131,11 +134,20 @@ export const DoctorPayrollReports: React.FC = () => {
     }
   };
 
+  const closeSettlementModal = () => {
+    setSettlementRow(null);
+    setSettlementAmount('');
+  };
+
+  const settlementRemaining = settlementRow
+    ? Math.max(settlementRow.totalEarned + settlementRow.totalAdjustments - settlementRow.totalSettled, 0)
+    : 0;
+
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Payroll الأطباء</h1>
-        <p className="text-sm text-gray-500">متابعة استحقاقات الأطباء، الإقفالات، والتسويات الشهرية.</p>
+        <p className="text-sm text-gray-500">متابعة استحقاقات الأطباء مع صرف جزئي أو نهائي في أي وقت، بينما إقفال الشهر اختياري للأرشفة فقط.</p>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -244,10 +256,9 @@ export const DoctorPayrollReports: React.FC = () => {
                           إقفال الشهر
                         </button>
                         <button
-                          onClick={() => onSettle(row)}
+                          onClick={() => onOpenSettlementModal(row)}
                           disabled={actionLoadingId === row.periodId || remaining <= 0 || !row.canSettle}
                           className="px-3 py-1.5 rounded-md bg-primary-600 text-white disabled:opacity-50"
-                          title={!row.periodEnded ? 'التسوية متاحة بعد انتهاء الشهر فقط' : undefined}
                         >
                           تسوية جزئية/نهائية
                         </button>
@@ -266,6 +277,66 @@ export const DoctorPayrollReports: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {settlementRow && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">تسوية مستحقات الطبيب</h3>
+              <button onClick={closeSettlementModal} className="p-1 rounded hover:bg-gray-100">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="text-sm text-gray-600">
+                <div>الطبيب: <span className="font-semibold text-gray-900">{settlementRow.doctorName}</span></div>
+                <div>الشهر: <span className="font-semibold text-gray-900">{settlementRow.periodMonth}</span></div>
+                <div>المتبقي الحالي: <span className="font-semibold text-gray-900">{settlementRemaining.toLocaleString()} EGP</span></div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">مبلغ الصرف</label>
+                <input
+                  type="number"
+                  min="0"
+                  max={settlementRemaining}
+                  step="0.01"
+                  value={settlementAmount}
+                  onChange={(e) => setSettlementAmount(e.target.value)}
+                  className="w-full h-11 rounded-lg border border-gray-300 px-3 text-sm"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSettlementAmount(String(settlementRemaining))}
+                className="w-full h-10 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50"
+              >
+                صرف الكل (تسوية نهائية للمتبقي الحالي)
+              </button>
+            </div>
+
+            <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+              <button
+                type="button"
+                onClick={closeSettlementModal}
+                className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-700"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={onConfirmSettlement}
+                disabled={actionLoadingId === settlementRow.periodId}
+                className="flex-1 h-10 rounded-lg bg-primary-600 text-white disabled:opacity-50"
+              >
+                تأكيد الصرف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

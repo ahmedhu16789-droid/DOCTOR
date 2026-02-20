@@ -185,7 +185,7 @@ class DoctorPayrollControllerTest extends TestCase
     }
 
 
-    public function test_it_blocks_settlement_before_month_end(): void
+    public function test_it_allows_partial_settlement_before_month_end(): void
     {
         [$actor, $doctor] = $this->createUsersInSameClinic();
 
@@ -208,7 +208,9 @@ class DoctorPayrollControllerTest extends TestCase
             'amount' => 100,
             'method' => 'cash',
             'reference' => 'PARTIAL-1',
-        ])->assertStatus(422);
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'OPEN')
+            ->assertJsonPath('data.totalSettled', 100.0);
     }
 
     public function test_it_allows_partial_settlement_after_period_end(): void
@@ -235,7 +237,7 @@ class DoctorPayrollControllerTest extends TestCase
             'method' => 'cash',
             'reference' => 'PARTIAL-2',
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'CLOSED')
+            ->assertJsonPath('data.status', 'OPEN')
             ->assertJsonPath('data.totalSettled', 200.0);
     }
 
