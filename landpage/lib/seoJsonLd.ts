@@ -38,3 +38,43 @@ export function getLandingJsonLd(data: LandingData) {
     ],
   };
 }
+
+export function getAppointmentJsonLd(data: LandingData) {
+  const appointment = data.appointmentPage;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "MedicalClinic",
+        name: appointment.nav.brand.logoText,
+        description: appointment.seo.description,
+        url: appointment.seo.canonical,
+        telephone: appointment.clinicInfo.phone,
+        address: appointment.clinicInfo.location,
+        openingHours: appointment.clinicInfo.hours,
+      },
+      ...appointment.physicians.map((doctor) => ({
+        "@type": "Physician",
+        name: doctor.name,
+        medicalSpecialty: doctor.specialty,
+        image: doctor.imageSrc,
+      })),
+      {
+        "@type": "MedicalBusiness",
+        name: appointment.booking.pageTitle,
+        potentialAction: {
+          "@type": "ReserveAction",
+          target: appointment.seo.canonical,
+          result: {
+            "@type": "Reservation",
+            reservationFor: {
+              "@type": "MedicalClinic",
+              name: appointment.nav.brand.logoText,
+            },
+          },
+        },
+      },
+    ],
+  };
+}
