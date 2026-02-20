@@ -19,10 +19,27 @@ return new class extends Migration
     public function down(): void
     {
         $this->cleanupSqliteTempUsersTable();
+        $this->backfillNullEmails();
 
         Schema::table('users', function (Blueprint $table) {
             $table->string('email')->nullable(false)->change();
         });
+    }
+
+    private function backfillNullEmails(): void
+    {
+        DB::table('users')
+            ->whereNull('email')
+            ->orderBy('id')
+            ->select('id')
+            ->get()
+            ->each(function (object $user): void {
+                DB::table('users')
+                    ->where('id', $user->id)
+                    ->update([
+                        'email' => sprintf('restored-user-%d@local.invalid', $user->id),
+                    ]);
+            });
     }
 
     private function cleanupSqliteTempUsersTable(): void
