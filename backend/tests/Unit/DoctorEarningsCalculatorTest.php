@@ -8,6 +8,7 @@ use App\Models\Clinic;
 use App\Models\DoctorEarningsLedger;
 use App\Models\DoctorPayrollContract;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Patient;
 use App\Models\Transaction;
 use App\Models\User;
@@ -52,6 +53,45 @@ class DoctorEarningsCalculatorTest extends TestCase
         $this->assertSame('COMMISSION', $entry->earning_type);
         $this->assertEquals(250.0, (float) $entry->basis_amount);
         $this->assertEquals(50.0, (float) $entry->amount);
+    }
+
+
+    public function test_percentage_contract_without_additional_services_commission_uses_only_consultation_items(): void
+    {
+        [$clinic, $doctor, $appointment, $invoice] = $this->createAppointmentContext();
+
+        $contract = $this->createContract($clinic, $doctor, 'PERCENTAGE', 0, 20, '2026-02-01');
+        $contract->update(['additional_services_commission_enabled' => false]);
+
+        InvoiceItem::query()->create([
+            'clinic_id' => $clinic->id,
+            'invoice_id' => $invoice->id,
+            'name' => 'Consultation',
+            'category' => 'CONSULTATION',
+            'quantity' => 1,
+            'unit_price' => 700,
+            'total' => 700,
+        ]);
+
+        InvoiceItem::query()->create([
+            'clinic_id' => $clinic->id,
+            'invoice_id' => $invoice->id,
+            'name' => 'X-Ray',
+            'category' => 'SERVICE',
+            'quantity' => 1,
+            'unit_price' => 300,
+            'total' => 300,
+        ]);
+
+        $transaction = $this->createTransaction($clinic, $invoice, 1000, '2026-02-10');
+
+        app(DoctorEarningsCalculator::class)->recordForPayment($appointment, $invoice, $transaction);
+
+        $entry = DoctorEarningsLedger::query()->firstOrFail();
+
+        $this->assertSame('COMMISSION', $entry->earning_type);
+        $this->assertEquals(700.0, (float) $entry->basis_amount);
+        $this->assertEquals(140.0, (float) $entry->amount);
     }
 
     public function test_hybrid_contract_generates_commission_and_fixed_salary_entries(): void

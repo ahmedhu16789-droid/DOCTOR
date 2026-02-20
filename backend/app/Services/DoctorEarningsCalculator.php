@@ -98,7 +98,33 @@ class DoctorEarningsCalculator
         $additionalServicesEnabled = (bool) ($contract->additional_services_commission_enabled ?? false);
 
         if (! $additionalServicesEnabled) {
-            $amount = round($basisAmount * ($defaultRate / 100), 2);
+            $consultationOnly = $this->resolveConsultationOnlyBasis($invoice, $basisAmount, $transactionAmount);
+
+            if (! $consultationOnly['hasConsultation']) {
+                DoctorEarningsLedger::query()->create([
+                    'clinic_id' => $appointment->clinic_id,
+                    'doctor_id' => $appointment->doctor_id,
+                    'appointment_id' => $appointment->id,
+                    'invoice_id' => $invoice->id,
+                    'transaction_id' => $transaction->id,
+                    'period_month' => $paymentDate->format('Y-m'),
+                    'earning_type' => 'COMMISSION',
+                    'basis_amount' => 0,
+                    'rate' => $defaultRate,
+                    'amount' => 0,
+                    'currency' => $currency,
+                    'status' => 'PENDING',
+                    'notes' => sprintf(
+                        'Commission is 0.00 because no CONSULTATION item was found. Policy basis %s.',
+                        $policy['commission_basis']
+                    ),
+                ]);
+
+                return;
+            }
+
+            $consultationBasis = $consultationOnly['basis'];
+            $amount = round($consultationBasis * ($defaultRate / 100), 2);
 
             if ($amount === 0.0) {
                 return;
@@ -112,12 +138,12 @@ class DoctorEarningsCalculator
                 'transaction_id' => $transaction->id,
                 'period_month' => $paymentDate->format('Y-m'),
                 'earning_type' => 'COMMISSION',
-                'basis_amount' => $basisAmount,
+                'basis_amount' => $consultationBasis,
                 'rate' => $defaultRate,
                 'amount' => $amount,
                 'currency' => $currency,
                 'status' => 'PENDING',
-                'notes' => sprintf('Commission generated using clinic policy basis %s.', $policy['commission_basis']),
+                'notes' => sprintf('Commission generated from CONSULTATION items only. Policy basis %s.', $policy['commission_basis']),
             ]);
 
             return;
@@ -155,6 +181,44 @@ class DoctorEarningsCalculator
                 $policy['commission_basis']
             ),
         ]);
+    }
+
+    /**
+     * @return array{basis: float, hasConsultation: bool}
+     */
+    private function resolveConsultationOnlyBasis(Invoice $invoice, float $basisAmount, float $transactionAmount): array
+    {
+        $items = $invoice->relationLoaded('items') ? $invoice->items : $invoice->items()->get();
+        $consultationItems = $items->filter(
+            fn ($item) => strtoupper((string) ($item->category ?? '')) === 'CONSULTATION'
+        );
+
+        if ($consultationItems->isEmpty()) {
+            return [
+                'basis' => 0.0,
+                'hasConsultation' => false,
+            ];
+        }
+
+        $consultationTotal = max((float) $consultationItems->sum('total'), 0.0);
+        $itemsTotal = max((float) $items->sum('total'), 0.0);
+
+        if ($itemsTotal <= 0.0) {
+            return [
+                'basis' => 0.0,
+                'hasConsultation' => true,
+            ];
+        }
+
+        $invoiceTotal = max((float) $invoice->total, 0.0);
+        $coveredTotal = $invoiceTotal > 0 ? min(abs($transactionAmount) / $invoiceTotal, 1) * $itemsTotal : $itemsTotal;
+        $basisCoverageRatio = min($coveredTotal / $itemsTotal, 1);
+        $direction = $basisAmount < 0 ? -1 : 1;
+
+        return [
+            'basis' => round($consultationTotal * $basisCoverageRatio, 2) * $direction,
+            'hasConsultation' => true,
+        ];
     }
 
     /**
