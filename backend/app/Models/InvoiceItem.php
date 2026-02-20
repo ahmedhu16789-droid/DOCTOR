@@ -11,6 +11,18 @@ class InvoiceItem extends Model
 {
     use BelongsToTenant, HasFactory;
 
+    public const CATEGORY_CONSULTATION = 'CONSULTATION';
+    public const CATEGORY_PROCEDURE = 'PROCEDURE';
+    public const CATEGORY_LAB = 'LAB';
+    public const CATEGORY_SUPPLY = 'SUPPLY';
+
+    public const ALLOWED_CATEGORIES = [
+        self::CATEGORY_CONSULTATION,
+        self::CATEGORY_PROCEDURE,
+        self::CATEGORY_LAB,
+        self::CATEGORY_SUPPLY,
+    ];
+
     protected $fillable = [
         'clinic_id',
         'invoice_id',
