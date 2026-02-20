@@ -80,7 +80,7 @@ class DoctorPayrollController extends Controller
 
         DoctorPayrollContract::query()
             ->where('clinic_id', $clinicId)
-            ->whereIn('model', ['FIXED_SALARY', 'HYBRID'])
+            ->whereIn('model', ['FIXED_SALARY', 'HYBRID', 'HYBRID_PER_CASE'])
             ->where('base_salary', '>', 0)
             ->whereDate('effective_from', '<=', $periodEnd)
             ->where(function ($query) use ($periodStart): void {

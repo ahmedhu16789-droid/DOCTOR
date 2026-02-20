@@ -18,11 +18,13 @@ const doctorSchema = z.object({
     consultationFee: z.number().min(0),
     assignedBranches: z.array(z.string()).min(1, 'Select at least one branch'),
     payroll: z.object({
-        model: z.enum(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID']),
+        model: z.enum(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID', 'PER_CASE', 'HYBRID_PER_CASE']),
         baseSalary: z.number().min(0),
         commissionPercentage: z.number().min(0).max(100).optional(),
         additionalServicesCommissionEnabled: z.boolean().optional(),
         additionalServicesCommissionPercentage: z.number().min(0).max(100).optional(),
+        perCaseAmount: z.number().min(0).optional(),
+        perDayCapCases: z.number().int().min(1).optional(),
     }),
     schedule: z.array(z.object({
         id: z.string().optional(),
@@ -32,6 +34,20 @@ const doctorSchema = z.object({
         slotDuration: z.number(),
         branchId: z.string().optional()
     })).optional()
+}).superRefine((data, ctx) => {
+    const model = data.payroll.model;
+
+    if ((model === 'PERCENTAGE' || model === 'HYBRID') && typeof data.payroll.commissionPercentage !== 'number') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['payroll', 'commissionPercentage'], message: 'Commission percentage is required' });
+    }
+
+    if ((model === 'PER_CASE' || model === 'HYBRID_PER_CASE') && typeof data.payroll.perCaseAmount !== 'number') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['payroll', 'perCaseAmount'], message: 'Per-case amount is required' });
+    }
+
+    if ((model === 'HYBRID' || model === 'HYBRID_PER_CASE') && typeof data.payroll.baseSalary !== 'number') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['payroll', 'baseSalary'], message: 'Base salary is required' });
+    }
 });
 
 type DoctorFormValues = z.infer<typeof doctorSchema>;
@@ -64,6 +80,8 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                 commissionPercentage: 0,
                 additionalServicesCommissionEnabled: false,
                 additionalServicesCommissionPercentage: 0,
+                perCaseAmount: 0,
+                perDayCapCases: undefined,
             },
             schedule: initialData?.schedule || []
         }
@@ -148,7 +166,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                             <label className="block text-sm font-medium text-gray-700 mb-4">{t('payroll_model')}</label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'].map((model) => (
+                                {['FIXED_SALARY', 'PERCENTAGE', 'HYBRID', 'PER_CASE', 'HYBRID_PER_CASE'].map((model) => (
                                     <label key={model} className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer ${paymentModel === model ? 'bg-primary-50 border-primary-500 text-primary-700' : 'bg-white border-gray-200'}`}>
                                         <input type="radio" {...register('payroll.model')} value={model} className="sr-only" />
                                         <span className="text-xs font-bold">{t(`payroll_${model.toLowerCase()}`)}</span>
@@ -157,7 +175,7 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {(paymentModel === 'FIXED_SALARY' || paymentModel === 'HYBRID') && (
+                            {(paymentModel === 'FIXED_SALARY' || paymentModel === 'HYBRID' || paymentModel === 'HYBRID_PER_CASE') && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('base_salary')}</label>
                                     <input {...register('payroll.baseSalary', { valueAsNumber: true })} type="number" min={0} className="block w-full rounded-md border-gray-300 border p-2" />
@@ -168,6 +186,18 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('commission_percentage')}</label>
                                     <input {...register('payroll.commissionPercentage', { valueAsNumber: true })} type="number" min={0} max={100} className="block w-full rounded-md border-gray-300 border p-2" />
                                 </div>
+                            )}
+                            {(paymentModel === 'PER_CASE' || paymentModel === 'HYBRID_PER_CASE') && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('per_case_amount')}</label>
+                                        <input {...register('payroll.perCaseAmount', { valueAsNumber: true })} type="number" min={0} className="block w-full rounded-md border-gray-300 border p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('per_day_cap_cases')}</label>
+                                        <input {...register('payroll.perDayCapCases', { valueAsNumber: true })} type="number" min={1} className="block w-full rounded-md border-gray-300 border p-2" />
+                                    </div>
+                                </>
                             )}
                             {(paymentModel === 'PERCENTAGE' || paymentModel === 'HYBRID') && (
                                 <div className="md:col-span-2 space-y-3 border border-gray-200 rounded-lg p-4">

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('transaction_id')->nullable()->constrained()->nullOnDelete();
             $table->string('period_month', 7);
-            $table->enum('earning_type', ['COMMISSION', 'FIXED_SALARY_ACCRUAL', 'ADJUSTMENT', 'CLAWBACK']);
+            $table->enum('earning_type', ['COMMISSION', 'FIXED_SALARY_ACCRUAL', 'PER_CASE_ACCRUAL', 'ADJUSTMENT', 'CLAWBACK']);
             $table->decimal('basis_amount', 12, 2);
             $table->decimal('rate', 8, 4)->nullable();
             $table->decimal('amount', 12, 2);

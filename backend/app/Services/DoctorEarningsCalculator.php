@@ -38,8 +38,12 @@ class DoctorEarningsCalculator
             $this->createCommissionLedgerEntry($appointment, $invoice, $transaction, $contract, $paymentDate, $currency, $policy);
         }
 
-        if (in_array($contract->model, ['FIXED_SALARY', 'HYBRID'], true)) {
+        if (in_array($contract->model, ['FIXED_SALARY', 'HYBRID', 'HYBRID_PER_CASE'], true)) {
             $this->createFixedSalaryAccrual($appointment, $contract, $paymentDate, $currency, $policy['accrual_day_of_month']);
+        }
+
+        if (in_array($contract->model, ['PER_CASE', 'HYBRID_PER_CASE'], true)) {
+            $this->createPerCaseAccruals((int) $appointment->clinic_id, (int) $appointment->doctor_id, $paymentDate, $currency);
         }
     }
 
@@ -216,6 +220,111 @@ class DoctorEarningsCalculator
         $ratio = $transactionAmount / $invoiceTotal;
 
         return round($invoiceBasis * $ratio, 2);
+    }
+
+
+    private function createPerCaseAccruals(int $clinicId, int $doctorId, Carbon $paymentDate, string $currency): void
+    {
+        $periodMonth = $paymentDate->format('Y-m');
+        $periodStart = Carbon::createFromFormat('Y-m-d', $periodMonth.'-01')->startOfDay();
+        $periodEnd = $periodStart->copy()->endOfMonth();
+
+        $contracts = DoctorPayrollContract::query()
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $doctorId)
+            ->where('is_active', true)
+            ->whereIn('model', ['PER_CASE', 'HYBRID_PER_CASE'])
+            ->whereDate('effective_from', '<=', $periodEnd->toDateString())
+            ->where(function ($query) use ($periodStart): void {
+                $query->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $periodStart->toDateString());
+            })
+            ->orderBy('effective_from')
+            ->get();
+
+        foreach ($contracts as $contract) {
+            $this->createPerCaseAccrualForContract($clinicId, $doctorId, $periodMonth, $periodStart, $periodEnd, $contract, $currency);
+        }
+    }
+
+    private function createPerCaseAccrualForContract(
+        int $clinicId,
+        int $doctorId,
+        string $periodMonth,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        DoctorPayrollContract $contract,
+        string $currency
+    ): void {
+        $entryExists = DoctorEarningsLedger::query()
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $doctorId)
+            ->where('period_month', $periodMonth)
+            ->where('earning_type', 'PER_CASE_ACCRUAL')
+            ->where('notes', 'like', '%[contract:'.$contract->id.']%')
+            ->exists();
+
+        if ($entryExists) {
+            return;
+        }
+
+        $perCaseAmount = (float) ($contract->per_case_amount ?? 0);
+
+        if ($perCaseAmount <= 0.0) {
+            return;
+        }
+
+        $effectiveFrom = Carbon::parse($contract->effective_from)->startOfDay();
+        $effectiveTo = $contract->effective_to ? Carbon::parse($contract->effective_to)->endOfDay() : $periodEnd;
+
+        $windowStart = $effectiveFrom->greaterThan($periodStart) ? $effectiveFrom : $periodStart;
+        $windowEnd = $effectiveTo->lessThan($periodEnd) ? $effectiveTo : $periodEnd;
+
+        if ($windowStart->greaterThan($windowEnd)) {
+            return;
+        }
+
+        $capCases = $contract->per_day_cap_cases ? (int) $contract->per_day_cap_cases : null;
+
+        $completedCases = Appointment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $doctorId)
+            ->where('status', 'COMPLETED')
+            ->whereDate('date', '>=', $windowStart->toDateString())
+            ->whereDate('date', '<=', $windowEnd->toDateString())
+            ->selectRaw('date, COUNT(*) as cases_count')
+            ->groupBy('date')
+            ->get()
+            ->sum(function ($row) use ($capCases): int {
+                $casesCount = (int) $row->cases_count;
+
+                return $capCases ? min($casesCount, $capCases) : $casesCount;
+            });
+
+        if ($completedCases <= 0) {
+            return;
+        }
+
+        $totalAmount = round($completedCases * $perCaseAmount, 2);
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $clinicId,
+            'doctor_id' => $doctorId,
+            'period_month' => $periodMonth,
+            'earning_type' => 'PER_CASE_ACCRUAL',
+            'basis_amount' => $completedCases,
+            'rate' => null,
+            'amount' => $totalAmount,
+            'currency' => $currency,
+            'status' => 'PENDING',
+            'notes' => sprintf(
+                'Per-case accrual generated for %d completed case(s) at %.2f per case%s. [contract:%d]',
+                $completedCases,
+                $perCaseAmount,
+                $capCases ? sprintf(' with daily cap %d', $capCases) : '',
+                $contract->id
+            ),
+        ]);
     }
 
     private function createFixedSalaryAccrual(
