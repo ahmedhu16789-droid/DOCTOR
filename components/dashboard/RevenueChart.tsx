@@ -40,11 +40,11 @@ export const RevenueChart: React.FC<Props> = ({ branchId }) => {
   }, [branchId]);
 
   const width = 560;
-  const height = 220;
-  const padL = 40;
+  const height = 240;
+  const padL = 44;
   const padR = 20;
-  const padT = 10;
-  const padB = 40;
+  const padT = 16;
+  const padB = 44;
 
   const chartW = width - padL - padR;
   const chartH = height - padT - padB;
@@ -73,16 +73,16 @@ export const RevenueChart: React.FC<Props> = ({ branchId }) => {
         </select>
       </div>
 
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative overflow-hidden" style={{ minHeight: 180 }}>
         {loading ? (
-          <div className="w-full h-full flex items-center justify-center min-h-[160px]">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
           </div>
         ) : (
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="w-full h-full"
-            style={{ minHeight: 180 }}
+            preserveAspectRatio="xMidYMid meet"
             onMouseLeave={() => setTooltip(null)}
           >
             <defs>

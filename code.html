@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MediClinic - Expert Multi-Specialty Care</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col group/design-root">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-6 lg:px-10 py-3">
+<div class="flex items-center gap-2 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-4xl">medical_services</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-extrabold leading-tight tracking-[-0.015em]">MediClinic</h2>
+</div>
+<div class="hidden lg:flex flex-1 justify-center gap-8">
+<a class="text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary text-sm font-semibold leading-normal transition-colors" href="#specialties">Specialties</a>
+<a class="text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary text-sm font-semibold leading-normal transition-colors" href="#doctors">Doctors</a>
+<a class="text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary text-sm font-semibold leading-normal transition-colors" href="#testimonials">Testimonials</a>
+<a class="text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary text-sm font-semibold leading-normal transition-colors" href="#contact">Contact</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors shadow-sm">
+<span class="truncate">Book Appointment</span>
+</button>
+</div>
+</header>
+<!-- Hero Section -->
+<div class="relative w-full">
+<div class="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/30 z-10"></div>
+<div class="w-full h-[600px] bg-cover bg-center bg-no-repeat" data-alt="Professional male doctor standing in a modern clinic hallway" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDbFJs-0epfly0347jAiqya4O-blcvets9L07IQU3PodkmTe-r2cCUgM9_n7UbzIqyO-90pyRw4BcbXQzeo5fbLlCbrD4MXFPtlBmauH4cAzKrX-bRnWIcByVsiagT9b_J06nNqVKcMuNrjOP_z0vsA52onwx08hvqkgZa6J6UwDtglj0fHvbqEla74zuu-gT1NAZJ-zPL928su7QqDhBpPYGjg3jdtuKd54NnqcXtSScbyAQUpFRsGf02v5Enoc0cbdi4IRurvNw");'></div>
+<div class="absolute inset-0 z-20 flex items-center justify-start container mx-auto px-6 lg:px-20">
+<div class="flex flex-col gap-6 max-w-[640px]">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-sm w-fit">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-white text-xs font-bold uppercase tracking-wide">Accepting New Patients</span>
+</div>
+<h1 class="text-white text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight">
+                        Expert Medical Care <br/><span class="text-blue-400">You Can Trust</span>
+</h1>
+<p class="text-slate-200 text-lg lg:text-xl font-medium leading-relaxed max-w-[540px]">
+                        Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.
+                    </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="flex items-center justify-center rounded-lg h-12 px-8 bg-primary hover:bg-blue-600 text-white text-base font-bold transition-all shadow-lg hover:shadow-primary/30">
+                            Book Appointment
+                        </button>
+<button class="flex items-center justify-center rounded-lg h-12 px-8 bg-transparent border-2 border-white text-white hover:bg-white hover:text-slate-900 text-base font-bold transition-all">
+                            Contact Us
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats Section -->
+<div class="bg-white dark:bg-slate-900 py-10 border-b border-slate-100 dark:border-slate-800">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
+<div class="flex flex-col items-center justify-center text-center p-4">
+<span class="text-primary text-4xl lg:text-5xl font-black tracking-tight mb-2">25+</span>
+<p class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-sm">Years Experience</p>
+</div>
+<div class="flex flex-col items-center justify-center text-center p-4">
+<span class="text-primary text-4xl lg:text-5xl font-black tracking-tight mb-2">10k+</span>
+<p class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-sm">Patients Served</p>
+</div>
+<div class="flex flex-col items-center justify-center text-center p-4">
+<span class="text-primary text-4xl lg:text-5xl font-black tracking-tight mb-2">98%</span>
+<p class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-sm">Success Rate</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Specialties Section -->
+<div class="py-24 bg-background-light dark:bg-background-dark" id="specialties">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+<div class="max-w-2xl">
+<h2 class="text-primary font-bold tracking-wider uppercase text-sm mb-3">Our Expertise</h2>
+<h3 class="text-slate-900 dark:text-white text-3xl lg:text-4xl font-extrabold leading-tight">Comprehensive Specialized Care</h3>
+<p class="text-slate-600 dark:text-slate-400 mt-4 text-lg">We offer specialized treatments tailored to your specific health needs with state-of-the-art facilities.</p>
+</div>
+<a class="hidden md:inline-flex items-center text-primary font-bold hover:underline gap-1" href="#">
+                        View All Services <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Orthopedics Card -->
+<div class="group bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors text-primary">
+<span class="material-symbols-outlined text-3xl">orthopedics</span>
+</div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Orthopedics</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">Advanced care for bones, joints, and muscles including sports medicine and joint replacement surgery.</p>
+<a class="inline-flex items-center text-primary font-bold text-sm hover:gap-2 transition-all" href="#">
+                            Learn More <span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</a>
+</div>
+<!-- Dentistry Card -->
+<div class="group bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors text-primary">
+<span class="material-symbols-outlined text-3xl">dentistry</span>
+</div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Dentistry</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.</p>
+<a class="inline-flex items-center text-primary font-bold text-sm hover:gap-2 transition-all" href="#">
+                            Learn More <span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</a>
+</div>
+<!-- Ophthalmology Card -->
+<div class="group bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-700">
+<div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors text-primary">
+<span class="material-symbols-outlined text-3xl">visibility</span>
+</div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Ophthalmology</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.</p>
+<a class="inline-flex items-center text-primary font-bold text-sm hover:gap-2 transition-all" href="#">
+                            Learn More <span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Doctors Section -->
+<div class="py-24 bg-white dark:bg-slate-900" id="doctors">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="text-center max-w-3xl mx-auto mb-16">
+<h2 class="text-primary font-bold tracking-wider uppercase text-sm mb-3">Our Team</h2>
+<h3 class="text-slate-900 dark:text-white text-3xl lg:text-4xl font-extrabold leading-tight mb-4">Meet Our Specialists</h3>
+<p class="text-slate-600 dark:text-slate-400 text-lg">Our doctors are leaders in their fields, dedicated to providing compassionate and effective care.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Doctor 1 -->
+<div class="flex flex-col bg-background-light dark:bg-slate-800 rounded-2xl overflow-hidden group">
+<div class="h-80 overflow-hidden relative">
+<div class="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10"></div>
+<img alt="Dr. James Smith, Orthopedic Surgeon" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" data-alt="Portrait of a male doctor in white coat smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADZj3XVpFYrj4x8Ia7mBCIcMwL_EYDAJVhyPrOPX27N6KQrlPbfBS_SvB4sv3XJguv5bMZontNDsTp6oTjpyqu1tEzhclri_gvhthzKt1aQSgfSX4iLRkAiDy8JI2cIF2cijVTLyej1LRAdNtwG4BLdkllfu8NNRQDND-nHou5kwvtgsEr9nlCeqpKcns11Hbz5vlAIxjvRERC24qm8JNOv3zhW3uBdGLTAwOdOn_Mip-AMgZKsrswmrKcgPJh2yv6AEol25S1Dw"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white">Dr. James Smith</h4>
+<p class="text-primary font-medium text-sm">Orthopedic Surgeon</p>
+</div>
+<div class="bg-white dark:bg-slate-700 px-3 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                    15 Yrs Exp
+                                </div>
+</div>
+</div>
+</div>
+<!-- Doctor 2 -->
+<div class="flex flex-col bg-background-light dark:bg-slate-800 rounded-2xl overflow-hidden group">
+<div class="h-80 overflow-hidden relative">
+<div class="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10"></div>
+<img alt="Dr. Robert Chen, Dental Specialist" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" data-alt="Portrait of a male dentist in white coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6BUp1BAISdXDAwqijtAGyXJu8ksj8EMgVo7VmN432-amsbe_h43vb5KfDBVUT8DY6w3AmNBrsdSyclGuC8jsMT1iSwfSVCvik8E9XEFjd_q8CzA17LErWOvBuaIhHQ3iM1TZWb8StGuyUTpPqadHAStW2iCzjREonSWF6W_fVEy0pQIa7GEnvtOozoCRoZshOYr3YIeRIIknkB674clKBL4kqPwD3OqlmwhKwid8ISxp9XDVHFxSakKuP-iJBqYOkRpSU-ok-YA"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white">Dr. Robert Chen</h4>
+<p class="text-primary font-medium text-sm">Dental Specialist</p>
+</div>
+<div class="bg-white dark:bg-slate-700 px-3 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                    12 Yrs Exp
+                                </div>
+</div>
+</div>
+</div>
+<!-- Doctor 3 -->
+<div class="flex flex-col bg-background-light dark:bg-slate-800 rounded-2xl overflow-hidden group">
+<div class="h-80 overflow-hidden relative">
+<div class="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors z-10"></div>
+<img alt="Dr. Michael Ross, Ophthalmologist" class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" data-alt="Portrait of a male ophthalmologist in white coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5aXHHYmw5JjZ4ogc7WRcTlBFgKDxeptu6jHRq4y2H9BChj7wI23NuSAsmydMja7F1xNgdfpINsnsc3iAC7gGCkFaJeNCGRSzEnrefwRrWJvHQSs8RYnRHANjGa5Ilh2kQvn675UQN_t51t3yu61GUuZnDjFWVW_xFYFowI6VBt8w_f-EtdT1kiJh-zmHbxebD5svYbXtkdKena5o8bfU1iTKVkaTvqpUqOoLQ1bhX7ysJ6a5j8uqiEEwpPZByAT_kIKgEh4oIFA"/>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h4 class="text-xl font-bold text-slate-900 dark:text-white">Dr. Michael Ross</h4>
+<p class="text-primary font-medium text-sm">Ophthalmologist</p>
+</div>
+<div class="bg-white dark:bg-slate-700 px-3 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                    18 Yrs Exp
+                                </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Why Choose Us -->
+<div class="py-24 bg-background-light dark:bg-background-dark">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="flex flex-col lg:flex-row gap-16 items-center">
+<div class="lg:w-1/2">
+<h2 class="text-primary font-bold tracking-wider uppercase text-sm mb-3">Why Choose Us</h2>
+<h3 class="text-slate-900 dark:text-white text-3xl lg:text-4xl font-extrabold leading-tight mb-6">Patient-Centered Care With Modern Technology</h3>
+<p class="text-slate-600 dark:text-slate-400 text-lg mb-8">We combine medical expertise with compassionate care to ensure the best outcomes for our patients.</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="flex gap-4">
+<div class="mt-1 text-primary shrink-0">
+<span class="material-symbols-outlined">verified_user</span>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold text-lg mb-1">Experienced Specialists</h5>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Board-certified doctors with years of practice.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="mt-1 text-primary shrink-0">
+<span class="material-symbols-outlined">biotech</span>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold text-lg mb-1">Modern Equipment</h5>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Latest diagnostic and treatment technology.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="mt-1 text-primary shrink-0">
+<span class="material-symbols-outlined">emergency</span>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold text-lg mb-1">Emergency Support</h5>
+<p class="text-slate-600 dark:text-slate-400 text-sm">24/7 dedicated support for urgent cases.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="mt-1 text-primary shrink-0">
+<span class="material-symbols-outlined">calendar_month</span>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold text-lg mb-1">Easy Booking</h5>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Seamless online appointment scheduling.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:w-1/2 relative">
+<div class="absolute -top-4 -left-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+<div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+<img alt="Modern medical equipment in a clean hospital room" class="relative rounded-2xl shadow-2xl z-10 w-full" data-alt="Interior view of a modern clinic room with medical equipment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCy4Fx8hAaYnqngxclTYyumiNTjoxbFkfJ8N3o6z6o5AHTEiACHIJWpG7szNs2z7L9gRF3mxRVJeJ3gU86dn7dYvzryl-2-Ph44dV0VFywQTLAnzpf5s_NZhs-Y-KwImHHctL1ALCxPJ5fZDYWS6dbbNWEtM7ABWqhsrR03jfdNIAcNLC4dy01yyXH3ydnhY-K6JGCQNyUDgqNGlyq_e24fH4hFWDuK3JBNWBwb761j1GGd_szqs9zI-4BYhtznAlZ8GBsDNhcWgw"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Testimonials -->
+<div class="py-24 bg-white dark:bg-slate-900" id="testimonials">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="text-center mb-16">
+<h2 class="text-primary font-bold tracking-wider uppercase text-sm mb-3">Testimonials</h2>
+<h3 class="text-slate-900 dark:text-white text-3xl lg:text-4xl font-extrabold leading-tight">What Our Patients Say</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+<!-- Review 1 -->
+<div class="bg-background-light dark:bg-slate-800 p-8 rounded-xl border border-slate-100 dark:border-slate-700 relative">
+<span class="material-symbols-outlined text-primary/20 text-6xl absolute top-6 right-6 select-none">format_quote</span>
+<p class="text-slate-700 dark:text-slate-300 text-lg italic mb-6 relative z-10">"The professionalism at MediClinic is unmatched. Dr. Smith explained my orthopedic surgery clearly and the recovery was faster than I expected. Highly recommended."</p>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-slate-300 rounded-full overflow-hidden">
+<img alt="John D." class="w-full h-full object-cover" data-alt="Portrait of a smiling male patient" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDqx--CeaFcmHPHqzL-yLs8IcNvJF8pUmt5SZfQ5jEmVXqVrw2J2ix8cWByJdEE-mhG2ypkwEekI2MPooCR5gBr1vXKegJ_Kwq9IF_qNtaAameuyH_bfGoMBK3__R8S3OEdlVhe_2vQKDDS0Tj7FTC1qW9zYmO4o2eVOIBRIM1c6sGPmCBuIgf2NryWywuBZeoiPp03CdxcgWMBy3ULf6MQPNpOUBHV5Hu3WYyF5s9bTUGZm21-0rIHaNUkEA2zdiSuAb90niNKw"/>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold">John D.</h5>
+<p class="text-slate-500 text-sm">Recovered Patient</p>
+</div>
+</div>
+</div>
+<!-- Review 2 -->
+<div class="bg-background-light dark:bg-slate-800 p-8 rounded-xl border border-slate-100 dark:border-slate-700 relative">
+<span class="material-symbols-outlined text-primary/20 text-6xl absolute top-6 right-6 select-none">format_quote</span>
+<p class="text-slate-700 dark:text-slate-300 text-lg italic mb-6 relative z-10">"I've always been nervous about dentists, but Dr. Chen made the entire process painless. The facility is clean, modern, and the staff is incredibly respectful."</p>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-slate-300 rounded-full overflow-hidden">
+<img alt="Mark S." class="w-full h-full object-cover" data-alt="Portrait of a male patient in business attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUiRk7KCQ14XAiW4dGIAUu0Aegq42gpeh0cB4BMXZUGkDR9zsdu8CT2pYqBwYYyhC-V3sjZoGqgR9XMGTMjPkVLcMqH-9gIcLOgblwJrQ92_7qDB9lU02SHN2Y9eotAc9-1efrrpWgs564pVBMuioyf6AzFaVRu3FBQjRqBHq4Sy_qyMr-6_IwFIPnAXywFywtYw-SAHNh0qh6uxRVhqhJ7r3DlpeG2sHmhHFGuNNNKS9AaGBO4p8Xwv5Pa8cz5XbsA1RudkN4Pg"/>
+</div>
+<div>
+<h5 class="text-slate-900 dark:text-white font-bold">Mark S.</h5>
+<p class="text-slate-500 text-sm">Regular Patient</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Booking Section -->
+<div class="py-24 bg-primary text-white relative overflow-hidden" id="contact">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+<div class="container mx-auto px-6 lg:px-20 relative z-10">
+<div class="flex flex-col lg:flex-row items-center gap-12">
+<div class="lg:w-1/2">
+<h2 class="text-white/80 font-bold tracking-wider uppercase text-sm mb-3">Book Appointment</h2>
+<h3 class="text-white text-3xl lg:text-5xl font-extrabold leading-tight mb-6">Ready to prioritize your health?</h3>
+<p class="text-blue-100 text-lg mb-8 max-w-md">Schedule your visit with our top specialists today. Fill out the form and our team will confirm your appointment.</p>
+<div class="flex items-center gap-3 text-blue-100 mb-2">
+<span class="material-symbols-outlined">call</span>
+<span class="font-bold text-xl">(555) 123-4567</span>
+</div>
+<div class="flex items-center gap-3 text-blue-100">
+<span class="material-symbols-outlined">location_on</span>
+<span class="text-lg">123 Health Ave, Medical District, NY</span>
+</div>
+</div>
+<div class="lg:w-1/2 w-full">
+<form class="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-2xl">
+<h4 class="text-slate-900 dark:text-white text-2xl font-bold mb-6">Request Appointment</h4>
+<div class="space-y-4">
+<div>
+<label class="block text-slate-700 dark:text-slate-300 text-sm font-bold mb-2" for="name">Full Name</label>
+<input class="w-full h-12 px-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="name" placeholder="John Doe" type="text"/>
+</div>
+<div>
+<label class="block text-slate-700 dark:text-slate-300 text-sm font-bold mb-2" for="phone">Phone Number</label>
+<input class="w-full h-12 px-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="phone" placeholder="(555) 000-0000" type="tel"/>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div>
+<label class="block text-slate-700 dark:text-slate-300 text-sm font-bold mb-2" for="specialty">Specialty</label>
+<div class="relative">
+<select class="w-full h-12 px-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none transition-all cursor-pointer" id="specialty">
+<option>Orthopedics</option>
+<option>Dentistry</option>
+<option>Ophthalmology</option>
+<option>General Checkup</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-slate-700 dark:text-slate-300 text-sm font-bold mb-2" for="date">Preferred Date</label>
+<input class="w-full h-12 px-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="date" type="date"/>
+</div>
+</div>
+<button class="w-full h-12 mt-6 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-lg shadow-md hover:shadow-lg transition-all" type="button">
+                                    Confirm Booking
+                                </button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="bg-background-dark text-slate-300 py-16">
+<div class="container mx-auto px-6 lg:px-20">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+<!-- Brand -->
+<div>
+<div class="flex items-center gap-2 text-white mb-6">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-4xl">medical_services</span>
+</div>
+<h2 class="text-xl font-extrabold tracking-tight">MediClinic</h2>
+</div>
+<p class="text-slate-400 text-sm leading-relaxed mb-6">
+                            Providing trusted medical care for over 25 years. Our multi-specialty clinic is dedicated to your well-being.
+                        </p>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary hover:text-white transition-colors" href="#">
+<span class="text-sm font-bold">FB</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary hover:text-white transition-colors" href="#">
+<span class="text-sm font-bold">TW</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary hover:text-white transition-colors" href="#">
+<span class="text-sm font-bold">LN</span>
+</a>
+</div>
+</div>
+<!-- Quick Links -->
+<div>
+<h4 class="text-white font-bold text-lg mb-6">Quick Links</h4>
+<ul class="space-y-3">
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">About Us</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Our Doctors</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Specialties</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Patient Reviews</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Privacy Policy</a></li>
+</ul>
+</div>
+<!-- Services -->
+<div>
+<h4 class="text-white font-bold text-lg mb-6">Services</h4>
+<ul class="space-y-3">
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Orthopedics</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Dentistry</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Ophthalmology</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Emergency Care</a></li>
+<li><a class="text-slate-400 hover:text-primary transition-colors text-sm" href="#">Diagnostic Lab</a></li>
+</ul>
+</div>
+<!-- Contact -->
+<div>
+<h4 class="text-white font-bold text-lg mb-6">Contact Us</h4>
+<ul class="space-y-4">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-xl mt-0.5">location_on</span>
+<span class="text-slate-400 text-sm">123 Health Ave, Medical District,<br/>NY 10001, USA</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">call</span>
+<span class="text-slate-400 text-sm">(555) 123-4567</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">mail</span>
+<span class="text-slate-400 text-sm">contact@mediclinic.com</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">schedule</span>
+<span class="text-slate-400 text-sm">Mon-Sat: 8:00 AM - 8:00 PM</span>
+</li>
+</ul>
+</div>
+</div>
+<div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-slate-500 text-sm">© 2023 MediClinic. All rights reserved.</p>
+<p class="text-slate-600 text-xs">Designed with care for patients.</p>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

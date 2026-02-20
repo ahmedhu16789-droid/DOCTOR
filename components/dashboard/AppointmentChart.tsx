@@ -52,20 +52,20 @@ export const AppointmentChart: React.FC<Props> = ({ branchId }) => {
       <h3 className="font-bold text-gray-900 text-lg mb-1">{t('visits_by_dept')}</h3>
       <p className="text-sm text-gray-500 mb-4">{t('patient_distribution')}</p>
 
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative overflow-hidden" style={{ minHeight: 160 }}>
         {loading ? (
-          <div className="w-full h-full flex items-center justify-center min-h-[140px]">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
           </div>
         ) : data.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center min-h-[140px]">
+          <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-sm text-gray-400">{t('no_data_available', 'No data available')}</p>
           </div>
         ) : (
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="w-full h-full"
-            style={{ minHeight: 160 }}
+            preserveAspectRatio="xMidYMid meet"
           >
             {/* Grid lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => (
