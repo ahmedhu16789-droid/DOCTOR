@@ -5,7 +5,7 @@ import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
 import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createAccessLinkViaApi, createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
+import { clinicRepository, ApiDepartmentOption } from '../services/dataSource/clinicRepository';
 
 interface AdminDashboardProps {
     currentUser: User;
@@ -30,9 +30,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
         (async () => {
             try {
                 const [apiDoctors, apiBranches, apiDepartments] = await Promise.all([
-                    getDoctorsFromApi(),
-                    getBranchesFromApi(),
-                    getDepartmentsFromApi(),
+                    clinicRepository.getDoctors(),
+                    clinicRepository.getBranches(),
+                    clinicRepository.getDepartments(),
                 ]);
                 setUsers(apiDoctors);
                 setBranches(apiBranches);
@@ -68,7 +68,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
 
     const handleGenerateAccessLink = async (user: User): Promise<void> => {
         try {
-            const { token } = await createAccessLinkViaApi(user.id);
+            const { token } = await clinicRepository.createAccessLink(user.id);
             const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
             await navigator.clipboard.writeText(link);
             alert(t('copy_link_done'));
@@ -81,7 +81,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
     };
 
     const handleSaveUser = async (savedUser: User) => {
-        const persisted = isCreatingUser ? await createDoctorViaApi(savedUser) : await updateDoctorViaApi(savedUser);
+        const persisted = isCreatingUser ? await clinicRepository.createDoctor(savedUser) : await clinicRepository.updateDoctor(savedUser);
         if (isCreatingUser) {
             setUsers([...users, persisted]);
         } else {

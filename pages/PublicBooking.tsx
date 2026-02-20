@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Appointment, Department, Patient } from '../types';
-import { BRANCHES, DEPARTMENTS, MOCK_USERS } from '../constants';
-import { generateTimeSlots, MOCK_PATIENTS } from '../services/mockData';
+import React, { useEffect, useState } from 'react';
+import { Appointment, Branch, Department, Patient, User as DoctorUser } from '../types';
+import { DEPARTMENTS } from '../constants';
+
 import { Calendar, MapPin, Search, Star, Clock, ArrowRight, Phone, CheckCircle, UserPlus, User, ChevronLeft, CreditCard, Banknote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatTimeTo12Hour } from '../utils/time';
+import { clinicRepository } from '../services/dataSource/clinicRepository';
 
 interface PublicBookingProps {
   onBackToLogin: () => void;
@@ -16,9 +17,10 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
   const [step, setStep] = useState<'SEARCH' | 'SLOT_SELECTION' | 'AUTH' | 'CONFIRM'>('SEARCH');
 
   // Selection State
-  const [selectedBranch, setSelectedBranch] = useState(BRANCHES[0].id);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<DoctorUser | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -37,10 +39,38 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
   // Payment Selection
   const [payOnline, setPayOnline] = useState(false);
 
-  // Data
-  const doctors = MOCK_USERS.filter(u => u.role === 'DOCTOR' && u.specialty === selectedDept && u.assignedBranches.includes(selectedBranch));
+  const [doctors, setDoctors] = useState<DoctorUser[]>([]);
+  const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
 
-  const handleSlotClick = (doc: any, time: string) => {
+  useEffect(() => {
+    clinicRepository.getBranches().then((items) => {
+      setBranches(items);
+      setSelectedBranch((prev) => prev || items[0]?.id || '');
+    }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBranch) return;
+
+    clinicRepository.getDoctors({ branchId: selectedBranch, specialty: selectedDept })
+      .then(setDoctors)
+      .catch(() => setDoctors([]));
+  }, [selectedBranch, selectedDept]);
+
+  useEffect(() => {
+    if (!selectedBranch || doctors.length === 0) {
+      setSlotsByDoctor({});
+      return;
+    }
+
+    clinicRepository.getAvailableSlotsBulk({
+      doctorIds: doctors.map((doctor) => doctor.id),
+      branchId: selectedBranch,
+      date: selectedDate,
+    }).then(setSlotsByDoctor).catch(() => setSlotsByDoctor({}));
+  }, [selectedBranch, selectedDate, doctors]);
+
+  const handleSlotClick = (doc: DoctorUser, time: string) => {
     setSelectedDoctor(doc);
     setSelectedSlot(time);
     setStep('AUTH');
@@ -54,10 +84,9 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
     }
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API lookup
-    const found = MOCK_PATIENTS.filter(p => p.phone === phone);
+    const found = await clinicRepository.lookupPatientsByPhone(phone);
     setLinkedProfiles(found);
     setAuthStep('PROFILE');
   };
@@ -130,7 +159,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('select_branch')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {BRANCHES.map(b => (
+                {branches.map(b => (
                   <button
                     key={b.id}
                     onClick={() => setSelectedBranch(b.id)}
@@ -177,7 +206,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 mb-4 sticky top-20 z-10 shadow-sm">
               <div>
                 <h2 className="font-bold text-gray-900">{selectedDept}</h2>
-                <p className="text-sm text-gray-500">{BRANCHES.find(b => b.id === selectedBranch)?.name}</p>
+                <p className="text-sm text-gray-500">{branches.find(b => b.id === selectedBranch)?.name}</p>
               </div>
               <input
                 type="date"
@@ -189,7 +218,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
 
             <div className="space-y-4">
               {doctors.map(doc => {
-                const slots = generateTimeSlots(selectedDate, doc.id).filter(s => s.available).slice(0, 5);
+                const slots = (slotsByDoctor[doc.id] ?? []).filter(s => s.available).slice(0, 5);
                 return (
                   <div key={doc.id} className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">

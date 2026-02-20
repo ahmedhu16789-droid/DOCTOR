@@ -3,7 +3,7 @@ import { User, Employee, UserRole, Branch } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
 import { UserPlus, Search, MapPin, DollarSign, Clock, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createAccessLinkViaApi, createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
+import { clinicRepository } from '../services/dataSource/clinicRepository';
 
 interface EmployeeManagementProps {
   currentUser: User;
@@ -27,9 +27,9 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
       setLoading(true);
       try {
         const [empData, branchData, roleData] = await Promise.all([
-          getEmployeesFromApi(),
-          getBranchesFromApi(),
-          getRolesFromApi(),
+          clinicRepository.getEmployees(),
+          clinicRepository.getBranches(),
+          clinicRepository.getRoles(),
         ]);
 
         setEmployees(empData as Employee[]);
@@ -48,8 +48,8 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
 
   const handleSaveEmployee = async (emp: Employee) => {
     const saved = isCreating
-      ? await createEmployeeViaApi(emp)
-      : await updateEmployeeViaApi(emp);
+      ? await clinicRepository.createEmployee(emp)
+      : await clinicRepository.updateEmployee(emp);
 
     if (isCreating) {
       setEmployees((prev) => [...prev, saved as Employee]);
@@ -69,7 +69,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
 
   const handleGenerateAccessLink = async (employee: Employee): Promise<void> => {
     try {
-      const { token } = await createAccessLinkViaApi(employee.id);
+      const { token } = await clinicRepository.createAccessLink(employee.id);
       const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
       await navigator.clipboard.writeText(link);
       alert(t('copy_link_done'));

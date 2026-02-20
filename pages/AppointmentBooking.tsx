@@ -4,7 +4,7 @@ import { DEPARTMENTS } from '../constants';
 import { PatientLookup } from '../components/PatientLookup';
 import { CheckCircle, Calendar, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
+import { clinicRepository } from '../services/dataSource/clinicRepository';
 import { formatTimeTo12Hour } from '../utils/time';
 
 interface AppointmentBookingProps {
@@ -40,7 +40,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   useEffect(() => {
     if (!activeBranchId) return;
 
-    getDoctorsFromApi({ branchId: activeBranchId, specialty: selectedDept })
+    clinicRepository.getDoctors({ branchId: activeBranchId, specialty: selectedDept })
       .then((payload) => setDoctors(payload))
       .catch(() => setDoctors([]));
   }, [activeBranchId, selectedDept]);
@@ -51,7 +51,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       return;
     }
 
-    getAvailableSlotsBulkFromApi({
+    clinicRepository.getAvailableSlotsBulk({
       doctorIds: doctors.map((doctor) => doctor.id),
       branchId: activeBranchId,
       date: selectedDate,
@@ -73,7 +73,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   }, [slotsByDoctor, selectedDoctor, selectedTime]);
 
   const handlePatientCreate = async (newPatientData: Partial<Patient>) => {
-    const created = await createPatientViaApi({
+    const created = await clinicRepository.createPatient({
       name: newPatientData.name ?? '',
       phone: newPatientData.phone ?? '',
       age: newPatientData.age ?? 0,
@@ -178,7 +178,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
               setStep('SELECTION');
             }}
             onAddNewPatient={handlePatientCreate}
-            onSearchByPhone={lookupPatientsByPhoneFromApi}
+            onSearchByPhone={clinicRepository.lookupPatientsByPhone}
           />
         )}
 

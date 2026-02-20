@@ -4,11 +4,10 @@ import { Login } from './pages/Login';
 import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
-import { getAppointments, getPatients } from './services/mockData';
-import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
-import { setStoredUser } from './services/core/authSession';
+import { getStoredUser, setStoredUser } from './services/core/authSession';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
+import { clinicRepository } from './services/dataSource/clinicRepository';
 
 import { useTranslation } from 'react-i18next';
 
@@ -93,7 +92,7 @@ export default function App() {
     const initSession = async () => {
       try {
         setLoading(true);
-        const currentUser = await getCurrentUser();
+        const currentUser = await clinicRepository.getCurrentUser();
 
         if (currentUser) {
           setUser(currentUser);
@@ -101,9 +100,9 @@ export default function App() {
 
           // Always fetch fresh data from the API — never trust the cache on page reload
           const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
-            getPatientsFromApi(),
-            getAppointmentsFromApi([]),
-            getBranchesFromApi(),
+            clinicRepository.getPatients(),
+            clinicRepository.getAppointments([]),
+            clinicRepository.getBranches(),
           ]);
           const patientById = new Map(freshPatients.map((p) => [p.id, p]));
           const hydrated = freshAppointments.map((apt) => ({
@@ -118,7 +117,7 @@ export default function App() {
       } catch (error) {
         if (!cachedUser) {
           console.error('Session restoration failed:', error);
-          clearAuthToken();
+          clinicRepository.clearAuth();
           setView('AUTH');
         }
       } finally {
@@ -135,9 +134,9 @@ export default function App() {
     if (!user) return;
     try {
       const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
-        getPatientsFromApi(),
-        getAppointmentsFromApi([]),
-        getBranchesFromApi(),
+        clinicRepository.getPatients(),
+        clinicRepository.getAppointments([]),
+        clinicRepository.getBranches(),
       ]);
       const patientById = new Map(freshPatients.map((p) => [p.id, p]));
       const hydrated = freshAppointments.map((apt) => ({
@@ -177,12 +176,12 @@ export default function App() {
 
         try {
           console.log('Initiating data fetch...');
-          const refreshPatients = () => getPatientsFromApi();
-          const refreshAppointments = () => getAppointmentsFromApi([]);
+          const refreshPatients = () => clinicRepository.getPatients();
+          const refreshAppointments = () => clinicRepository.getAppointments([]);
 
           const pPatients = refreshPatients().then(res => { console.log('Patients FETCHED'); return res; });
           const pAppointments = refreshAppointments().then(res => { console.log('Appointments FETCHED'); return res; });
-          const pBranches = getBranchesFromApi(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
+          const pBranches = clinicRepository.getBranches(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
 
           const [patientsResult, appointmentsResult, branchesResult] = await Promise.allSettled([
             pPatients,
@@ -199,7 +198,10 @@ export default function App() {
           let fallbackBranches: Branch[] = readCachedSessionData(user?.id)?.branches ?? [];
 
           if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
-            [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+            [fallbackAppointments, fallbackPatients] = await Promise.all([
+              clinicRepository.getAppointments([]),
+              clinicRepository.getPatients(),
+            ]);
           }
 
           const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
@@ -366,7 +368,7 @@ export default function App() {
 
 
   const handleLogout = () => {
-    clearAuthToken();
+    clinicRepository.clearAuth();
     setUser(null);
     setView('AUTH');
     setAppointments([]);
@@ -377,9 +379,9 @@ export default function App() {
       a.id === id ? { ...a, status: newStatus } : a
     ));
 
-    updateAppointmentStatusViaApi(id, newStatus).catch(() => {
+    clinicRepository.updateAppointmentStatus(id, newStatus).catch(() => {
       setToast({ type: 'error', message: t('appointment_status_update_failed') });
-      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+      clinicRepository.getAppointments(patients).then(setAppointments).catch(() => undefined);
     });
   };
 
@@ -412,8 +414,8 @@ export default function App() {
     } as Appointment;
 
     try {
-      await createAppointmentViaApi(newApt);
-      const refreshedAppointments = await getAppointmentsFromApi(patients);
+      await clinicRepository.createAppointment(newApt);
+      const refreshedAppointments = await clinicRepository.getAppointments(patients);
       setAppointments(refreshedAppointments);
       setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
     } catch (error) {
@@ -444,7 +446,7 @@ export default function App() {
 
   const handleAddService = async (aptId: string, service: ServiceItem) => {
     try {
-      const updated = await addBillingItemViaApi(aptId, {
+      const updated = await clinicRepository.addBillingItem(aptId, {
         serviceId: service.id,
         name: service.name,
         category: service.category,
@@ -469,7 +471,7 @@ export default function App() {
 
   const handleRemoveService = async (aptId: string, itemId: string) => {
     try {
-      const updated = await removeBillingItemViaApi(aptId, itemId);
+      const updated = await clinicRepository.removeBillingItem(aptId, itemId);
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
@@ -488,7 +490,7 @@ export default function App() {
 
   const handleProcessPayment = async (aptId: string, amount: number, method: PaymentMethod) => {
     try {
-      const updated = await processAppointmentPaymentViaApi(aptId, { amount, method });
+      const updated = await clinicRepository.processAppointmentPayment(aptId, { amount, method });
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
