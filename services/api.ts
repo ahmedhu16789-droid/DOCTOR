@@ -224,6 +224,21 @@ export interface AccessLinkResponse {
   email: string;
 }
 
+export type DataSourceMode = 'api' | 'mock' | 'hybrid';
+
+type AppointmentEntityKind = 'patient' | 'doctor' | 'branch';
+
+export interface AppointmentEntityIdMap {
+  patient?: Record<string, string>;
+  doctor?: Record<string, string>;
+  branch?: Record<string, string>;
+}
+
+export interface CreateAppointmentContext {
+  dataSourceMode?: DataSourceMode;
+  entityIdMap?: AppointmentEntityIdMap;
+}
+
 export { getStoredUser };
 
 export const clearAuthToken = (): void => {
@@ -561,18 +576,50 @@ export const getAppointmentsFromApi = async (patients: Patient[] = [], params?: 
   return (payload.data ?? []).map((apt) => normalizeAppointment(apt, patients));
 };
 
-export const createAppointmentViaApi = async (appointment: Partial<Appointment>): Promise<ApiAppointment> => {
+const toNumericEntityId = (
+  kind: AppointmentEntityKind,
+  rawId: string,
+  mode: DataSourceMode,
+  entityIdMap?: AppointmentEntityIdMap,
+): number => {
+  const normalizedRawId = String(rawId);
+  const directNumericId = Number(normalizedRawId);
+
+  if (!Number.isNaN(directNumericId)) {
+    return directNumericId;
+  }
+
+  if (mode !== 'hybrid') {
+    throw new Error('Booking requires backend-synced patient/doctor/branch IDs.');
+  }
+
+  const translatedId = entityIdMap?.[kind]?.[normalizedRawId];
+  const translatedNumericId = Number(translatedId);
+
+  if (translatedId === undefined || Number.isNaN(translatedNumericId)) {
+    throw new Error(`Hybrid booking requires synced ${kind} IDs before API create.`);
+  }
+
+  return translatedNumericId;
+};
+
+export const createAppointmentViaApi = async (
+  appointment: Partial<Appointment>,
+  context: CreateAppointmentContext = {},
+): Promise<ApiAppointment> => {
+  const dataSourceMode = context.dataSourceMode ?? 'api';
+
+  if (dataSourceMode === 'mock') {
+    throw new Error('Skipping API booking because current data source is mock.');
+  }
+
   if (!appointment.patientId || !appointment.doctorId || !appointment.branchId || !appointment.date || !appointment.timeSlot) {
     throw new Error('Incomplete appointment payload');
   }
 
-  const patientId = Number(appointment.patientId);
-  const doctorId = Number(appointment.doctorId);
-  const branchId = Number(appointment.branchId);
-
-  if ([patientId, doctorId, branchId].some(Number.isNaN)) {
-    throw new Error('Booking requires backend-synced patient/doctor/branch IDs.');
-  }
+  const patientId = toNumericEntityId('patient', appointment.patientId, dataSourceMode, context.entityIdMap);
+  const doctorId = toNumericEntityId('doctor', appointment.doctorId, dataSourceMode, context.entityIdMap);
+  const branchId = toNumericEntityId('branch', appointment.branchId, dataSourceMode, context.entityIdMap);
 
   const created = await apiFetch<ApiAppointment>('/appointments', {
     method: 'POST',

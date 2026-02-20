@@ -4,7 +4,7 @@ import { DEPARTMENTS } from '../constants';
 import { PatientLookup } from '../components/PatientLookup';
 import { CheckCircle, Calendar, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
+import { DataSourceMode, createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
 import { formatTimeTo12Hour } from '../utils/time';
 
 interface AppointmentBookingProps {
@@ -14,11 +14,13 @@ interface AppointmentBookingProps {
   activeBranchId: string;
   onPatientCreated: (patient: Patient) => void;
   onStepChange?: (step: BookingStep) => void;
+  dataSourceMode: DataSourceMode;
+  isHybridEntitySynced: (kind: 'patient' | 'doctor' | 'branch', id: string) => boolean;
 }
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
-export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated, onStepChange }) => {
+export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated, onStepChange, dataSourceMode, isHybridEntitySynced }) => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
@@ -30,6 +32,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [doctors, setDoctors] = useState<User[]>([]);
   const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
+  const [bookingGuardMessage, setBookingGuardMessage] = useState<string | null>(null);
 
   const activeBranch = useMemo(() => branches.find((branch) => branch.id === activeBranchId), [activeBranchId, branches]);
 
@@ -88,6 +91,20 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
 
   const handleConfirm = () => {
     if (selectedPatient && selectedDoctor && selectedTime && activeBranchId) {
+      if (dataSourceMode === 'mock') {
+        setBookingGuardMessage('Mock mode uses local IDs only, API booking is skipped.');
+      } else if (dataSourceMode === 'hybrid') {
+        const hasUnsyncedEntity = !isHybridEntitySynced('patient', selectedPatient.id)
+          || !isHybridEntitySynced('doctor', selectedDoctor.id)
+          || !isHybridEntitySynced('branch', activeBranchId);
+
+        if (hasUnsyncedEntity) {
+          setBookingGuardMessage('Hybrid mode requires sync/ID translation for patient, doctor, and branch before API booking.');
+          return;
+        }
+      }
+
+      setBookingGuardMessage(null);
       onBook({
         patientId: selectedPatient.id,
         patientName: selectedPatient.name,
@@ -284,6 +301,11 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                 <span className="font-bold text-xl text-primary-700 text-right break-words">{selectedDate} @ {formatTimeTo12Hour(selectedTime)}</span>
               </div>
             </div>
+            {bookingGuardMessage && (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm font-medium">
+                {bookingGuardMessage}
+              </div>
+            )}
             <div className="flex gap-4">
               <button onClick={() => setStep('SELECTION')} className="flex-1 py-3.5 border border-gray-300 rounded-lg font-medium text-2xl sm:text-xl hover:bg-gray-50">{t('back')}</button>
               <button onClick={handleConfirm} className="flex-[2] py-3.5 bg-primary-600 text-white rounded-lg font-bold text-xl hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>

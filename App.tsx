@@ -5,13 +5,30 @@ import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
+import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
 import { setStoredUser } from './services/core/authSession';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
 
 import { useTranslation } from 'react-i18next';
 
+
+interface HybridEntityIdMap {
+  patient?: Record<string, string>;
+  doctor?: Record<string, string>;
+  branch?: Record<string, string>;
+}
+
+const DATA_SOURCE_MODE: DataSourceMode = (() => {
+  const rawMode = String(import.meta.env.VITE_DATA_SOURCE_MODE ?? 'api').toLowerCase();
+  if (rawMode === 'mock' || rawMode === 'hybrid' || rawMode === 'api') {
+    return rawMode;
+  }
+
+  return 'api';
+})();
+
+const HYBRID_ID_MAP_STORAGE_KEY = 'doctor:hybrid-id-map:v1';
 export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
@@ -383,6 +400,23 @@ export default function App() {
     });
   };
 
+  const hybridEntityIdMap: HybridEntityIdMap = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem(HYBRID_ID_MAP_STORAGE_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) as HybridEntityIdMap;
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const isHybridEntitySynced = React.useCallback((kind: keyof HybridEntityIdMap, id: string) => {
+    if (!id) return false;
+    if (/^\d+$/.test(id)) return true;
+    const translatedId = hybridEntityIdMap[kind]?.[id];
+    return typeof translatedId === 'string' && /^\d+$/.test(translatedId);
+  }, [hybridEntityIdMap]);
+
   const handleNewBooking = async (apt: Partial<Appointment>) => {
     const baseFee = 400;
 
@@ -411,8 +445,17 @@ export default function App() {
       }
     } as Appointment;
 
+    if (DATA_SOURCE_MODE === 'mock') {
+      setAppointments((prev) => [...prev, newApt]);
+      setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
+      return;
+    }
+
     try {
-      await createAppointmentViaApi(newApt);
+      await createAppointmentViaApi(newApt, {
+        dataSourceMode: DATA_SOURCE_MODE,
+        entityIdMap: hybridEntityIdMap,
+      });
       const refreshedAppointments = await getAppointmentsFromApi(patients);
       setAppointments(refreshedAppointments);
       setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
@@ -584,6 +627,8 @@ export default function App() {
           onRefresh={refreshData}
           onSelectPatient={setSelectedPatientId}
           patientQueueLabel={t('patient_queue')}
+          dataSourceMode={DATA_SOURCE_MODE}
+          isHybridEntitySynced={isHybridEntitySynced}
         />
       </DashboardLayout>
     </AppShell>
