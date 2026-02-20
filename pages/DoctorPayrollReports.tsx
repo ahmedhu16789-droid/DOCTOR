@@ -58,7 +58,7 @@ export const DoctorPayrollReports: React.FC = () => {
   }, []);
 
   const totals = useMemo(() => {
-    const totalEntitlement = reportRows.reduce((sum, row) => sum + row.totalEarned + row.totalAdjustments, 0);
+    const totalEntitlement = reportRows.reduce((sum, row) => sum + (row.totalEarned + row.totalAdjustments), 0);
     const totalSettled = reportRows.reduce((sum, row) => sum + row.totalSettled, 0);
 
     return {
@@ -90,7 +90,8 @@ export const DoctorPayrollReports: React.FC = () => {
   const onSettle = async (row: DoctorPayrollReportRecord) => {
     try {
       setActionLoadingId(row.periodId);
-      const targetAmount = Math.max(row.totalEarned + row.totalAdjustments - row.totalSettled, 0);
+      const baseEarned = row.totalEarned;
+      const targetAmount = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
       if (targetAmount <= 0) return;
 
       await settleDoctorPayrollPeriod(row.periodId, {
@@ -190,7 +191,8 @@ export const DoctorPayrollReports: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {reportRows.map((row) => {
-                const remaining = Math.max(row.totalEarned + row.totalAdjustments - row.totalSettled, 0);
+                const baseEarned = row.totalEarned;
+                const remaining = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
 
                 return (
                   <tr key={row.periodId} className="hover:bg-gray-50">
@@ -199,7 +201,7 @@ export const DoctorPayrollReports: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">{row.totalAdjustments !== 0 ? 'COMMISSION + ADJUSTMENT' : 'COMMISSION'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{row.totalEarned.toLocaleString()} EGP</td>
                     <td className="px-4 py-3 text-sm text-gray-600">-</td>
-                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{(row.totalEarned + row.totalAdjustments).toLocaleString()} EGP</td>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{(baseEarned + row.totalAdjustments).toLocaleString()} EGP</td>
                     <td className="px-4 py-3 text-sm text-gray-500">PERIOD-{row.periodId}</td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex gap-2 justify-end">

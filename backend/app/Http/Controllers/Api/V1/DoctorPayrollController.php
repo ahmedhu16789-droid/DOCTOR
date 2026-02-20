@@ -23,7 +23,12 @@ class DoctorPayrollController extends Controller
         $this->ensureMonthlyFixedSalaryAccruals((int) $request->user()->clinic_id, $periodMonth, $doctorId ?: null);
 
         $rows = DoctorEarningsLedger::query()
-            ->selectRaw('doctor_id, period_month, SUM(amount) as total_earned, SUM(CASE WHEN earning_type = ? THEN amount ELSE 0 END) as total_adjustments', ['ADJUSTMENT'])
+            ->selectRaw(
+                'doctor_id, period_month,
+                SUM(CASE WHEN earning_type IN (?, ?, ?) THEN amount ELSE 0 END) as total_earned,
+                SUM(CASE WHEN earning_type = ? THEN amount ELSE 0 END) as total_adjustments',
+                ['COMMISSION', 'FIXED_SALARY_ACCRUAL', 'CLAWBACK', 'ADJUSTMENT']
+            )
             ->with('doctor:id,name')
             ->when($periodMonth, fn ($query) => $query->where('period_month', $periodMonth))
             ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
