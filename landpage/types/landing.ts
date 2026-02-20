@@ -52,10 +52,100 @@ export type BookingField = {
   options?: string[];
 };
 
+export type HeaderData = {
+  ctaLabel: string;
+  ctaHref: string;
+  skipToContentLabel: string;
+  navLinks: NavLink[];
+};
+
+export type FooterData = {
+  description: string;
+  socialLinks: Array<{ label: string; href: string; short: string }>;
+  columns: Array<{ title: string; links: NavLink[] }>;
+  copyright: string;
+  credits: string;
+};
+
+export type AppointmentPageData = {
+  seo: {
+    title: string;
+    description: string;
+    canonical: string;
+    keywords: string[];
+    openGraphImage: string;
+    twitterCard: "summary" | "summary_large_image";
+  };
+  nav: {
+    brand: { logoText: string; href: string };
+    links: NavLink[];
+    ctaLabel: string;
+    ctaHref: string;
+    skipToContentLabel: string;
+  };
+  clinicInfo: {
+    title: string;
+    description: string;
+    noticeTitle: string;
+    noticeText: string;
+    locationLabel: string;
+    location: string;
+    phoneLabel: string;
+    phone: string;
+    hoursLabel: string;
+    hours: string;
+    mapImageSrc: string;
+    mapImageAlt: string;
+    mapButtonLabel: string;
+  };
+  booking: {
+    pageTitle: string;
+    title: string;
+    subtitle: string;
+    steps: string[];
+    specialtyLabel: string;
+    doctorLabel: string;
+    specialtyOptions: string[];
+    doctorOptions: string[];
+    calendarTitle: string;
+    calendarMonthLabel: string;
+    weekDays: string[];
+    days: Array<{ day: number; status: "muted" | "selected" | "available" }>;
+    timeSlotsTitle: string;
+    timeSlots: Array<{ label: string; status: "selected" | "available" | "unavailable" }>;
+    legend: {
+      selected: string;
+      available: string;
+      unavailable: string;
+    };
+  };
+  patientForm: {
+    title: string;
+    fullNameLabel: string;
+    fullNamePlaceholder: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    ageLabel: string;
+    agePlaceholder: string;
+    genderLabel: string;
+    genderOptions: string[];
+    privacyNote: string;
+  };
+  cta: {
+    confirmLabel: string;
+    action: string;
+  };
+  physicians: Array<{
+    name: string;
+    specialty: string;
+    imageSrc: string;
+  }>;
+};
+
 export type LandingData = {
   seo: SeoData;
   brand: { name: string; logoText: string };
-  header: { ctaLabel: string; ctaHref: string; skipToContentLabel: string; navLinks: NavLink[] };
+  header: HeaderData;
   hero: {
     badge: string;
     title: string;
@@ -104,11 +194,6 @@ export type LandingData = {
     contact: { phone: string; address: string; email: string; hours: string };
     fields: BookingField[];
   };
-  footer: {
-    description: string;
-    socialLinks: Array<{ label: string; href: string; short: string }>;
-    columns: Array<{ title: string; links: NavLink[] }>;
-    copyright: string;
-    credits: string;
-  };
+  appointmentPage: AppointmentPageData;
+  footer: FooterData;
 };
