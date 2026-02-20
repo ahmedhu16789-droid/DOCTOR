@@ -22,7 +22,7 @@
   },
   "header": {
     "ctaLabel": "Book Appointment",
-    "ctaHref": "#booking",
+    "ctaHref": "/appointment",
     "navLinks": [
       {
         "label": "Specialties",
@@ -50,7 +50,7 @@
     "description": "Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.",
     "primaryCta": {
       "label": "Book Appointment",
-      "href": "#booking"
+      "href": "/appointment"
     },
     "secondaryCta": {
       "label": "Contact Us",
@@ -85,21 +85,21 @@
         "title": "Orthopedics",
         "description": "Advanced care for bones, joints, and musculoskeletal injuries including surgical and joint replacement surgery.",
         "iconName": "orthopedics",
-        "href": "#booking"
+        "href": "/appointment"
       },
       {
         "id": "dentistry",
         "title": "Dentistry",
         "description": "Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.",
         "iconName": "dentistry",
-        "href": "#booking"
+        "href": "/appointment"
       },
       {
         "id": "ophthalmology",
         "title": "Ophthalmology",
         "description": "Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.",
         "iconName": "ophthalmology",
-        "href": "#booking"
+        "href": "/appointment"
       }
     ],
     "learnMoreLabel": "Learn More"
@@ -319,5 +319,235 @@
     ],
     "copyright": "\u00a9 2026 MediClinic. All rights reserved.",
     "credits": "Designed with care for patients."
+  },
+  "appointmentPage": {
+    "seo": {
+      "title": "Book Appointment | MediClinic",
+      "description": "Schedule your visit at MediClinic with our male specialist team in Orthopedics, Dentistry, and Ophthalmology.",
+      "canonical": "https://mediclinic.example.com/appointment",
+      "keywords": [
+        "book appointment",
+        "medical clinic booking",
+        "male specialists",
+        "orthopedics",
+        "dentistry",
+        "ophthalmology"
+      ],
+      "openGraphImage": "https://images.pexels.com/photos/8460372/pexels-photo-8460372.jpeg",
+      "twitterCard": "summary_large_image"
+    },
+    "nav": {
+      "brand": {
+        "logoText": "MediClinic",
+        "href": "/"
+      },
+      "links": [
+        {
+          "label": "Services",
+          "href": "#services"
+        },
+        {
+          "label": "Doctors",
+          "href": "#doctors"
+        },
+        {
+          "label": "Contact",
+          "href": "#contact"
+        }
+      ],
+      "ctaLabel": "My Account",
+      "ctaHref": "#account",
+      "skipToContentLabel": "Skip to appointment content"
+    },
+    "clinicInfo": {
+      "title": "Clinic Information",
+      "description": "We specialize in advanced medical care with a focus on Orthopedics, Dentistry, and Ophthalmology.",
+      "noticeTitle": "Important Notice",
+      "noticeText": "Please be advised that our current roster consists entirely of male specialists.",
+      "locationLabel": "Location",
+      "location": "123 Health Blvd, Medical City",
+      "phoneLabel": "Phone",
+      "phone": "+1 (555) 019-2834",
+      "hoursLabel": "Working Hours",
+      "hours": "Mon-Fri: 8:00 AM - 6:00 PM",
+      "mapImageSrc": "https://images.pexels.com/photos/1170979/pexels-photo-1170979.jpeg",
+      "mapImageAlt": "Modern clinic building and surrounding city streets",
+      "mapButtonLabel": "View on Map"
+    },
+    "booking": {
+      "pageTitle": "Book Your Appointment",
+      "title": "Book Your Appointment",
+      "subtitle": "Complete the steps below to schedule your visit with our specialists.",
+      "steps": [
+        "Selection",
+        "Schedule",
+        "Details"
+      ],
+      "specialtyLabel": "Select Specialty",
+      "doctorLabel": "Select Doctor",
+      "specialtyOptions": [
+        "Orthopedics",
+        "Dentistry",
+        "Ophthalmology"
+      ],
+      "doctorOptions": [
+        "Dr. Ahmed Al-Mansour",
+        "Dr. Khaled Youssef",
+        "Dr. Omar Fayed"
+      ],
+      "calendarTitle": "Select Date",
+      "calendarMonthLabel": "October 2023",
+      "weekDays": [
+        "Su",
+        "Mo",
+        "Tu",
+        "We",
+        "Th",
+        "Fr",
+        "Sa"
+      ],
+      "days": [
+        {
+          "day": 0,
+          "status": "muted"
+        },
+        {
+          "day": 0,
+          "status": "muted"
+        },
+        {
+          "day": 0,
+          "status": "muted"
+        },
+        {
+          "day": 1,
+          "status": "muted"
+        },
+        {
+          "day": 2,
+          "status": "muted"
+        },
+        {
+          "day": 3,
+          "status": "muted"
+        },
+        {
+          "day": 4,
+          "status": "muted"
+        },
+        {
+          "day": 5,
+          "status": "selected"
+        },
+        {
+          "day": 6,
+          "status": "available"
+        },
+        {
+          "day": 7,
+          "status": "available"
+        },
+        {
+          "day": 8,
+          "status": "available"
+        },
+        {
+          "day": 9,
+          "status": "available"
+        },
+        {
+          "day": 10,
+          "status": "available"
+        },
+        {
+          "day": 11,
+          "status": "available"
+        },
+        {
+          "day": 12,
+          "status": "available"
+        }
+      ],
+      "timeSlotsTitle": "Available Slots",
+      "timeSlots": [
+        {
+          "label": "09:00 AM",
+          "status": "available"
+        },
+        {
+          "label": "09:30 AM",
+          "status": "available"
+        },
+        {
+          "label": "10:00 AM",
+          "status": "selected"
+        },
+        {
+          "label": "10:30 AM",
+          "status": "available"
+        },
+        {
+          "label": "11:00 AM",
+          "status": "unavailable"
+        },
+        {
+          "label": "11:30 AM",
+          "status": "available"
+        },
+        {
+          "label": "01:00 PM",
+          "status": "available"
+        },
+        {
+          "label": "01:30 PM",
+          "status": "available"
+        },
+        {
+          "label": "02:00 PM",
+          "status": "available"
+        }
+      ],
+      "legend": {
+        "selected": "Selected",
+        "available": "Available",
+        "unavailable": "Unavailable"
+      }
+    },
+    "patientForm": {
+      "title": "Patient Details",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "e.g. John Doe",
+      "phoneLabel": "Phone Number",
+      "phonePlaceholder": "+1 (555) 000-0000",
+      "ageLabel": "Age",
+      "agePlaceholder": "28",
+      "genderLabel": "Gender",
+      "genderOptions": [
+        "Male",
+        "Female"
+      ],
+      "privacyNote": "Your personal data is secure and HIPAA compliant."
+    },
+    "cta": {
+      "confirmLabel": "Confirm Appointment",
+      "action": "submit-placeholder"
+    },
+    "physicians": [
+      {
+        "name": "Dr. Ahmed Al-Mansour",
+        "specialty": "Orthopedics",
+        "imageSrc": "https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg"
+      },
+      {
+        "name": "Dr. Khaled Youssef",
+        "specialty": "Dentistry",
+        "imageSrc": "https://images.pexels.com/photos/6129041/pexels-photo-6129041.jpeg"
+      },
+      {
+        "name": "Dr. Omar Fayed",
+        "specialty": "Ophthalmology",
+        "imageSrc": "https://images.pexels.com/photos/6749779/pexels-photo-6749779.jpeg"
+      }
+    ]
   }
 }

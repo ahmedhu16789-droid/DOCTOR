@@ -16,6 +16,8 @@ export function getLandingData(): LandingData {
   assert(Array.isArray(data.specialties?.items) && data.specialties.items.length === 3, "specialties.items must contain exactly 3 specialties");
   assert(Array.isArray(data.doctors?.items) && data.doctors.items.length === 3, "doctors.items must contain exactly 3 doctors");
   assert(Array.isArray(data.testimonials?.items) && data.testimonials.items.length === 2, "testimonials.items must contain exactly 2 testimonials");
+  assert(data.appointmentPage?.booking?.pageTitle, "appointmentPage.booking.pageTitle is required");
+  assert(Array.isArray(data.appointmentPage?.physicians) && data.appointmentPage.physicians.length > 0, "appointmentPage.physicians must contain at least 1 physician");
 
   return data;
 }
