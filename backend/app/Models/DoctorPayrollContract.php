@@ -17,6 +17,8 @@ class DoctorPayrollContract extends Model
         'model',
         'base_salary',
         'commission_percentage',
+        'per_case_amount',
+        'per_day_cap_cases',
         'additional_services_commission_enabled',
         'additional_services_commission_percentage',
         'effective_from',
@@ -29,6 +31,8 @@ class DoctorPayrollContract extends Model
         return [
             'base_salary' => 'decimal:2',
             'commission_percentage' => 'decimal:2',
+            'per_case_amount' => 'decimal:2',
+            'per_day_cap_cases' => 'integer',
             'additional_services_commission_enabled' => 'boolean',
             'additional_services_commission_percentage' => 'decimal:2',
             'effective_from' => 'date',

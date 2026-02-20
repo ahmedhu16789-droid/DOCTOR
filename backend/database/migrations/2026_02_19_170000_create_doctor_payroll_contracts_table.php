@@ -12,9 +12,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('clinic_id')->constrained()->cascadeOnDelete();
             $table->foreignId('doctor_id')->constrained('users')->cascadeOnDelete();
-            $table->enum('model', ['FIXED_SALARY', 'PERCENTAGE', 'HYBRID']);
+            $table->enum('model', ['FIXED_SALARY', 'PERCENTAGE', 'HYBRID', 'PER_CASE', 'HYBRID_PER_CASE']);
             $table->decimal('base_salary', 12, 2);
             $table->decimal('commission_percentage', 5, 2)->nullable();
+            $table->decimal('per_case_amount', 12, 2)->nullable();
+            $table->unsignedInteger('per_day_cap_cases')->nullable();
             $table->date('effective_from');
             $table->date('effective_to')->nullable();
             $table->boolean('is_active')->default(true);

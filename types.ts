@@ -45,9 +45,11 @@ export interface WeeklyShift {
 }
 
 export interface PayrollConfig {
-  model: 'FIXED_SALARY' | 'PERCENTAGE' | 'HYBRID';
+  model: 'FIXED_SALARY' | 'PERCENTAGE' | 'HYBRID' | 'PER_CASE' | 'HYBRID_PER_CASE';
   baseSalary: number;
   commissionPercentage?: number; // 0-100
+  perCaseAmount?: number;
+  perDayCapCases?: number;
   additionalServicesCommissionEnabled?: boolean;
   additionalServicesCommissionPercentage?: number; // 0-100
   effectiveDate: string;

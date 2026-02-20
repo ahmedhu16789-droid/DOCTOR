@@ -121,6 +121,76 @@ class DoctorEarningsCalculatorTest extends TestCase
         $this->assertSame([10.0, 25.0], $amounts);
     }
 
+
+    public function test_per_case_contract_generates_accrual_for_completed_cases_full_period(): void
+    {
+        [$clinic, $doctor, $appointment, $invoice] = $this->createAppointmentContext();
+
+        $this->createContract($clinic, $doctor, 'PER_CASE', 0, null, '2026-02-01', null, 120);
+
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-05');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-10');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-22');
+
+        $transaction = $this->createTransaction($clinic, $invoice, 300, '2026-02-25');
+
+        app(DoctorEarningsCalculator::class)->recordForPayment($appointment, $invoice, $transaction);
+
+        $entry = DoctorEarningsLedger::query()->where('earning_type', 'PER_CASE_ACCRUAL')->firstOrFail();
+
+        $this->assertEquals(3.0, (float) $entry->basis_amount);
+        $this->assertEquals(360.0, (float) $entry->amount);
+        $this->assertSame('2026-02', $entry->period_month);
+    }
+
+    public function test_per_case_contract_applies_partial_period_and_daily_cap(): void
+    {
+        [$clinic, $doctor, $appointment, $invoice] = $this->createAppointmentContext();
+
+        $this->createContract($clinic, $doctor, 'PER_CASE', 0, null, '2026-02-16', null, 200, 2);
+
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-10');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-18');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-18');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-18');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-20');
+
+        $transaction = $this->createTransaction($clinic, $invoice, 300, '2026-02-25');
+
+        app(DoctorEarningsCalculator::class)->recordForPayment($appointment, $invoice, $transaction);
+
+        $entry = DoctorEarningsLedger::query()->where('earning_type', 'PER_CASE_ACCRUAL')->firstOrFail();
+
+        $this->assertEquals(3.0, (float) $entry->basis_amount);
+        $this->assertEquals(600.0, (float) $entry->amount);
+    }
+
+    public function test_per_case_contract_change_mid_month_creates_split_entries(): void
+    {
+        [$clinic, $doctor, $appointment, $invoice] = $this->createAppointmentContext();
+
+        $this->createContract($clinic, $doctor, 'PER_CASE', 0, null, '2026-02-01', '2026-02-15', 100);
+        $this->createContract($clinic, $doctor, 'PER_CASE', 0, null, '2026-02-16', null, 220);
+
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-08');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-14');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-20');
+        $this->createCompletedAppointment($clinic, $doctor, '2026-02-23');
+
+        $transaction = $this->createTransaction($clinic, $invoice, 300, '2026-02-25');
+
+        app(DoctorEarningsCalculator::class)->recordForPayment($appointment, $invoice, $transaction);
+
+        $amounts = DoctorEarningsLedger::query()
+            ->where('earning_type', 'PER_CASE_ACCRUAL')
+            ->orderBy('id')
+            ->pluck('amount')
+            ->map(static fn ($amount) => (float) $amount)
+            ->all();
+
+        $this->assertSame([200.0, 440.0], $amounts);
+    }
+
     /**
      * @return array{0: Clinic, 1: User, 2: Appointment, 3: Invoice}
      */
@@ -182,6 +252,31 @@ class DoctorEarningsCalculatorTest extends TestCase
         return [$clinic, $doctor, $appointment, $invoice];
     }
 
+
+    private function createCompletedAppointment(Clinic $clinic, User $doctor, string $date): Appointment
+    {
+        $branch = Branch::query()->where('clinic_id', $clinic->id)->firstOrFail();
+        $patient = Patient::query()->create([
+            'clinic_id' => $clinic->id,
+            'name' => 'Completed Patient '.$date.' '.mt_rand(100, 999),
+            'phone' => '+2010'.mt_rand(10000000, 99999999),
+            'gender' => 'Male',
+            'age' => 29,
+            'medical_history_summary' => '',
+        ]);
+
+        return Appointment::query()->create([
+            'clinic_id' => $clinic->id,
+            'branch_id' => $branch->id,
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+            'date' => $date,
+            'time_slot' => '11:00',
+            'status' => 'COMPLETED',
+            'completed_at' => Carbon::parse($date.' 11:30:00'),
+        ]);
+    }
+
     private function createContract(
         Clinic $clinic,
         User $doctor,
@@ -189,7 +284,9 @@ class DoctorEarningsCalculatorTest extends TestCase
         float $baseSalary,
         ?float $commission,
         string $from,
-        ?string $to = null
+        ?string $to = null,
+        ?float $perCaseAmount = null,
+        ?int $perDayCapCases = null
     ): DoctorPayrollContract {
         return DoctorPayrollContract::query()->create([
             'clinic_id' => $clinic->id,
@@ -197,6 +294,8 @@ class DoctorEarningsCalculatorTest extends TestCase
             'model' => $model,
             'base_salary' => $baseSalary,
             'commission_percentage' => $commission,
+            'per_case_amount' => $perCaseAmount,
+            'per_day_cap_cases' => $perDayCapCases,
             'effective_from' => $from,
             'effective_to' => $to,
             'is_active' => true,
