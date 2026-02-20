@@ -184,6 +184,88 @@ class DoctorPayrollControllerTest extends TestCase
             ->assertJsonPath('data.totalSettled', 300.0);
     }
 
+
+    public function test_it_blocks_settlement_before_month_end(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $futureMonth = now()->addMonth()->format('Y-m');
+
+        $period = DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $futureMonth,
+            'total_earned' => 400,
+            'total_adjustments' => 0,
+            'total_settled' => 0,
+            'status' => 'OPEN',
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $this->postJson("/api/v1/payroll/periods/{$period->id}/settle", [
+            'settlement_date' => now()->format('Y-m-d'),
+            'amount' => 100,
+            'method' => 'cash',
+            'reference' => 'PARTIAL-1',
+        ])->assertStatus(422);
+    }
+
+    public function test_it_allows_partial_settlement_after_period_end(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $pastMonth = now()->subMonth()->format('Y-m');
+
+        $period = DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $pastMonth,
+            'total_earned' => 500,
+            'total_adjustments' => 0,
+            'total_settled' => 0,
+            'status' => 'OPEN',
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $this->postJson("/api/v1/payroll/periods/{$period->id}/settle", [
+            'settlement_date' => now()->format('Y-m-d'),
+            'amount' => 200,
+            'method' => 'cash',
+            'reference' => 'PARTIAL-2',
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'CLOSED')
+            ->assertJsonPath('data.totalSettled', 200.0);
+    }
+
+    public function test_it_blocks_settlement_amount_above_remaining_balance(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $pastMonth = now()->subMonth()->format('Y-m');
+
+        $period = DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $pastMonth,
+            'total_earned' => 250,
+            'total_adjustments' => 0,
+            'total_settled' => 100,
+            'status' => 'CLOSED',
+            'closed_at' => now(),
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $this->postJson("/api/v1/payroll/periods/{$period->id}/settle", [
+            'settlement_date' => now()->format('Y-m-d'),
+            'amount' => 200,
+            'method' => 'cash',
+            'reference' => 'OVERPAY',
+        ])->assertStatus(422);
+    }
+
     public function test_closed_period_blocks_non_adjustment_ledger_entries(): void
     {
         [$actor, $doctor] = $this->createUsersInSameClinic();

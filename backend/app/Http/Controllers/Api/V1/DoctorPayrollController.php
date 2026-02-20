@@ -7,6 +7,7 @@ use App\Models\DoctorEarningsLedger;
 use App\Models\DoctorPayrollContract;
 use App\Models\DoctorPayrollPeriod;
 use App\Models\DoctorPayrollSettlement;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +112,8 @@ class DoctorPayrollController extends Controller
                 'totalSettled' => (float) $period->total_settled,
                 'status' => $period->status,
                 'closedAt' => optional($period->closed_at)?->toISOString(),
+                'periodEnded' => $this->hasPeriodEnded($periodMonthKey),
+                'canSettle' => $this->hasPeriodEnded($periodMonthKey) && $period->status !== 'SETTLED',
                 'commissionDetails' => [
                     'consultationBasis' => round($commissionDetails['consultationBasis'], 2),
                     'consultationAmount' => round($commissionDetails['consultationAmount'], 2),
@@ -207,11 +210,26 @@ class DoctorPayrollController extends Controller
         /** @var DoctorPayrollPeriod $period */
         $period = DoctorPayrollPeriod::query()->findOrFail($id);
 
+        if (! $this->hasPeriodEnded($period->period_month)) {
+            return response()->json(['message' => 'Settlement is allowed only after month-end.'], 422);
+        }
+
+        $targetAmount = (float) $period->total_earned + (float) $period->total_adjustments;
+        $remainingAmount = max($targetAmount - (float) $period->total_settled, 0.0);
+
+        if ((float) $validated['amount'] > $remainingAmount) {
+            return response()->json(['message' => 'Settlement amount exceeds remaining doctor entitlement.'], 422);
+        }
+
         DB::transaction(function () use ($period, $validated): void {
+            $targetAmount = (float) $period->total_earned + (float) $period->total_adjustments;
+            $remainingAmount = max($targetAmount - (float) $period->total_settled, 0.0);
+
             DoctorPayrollSettlement::query()->create([
                 'period_id' => $period->id,
                 'settlement_date' => $validated['settlement_date'],
                 'amount' => $validated['amount'],
+                'settlement_kind' => (float) $validated['amount'] >= $remainingAmount ? 'FINAL' : 'PARTIAL',
                 'method' => strtoupper((string) $validated['method']),
                 'reference' => $validated['reference'] ?? null,
                 'created_by' => auth()->id(),
@@ -244,5 +262,14 @@ class DoctorPayrollController extends Controller
                 'status' => $period->status,
             ],
         ], 201);
+    }
+
+    private function hasPeriodEnded(string $periodMonth): bool
+    {
+        $monthEnd = Carbon::createFromFormat('Y-m-d', $periodMonth.'-01')
+            ->endOfMonth()
+            ->endOfDay();
+
+        return now()->greaterThanOrEqualTo($monthEnd);
     }
 }
