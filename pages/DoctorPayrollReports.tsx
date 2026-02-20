@@ -91,14 +91,35 @@ export const DoctorPayrollReports: React.FC = () => {
     try {
       setActionLoadingId(row.periodId);
       const baseEarned = row.totalEarned;
-      const targetAmount = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
-      if (targetAmount <= 0) return;
+      const remainingAmount = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
+      if (remainingAmount <= 0) return;
+
+      if (!row.periodEnded) {
+        setErrorMessage('لا يمكن تنفيذ التسوية قبل نهاية الشهر.');
+        return;
+      }
+
+      const rawAmount = window.prompt(`أدخل مبلغ التسوية (المتبقي ${remainingAmount.toLocaleString()} EGP):`, String(remainingAmount));
+      if (rawAmount === null) {
+        return;
+      }
+
+      const settlementAmount = Number(rawAmount);
+      if (!Number.isFinite(settlementAmount) || settlementAmount <= 0) {
+        setErrorMessage('برجاء إدخال مبلغ صحيح أكبر من صفر.');
+        return;
+      }
+
+      if (settlementAmount > remainingAmount) {
+        setErrorMessage('مبلغ التسوية لا يمكن أن يتجاوز المتبقي للطبيب.');
+        return;
+      }
 
       await settleDoctorPayrollPeriod(row.periodId, {
         settlement_date: new Date().toISOString().slice(0, 10),
-        amount: targetAmount,
+        amount: settlementAmount,
         method: 'cash',
-        reference: `AUTO-${row.periodMonth}`,
+        reference: `PAY-${row.periodMonth}`,
       });
 
       await loadReport();
@@ -224,10 +245,11 @@ export const DoctorPayrollReports: React.FC = () => {
                         </button>
                         <button
                           onClick={() => onSettle(row)}
-                          disabled={actionLoadingId === row.periodId || remaining <= 0}
+                          disabled={actionLoadingId === row.periodId || remaining <= 0 || !row.canSettle}
                           className="px-3 py-1.5 rounded-md bg-primary-600 text-white disabled:opacity-50"
+                          title={!row.periodEnded ? 'التسوية متاحة بعد انتهاء الشهر فقط' : undefined}
                         >
-                          تسوية
+                          تسوية جزئية/نهائية
                         </button>
                       </div>
                     </td>

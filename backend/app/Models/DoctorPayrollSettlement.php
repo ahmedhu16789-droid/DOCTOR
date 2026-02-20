@@ -16,6 +16,7 @@ class DoctorPayrollSettlement extends Model
         'period_id',
         'settlement_date',
         'amount',
+        'settlement_kind',
         'method',
         'reference',
         'created_by',
