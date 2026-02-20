@@ -1,0 +1,323 @@
+{
+  "seo": {
+    "siteName": "MediClinic",
+    "title": "MediClinic | Expert Medical Care You Can Trust",
+    "description": "Board-certified specialists in Orthopedics, Dentistry, and Ophthalmology delivering patient-centered care with modern equipment and fast appointment booking.",
+    "keywords": [
+      "medical clinic",
+      "orthopedics",
+      "dentistry",
+      "ophthalmology",
+      "book appointment",
+      "specialists"
+    ],
+    "canonical": "https://mediclinic.example.com",
+    "openGraphImage": "https://images.pexels.com/photos/8460372/pexels-photo-8460372.jpeg",
+    "twitterCard": "summary_large_image",
+    "robots": "index, follow"
+  },
+  "brand": {
+    "name": "MediClinic",
+    "logoText": "MediClinic"
+  },
+  "header": {
+    "ctaLabel": "Book Appointment",
+    "ctaHref": "#booking",
+    "navLinks": [
+      {
+        "label": "Specialties",
+        "href": "#specialties"
+      },
+      {
+        "label": "Doctors",
+        "href": "#doctors"
+      },
+      {
+        "label": "Testimonials",
+        "href": "#testimonials"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
+    ],
+    "skipToContentLabel": "Skip to content"
+  },
+  "hero": {
+    "badge": "ACCESS TO TOP HEALTH EXPERTS",
+    "title": "Expert Medical Care You Can Trust",
+    "highlight": "You Can Trust",
+    "description": "Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.",
+    "primaryCta": {
+      "label": "Book Appointment",
+      "href": "#booking"
+    },
+    "secondaryCta": {
+      "label": "Contact Us",
+      "href": "#contact"
+    },
+    "backgroundImage": "https://images.pexels.com/photos/8460372/pexels-photo-8460372.jpeg",
+    "backgroundAlt": "Confident male doctor in white coat standing in a modern hospital hallway"
+  },
+  "stats": [
+    {
+      "value": "25+",
+      "label": "YEARS EXPERIENCE"
+    },
+    {
+      "value": "10k+",
+      "label": "PATIENTS SERVED"
+    },
+    {
+      "value": "98%",
+      "label": "SUCCESS RATE"
+    }
+  ],
+  "specialties": {
+    "eyebrow": "OUR EXPERTISE",
+    "title": "Comprehensive Specialized Care",
+    "description": "We offer specialized treatments tailored to your specific health needs with state-of-the-art facilities.",
+    "viewAllLabel": "View All Services",
+    "viewAllHref": "#contact",
+    "items": [
+      {
+        "id": "orthopedics",
+        "title": "Orthopedics",
+        "description": "Advanced care for bones, joints, and musculoskeletal injuries including surgical and joint replacement surgery.",
+        "iconName": "orthopedics",
+        "href": "#booking"
+      },
+      {
+        "id": "dentistry",
+        "title": "Dentistry",
+        "description": "Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.",
+        "iconName": "dentistry",
+        "href": "#booking"
+      },
+      {
+        "id": "ophthalmology",
+        "title": "Ophthalmology",
+        "description": "Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.",
+        "iconName": "ophthalmology",
+        "href": "#booking"
+      }
+    ],
+    "learnMoreLabel": "Learn More"
+  },
+  "doctors": {
+    "eyebrow": "OUR TEAM",
+    "title": "Meet Our Specialists",
+    "description": "Our doctors are leaders in their fields, dedicated to providing compassionate and effective care.",
+    "items": [
+      {
+        "name": "Dr. James Smith",
+        "specialty": "Orthopedic Surgeon",
+        "experienceLabel": "17 YEARS EXP",
+        "imageSrc": "https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg",
+        "imageAlt": "Portrait of Dr. James Smith male orthopedic surgeon in navy suit"
+      },
+      {
+        "name": "Dr. Robert Chen",
+        "specialty": "Dental Specialist",
+        "experienceLabel": "12 YEARS EXP",
+        "imageSrc": "https://images.pexels.com/photos/6129041/pexels-photo-6129041.jpeg",
+        "imageAlt": "Portrait of Dr. Robert Chen male dental specialist in blue scrubs"
+      },
+      {
+        "name": "Dr. Michael Ross",
+        "specialty": "Ophthalmologist",
+        "experienceLabel": "15 YEARS EXP",
+        "imageSrc": "https://images.pexels.com/photos/6749779/pexels-photo-6749779.jpeg",
+        "imageAlt": "Portrait of Dr. Michael Ross male ophthalmologist in professional attire"
+      }
+    ]
+  },
+  "whyChooseUs": {
+    "eyebrow": "WHY CHOOSE US",
+    "title": "Patient-Centered Care With Modern Technology",
+    "description": "We combine medical expertise with compassionate care to ensure the best outcomes for our patients.",
+    "imageSrc": "https://images.pexels.com/photos/7089628/pexels-photo-7089628.jpeg",
+    "imageAlt": "Modern clinic room with advanced monitoring and infusion equipment",
+    "features": [
+      {
+        "title": "Experienced Specialists",
+        "description": "Board-certified doctors with years of practice."
+      },
+      {
+        "title": "Modern Equipment",
+        "description": "Latest diagnostic and treatment technologies."
+      },
+      {
+        "title": "Emergency Support",
+        "description": "24/7 dedicated support for urgent cases."
+      },
+      {
+        "title": "Easy Booking",
+        "description": "Seamless online appointment scheduling."
+      }
+    ]
+  },
+  "testimonials": {
+    "eyebrow": "TESTIMONIALS",
+    "title": "What Our Patients Say",
+    "items": [
+      {
+        "quote": "The professionalism at MediClinic is unmatched. Dr. Smith explained every orthopedic surgery step clearly and the recovery was faster than I expected. Highly recommended!",
+        "patientName": "John D",
+        "patientRole": "Recovered Patient",
+        "avatarSrc": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg",
+        "avatarAlt": "Headshot of male patient John D smiling"
+      },
+      {
+        "quote": "I've always been nervous about dentistry, but Dr. Chen made the entire process painless. The facility is clean, modern, and the staff is incredibly respectful.",
+        "patientName": "Mark S",
+        "patientRole": "Regular Patient",
+        "avatarSrc": "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg",
+        "avatarAlt": "Portrait of male patient Mark S in casual shirt"
+      }
+    ]
+  },
+  "booking": {
+    "eyebrow": "BOOK APPOINTMENT",
+    "title": "Ready to prioritize your health?",
+    "description": "Schedule your visit with our top specialists today. Fill out the form and our team will confirm your appointment.",
+    "submitLabel": "Confirm Booking",
+    "contact": {
+      "phone": "(555) 123-4567",
+      "address": "125 Health Ave, Medical District, NY",
+      "email": "contact@mediclinic.com",
+      "hours": "Mon-Sat, 8:00 AM - 8:00 PM"
+    },
+    "fields": [
+      {
+        "name": "fullName",
+        "label": "Full Name",
+        "type": "text",
+        "placeholder": "John Doe",
+        "required": true
+      },
+      {
+        "name": "phone",
+        "label": "Phone Number",
+        "type": "tel",
+        "placeholder": "(555) 000-0000",
+        "required": true
+      },
+      {
+        "name": "specialty",
+        "label": "Specialty",
+        "type": "select",
+        "placeholder": "Orthopedics",
+        "required": true,
+        "options": [
+          "Orthopedics",
+          "Dentistry",
+          "Ophthalmology"
+        ]
+      },
+      {
+        "name": "preferredDate",
+        "label": "Preferred Date",
+        "type": "date",
+        "placeholder": "",
+        "required": true
+      }
+    ],
+    "formTitle": "Request Appointment"
+  },
+  "footer": {
+    "description": "Providing trusted medical care for over 25 years. Our multi-specialty clinic is dedicated to your well-being.",
+    "socialLinks": [
+      {
+        "label": "Facebook",
+        "href": "#",
+        "short": "FB"
+      },
+      {
+        "label": "Twitter",
+        "href": "#",
+        "short": "TW"
+      },
+      {
+        "label": "LinkedIn",
+        "href": "#",
+        "short": "LI"
+      }
+    ],
+    "columns": [
+      {
+        "title": "Quick Links",
+        "links": [
+          {
+            "label": "About Us",
+            "href": "#"
+          },
+          {
+            "label": "Our Doctors",
+            "href": "#doctors"
+          },
+          {
+            "label": "Specialties",
+            "href": "#specialties"
+          },
+          {
+            "label": "Patient Reviews",
+            "href": "#testimonials"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "#"
+          }
+        ]
+      },
+      {
+        "title": "Services",
+        "links": [
+          {
+            "label": "Orthopedics",
+            "href": "#specialties"
+          },
+          {
+            "label": "Dentistry",
+            "href": "#specialties"
+          },
+          {
+            "label": "Ophthalmology",
+            "href": "#specialties"
+          },
+          {
+            "label": "Emergency Care",
+            "href": "#contact"
+          },
+          {
+            "label": "Diagnostic Lab",
+            "href": "#contact"
+          }
+        ]
+      },
+      {
+        "title": "Contact Us",
+        "links": [
+          {
+            "label": "125 Health Ave, Medical District, NY 10001, USA",
+            "href": "#contact"
+          },
+          {
+            "label": "(555) 123-4567",
+            "href": "tel:+15551234567"
+          },
+          {
+            "label": "contact@mediclinic.com",
+            "href": "mailto:contact@mediclinic.com"
+          },
+          {
+            "label": "Mon-Sat: 8:00 AM - 8:00 PM",
+            "href": "#contact"
+          }
+        ]
+      }
+    ],
+    "copyright": "\u00a9 2026 MediClinic. All rights reserved.",
+    "credits": "Designed with care for patients."
+  }
+}
