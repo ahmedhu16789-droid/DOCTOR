@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Auth\AccessLinkController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
 use App\Http\Controllers\Api\V1\PatientController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -53,6 +54,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
         Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
         Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
+        Route::get('reports/dashboard', [DashboardController::class, 'index']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
