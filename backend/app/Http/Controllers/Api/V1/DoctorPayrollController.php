@@ -113,7 +113,7 @@ class DoctorPayrollController extends Controller
                 'status' => $period->status,
                 'closedAt' => optional($period->closed_at)?->toISOString(),
                 'periodEnded' => $this->hasPeriodEnded($periodMonthKey),
-                'canSettle' => $this->hasPeriodEnded($periodMonthKey) && $period->status !== 'SETTLED',
+                'canSettle' => $period->status !== 'SETTLED',
                 'commissionDetails' => [
                     'consultationBasis' => round($commissionDetails['consultationBasis'], 2),
                     'consultationAmount' => round($commissionDetails['consultationAmount'], 2),
@@ -209,10 +209,6 @@ class DoctorPayrollController extends Controller
 
         /** @var DoctorPayrollPeriod $period */
         $period = DoctorPayrollPeriod::query()->findOrFail($id);
-
-        if (! $this->hasPeriodEnded($period->period_month)) {
-            return response()->json(['message' => 'Settlement is allowed only after month-end.'], 422);
-        }
 
         $targetAmount = (float) $period->total_earned + (float) $period->total_adjustments;
         $remainingAmount = max($targetAmount - (float) $period->total_settled, 0.0);

@@ -94,11 +94,6 @@ export const DoctorPayrollReports: React.FC = () => {
       const remainingAmount = Math.max(baseEarned + row.totalAdjustments - row.totalSettled, 0);
       if (remainingAmount <= 0) return;
 
-      if (!row.periodEnded) {
-        setErrorMessage('لا يمكن تنفيذ التسوية قبل نهاية الشهر.');
-        return;
-      }
-
       const rawAmount = window.prompt(`أدخل مبلغ التسوية (المتبقي ${remainingAmount.toLocaleString()} EGP):`, String(remainingAmount));
       if (rawAmount === null) {
         return;
@@ -135,7 +130,7 @@ export const DoctorPayrollReports: React.FC = () => {
     <div className="space-y-6 max-w-[1600px] mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Payroll الأطباء</h1>
-        <p className="text-sm text-gray-500">متابعة استحقاقات الأطباء، الإقفالات، والتسويات الشهرية.</p>
+        <p className="text-sm text-gray-500">متابعة استحقاقات الأطباء مع صرف جزئي أو نهائي في أي وقت، بينما إقفال الشهر اختياري للأرشفة فقط.</p>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -247,7 +242,6 @@ export const DoctorPayrollReports: React.FC = () => {
                           onClick={() => onSettle(row)}
                           disabled={actionLoadingId === row.periodId || remaining <= 0 || !row.canSettle}
                           className="px-3 py-1.5 rounded-md bg-primary-600 text-white disabled:opacity-50"
-                          title={!row.periodEnded ? 'التسوية متاحة بعد انتهاء الشهر فقط' : undefined}
                         >
                           تسوية جزئية/نهائية
                         </button>
