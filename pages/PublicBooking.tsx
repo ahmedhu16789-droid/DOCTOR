@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Appointment, Department, Patient } from '../types';
-import { BRANCHES, DEPARTMENTS, MOCK_USERS } from '../constants';
-import { generateTimeSlots, MOCK_PATIENTS } from '../services/mockData';
-import { Calendar, MapPin, Search, Star, Clock, ArrowRight, Phone, CheckCircle, UserPlus, User, ChevronLeft, CreditCard, Banknote } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Department, Patient, TimeSlot, User } from '../types';
+import { BRANCHES, DEPARTMENTS } from '../constants';
+import { MapPin, Star, ArrowRight, Phone, CheckCircle, UserPlus, User as UserIcon, ChevronLeft, CreditCard, Banknote } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatTimeTo12Hour } from '../utils/time';
+import { getPublicBookingRepository, PublicBookingMode } from '../services/publicBookingRepository';
 
 interface PublicBookingProps {
   onBackToLogin: () => void;
@@ -12,15 +12,22 @@ interface PublicBookingProps {
 
 export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) => {
   const { t } = useTranslation();
+  const envMode = import.meta.env.VITE_PUBLIC_BOOKING_MODE === 'backend' ? 'backend' : 'demo';
+  const [mode, setMode] = useState<PublicBookingMode>(envMode);
+  const bookingRepository = useMemo(() => getPublicBookingRepository(mode), [mode]);
+
   // Flow State
   const [step, setStep] = useState<'SEARCH' | 'SLOT_SELECTION' | 'AUTH' | 'CONFIRM'>('SEARCH');
 
   // Selection State
   const [selectedBranch, setSelectedBranch] = useState(BRANCHES[0].id);
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<User | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [doctors, setDoctors] = useState<User[]>([]);
+  const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, TimeSlot[]>>({});
+  const [bookingError, setBookingError] = useState('');
 
   // Auth State
   const [phone, setPhone] = useState('');
@@ -37,10 +44,34 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
   // Payment Selection
   const [payOnline, setPayOnline] = useState(false);
 
-  // Data
-  const doctors = MOCK_USERS.filter(u => u.role === 'DOCTOR' && u.specialty === selectedDept && u.assignedBranches.includes(selectedBranch));
+  useEffect(() => {
+    bookingRepository
+      .getDoctors({ branchId: selectedBranch, specialty: selectedDept })
+      .then((payload) => setDoctors(payload))
+      .catch(() => setDoctors([]));
+  }, [bookingRepository, selectedBranch, selectedDept]);
 
-  const handleSlotClick = (doc: any, time: string) => {
+  useEffect(() => {
+    if (doctors.length === 0) {
+      setSlotsByDoctor({});
+      return;
+    }
+
+    Promise.all(
+      doctors.map(async (doctor) => {
+        const slots = await bookingRepository.getSlots({
+          doctorId: doctor.id,
+          branchId: selectedBranch,
+          date: selectedDate,
+        });
+        return [doctor.id, slots] as const;
+      }),
+    )
+      .then((entries) => setSlotsByDoctor(Object.fromEntries(entries)))
+      .catch(() => setSlotsByDoctor({}));
+  }, [bookingRepository, doctors, selectedBranch, selectedDate]);
+
+  const handleSlotClick = (doc: User, time: string) => {
     setSelectedDoctor(doc);
     setSelectedSlot(time);
     setStep('AUTH');
@@ -54,17 +85,35 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
     }
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API lookup
-    const found = MOCK_PATIENTS.filter(p => p.phone === phone);
+    const found = await bookingRepository.lookupPatientsByPhone(phone);
     setLinkedProfiles(found);
     setAuthStep('PROFILE');
   };
 
+  const proceedToConfirmation = async (patient: Patient) => {
+    if (!selectedDoctor) return;
+
+    setBookingError('');
+    try {
+      await bookingRepository.createAppointment({
+        patient,
+        doctor: selectedDoctor,
+        branchId: selectedBranch,
+        date: selectedDate,
+        timeSlot: selectedSlot,
+      });
+      setSelectedPatient(patient);
+      setStep('CONFIRM');
+    } catch {
+      setBookingError(mode === 'backend' ? 'تعذر إنشاء الحجز على الخادم. تحقق من البيانات ثم أعد المحاولة.' : 'تعذر تأكيد الحجز التجريبي.');
+    }
+  };
+
   const handleProfileSelect = (p: Patient) => {
     setSelectedPatient(p);
-    setStep('CONFIRM');
+    void proceedToConfirmation(p);
   };
 
   const handleCreateProfile = () => {
@@ -79,7 +128,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
       balance: 0
     };
     setSelectedPatient(newP);
-    setStep('CONFIRM');
+    void proceedToConfirmation(newP);
   };
 
   const steps = [
@@ -100,9 +149,19 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             </div>
             <span className="font-bold text-lg text-gray-800">{t('clinic_name')}</span>
           </div>
-          <button onClick={onBackToLogin} className="text-sm text-gray-500 hover:text-primary-600">
-            {t('staff_login')}
-          </button>
+          <div className="flex items-center gap-3">
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value as PublicBookingMode)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+            >
+              <option value="demo">Demo mode</option>
+              <option value="backend">Backend mode</option>
+            </select>
+            <button onClick={onBackToLogin} className="text-sm text-gray-500 hover:text-primary-600">
+              {t('staff_login')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -189,7 +248,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
 
             <div className="space-y-4">
               {doctors.map(doc => {
-                const slots = generateTimeSlots(selectedDate, doc.id).filter(s => s.available).slice(0, 5);
+                const slots = (slotsByDoctor[doc.id] ?? []).filter(s => s.available).slice(0, 5);
                 return (
                   <div key={doc.id} className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
@@ -301,6 +360,12 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
               <div>
                 <h3 className="text-xl font-bold mb-4">{t('who_is_patient')}</h3>
 
+                {bookingError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {bookingError}
+                  </div>
+                )}
+
                 {!isCreatingProfile ? (
                   <div className="space-y-3">
                     {linkedProfiles.map(p => (
@@ -310,7 +375,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
                         className="w-full flex items-center p-3 border border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all text-left"
                       >
                         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 mr-3 rtl:ml-3 rtl:mr-0">
-                          <User className="w-5 h-5" />
+                          <UserIcon className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="font-bold text-gray-900">{p.name}</div>
