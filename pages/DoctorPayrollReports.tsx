@@ -181,10 +181,10 @@ export const DoctorPayrollReports: React.FC = () => {
               <tr>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">الطبيب</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">الشهر</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">نوع القيد</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">الأساس</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">النسبة</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">القيمة</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">عمولة الحجز</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">عمولة الخدمات</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">التعديلات</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">القيمة الإجمالية</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">المرجع</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">إجراءات</th>
               </tr>
@@ -198,9 +198,19 @@ export const DoctorPayrollReports: React.FC = () => {
                   <tr key={row.periodId} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-semibold text-gray-900">{row.doctorName || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{row.periodMonth}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{row.totalAdjustments !== 0 ? 'COMMISSION + ADJUSTMENT' : 'COMMISSION'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{row.totalEarned.toLocaleString()} EGP</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">-</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {(row.commissionDetails?.consultationAmount ?? 0).toLocaleString()} EGP
+                      <div className="text-xs text-gray-400">
+                        أساس {(row.commissionDetails?.consultationBasis ?? 0).toLocaleString()} × {(row.commissionDetails?.consultationRate ?? 0).toLocaleString()}%
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {(row.commissionDetails?.servicesAmount ?? 0).toLocaleString()} EGP
+                      <div className="text-xs text-gray-400">
+                        أساس {(row.commissionDetails?.servicesBasis ?? 0).toLocaleString()} × {(row.commissionDetails?.servicesRate ?? 0).toLocaleString()}%
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.totalAdjustments.toLocaleString()} EGP</td>
                     <td className="px-4 py-3 text-sm font-bold text-gray-900">{(baseEarned + row.totalAdjustments).toLocaleString()} EGP</td>
                     <td className="px-4 py-3 text-sm text-gray-500">PERIOD-{row.periodId}</td>
                     <td className="px-4 py-3 text-sm">

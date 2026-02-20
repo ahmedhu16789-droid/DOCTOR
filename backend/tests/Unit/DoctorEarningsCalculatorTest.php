@@ -92,6 +92,60 @@ class DoctorEarningsCalculatorTest extends TestCase
         $this->assertSame('COMMISSION', $entry->earning_type);
         $this->assertEquals(700.0, (float) $entry->basis_amount);
         $this->assertEquals(140.0, (float) $entry->amount);
+
+        $notes = json_decode((string) $entry->notes, true);
+        $this->assertIsArray($notes);
+        $this->assertSame(700.0, (float) data_get($notes, 'consultation_basis'));
+        $this->assertSame(20.0, (float) data_get($notes, 'consultation_rate'));
+        $this->assertSame(0.0, (float) data_get($notes, 'services_basis'));
+        $this->assertSame(0.0, (float) data_get($notes, 'services_rate'));
+    }
+
+
+    public function test_percentage_contract_with_additional_services_commission_stores_split_notes(): void
+    {
+        [$clinic, $doctor, $appointment, $invoice] = $this->createAppointmentContext();
+
+        $contract = $this->createContract($clinic, $doctor, 'PERCENTAGE', 0, 20, '2026-02-01');
+        $contract->update([
+            'additional_services_commission_enabled' => true,
+            'additional_services_commission_percentage' => 10,
+        ]);
+
+        InvoiceItem::query()->create([
+            'clinic_id' => $clinic->id,
+            'invoice_id' => $invoice->id,
+            'name' => 'Consultation',
+            'category' => 'CONSULTATION',
+            'quantity' => 1,
+            'unit_price' => 700,
+            'total' => 700,
+        ]);
+
+        InvoiceItem::query()->create([
+            'clinic_id' => $clinic->id,
+            'invoice_id' => $invoice->id,
+            'name' => 'X-Ray',
+            'category' => 'SERVICE',
+            'quantity' => 1,
+            'unit_price' => 300,
+            'total' => 300,
+        ]);
+
+        $transaction = $this->createTransaction($clinic, $invoice, 1000, '2026-02-10');
+
+        app(DoctorEarningsCalculator::class)->recordForPayment($appointment, $invoice, $transaction);
+
+        $entry = DoctorEarningsLedger::query()->firstOrFail();
+
+        $this->assertEquals(170.0, (float) $entry->amount);
+
+        $notes = json_decode((string) $entry->notes, true);
+        $this->assertIsArray($notes);
+        $this->assertSame(700.0, (float) data_get($notes, 'consultation_basis'));
+        $this->assertSame(20.0, (float) data_get($notes, 'consultation_rate'));
+        $this->assertSame(300.0, (float) data_get($notes, 'services_basis'));
+        $this->assertSame(10.0, (float) data_get($notes, 'services_rate'));
     }
 
     public function test_hybrid_contract_generates_commission_and_fixed_salary_entries(): void
