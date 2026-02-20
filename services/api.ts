@@ -201,6 +201,8 @@ export interface DoctorPayrollReportRecord {
   totalSettled: number;
   status: 'OPEN' | 'CLOSED' | 'SETTLED';
   closedAt?: string | null;
+  periodEnded?: boolean;
+  canSettle?: boolean;
   commissionDetails?: {
     consultationBasis: number;
     consultationAmount: number;
