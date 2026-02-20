@@ -12,6 +12,7 @@ import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
 import { DoctorPayrollReports } from '../../pages/DoctorPayrollReports';
 import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
+import { DataSourceMode } from '../../services/api';
 
 interface AppMainContentProps {
   activeTab: string;
@@ -31,6 +32,8 @@ interface AppMainContentProps {
   onRefresh: () => Promise<void>;
   onSelectPatient: (patientId: string | null) => void;
   patientQueueLabel: string;
+  dataSourceMode: DataSourceMode;
+  isHybridEntitySynced: (kind: 'patient' | 'doctor' | 'branch', id: string) => boolean;
 }
 
 export function AppMainContent({
@@ -51,6 +54,8 @@ export function AppMainContent({
   onRefresh,
   onSelectPatient,
   patientQueueLabel,
+  dataSourceMode,
+  isHybridEntitySynced,
 }: AppMainContentProps) {
   if (loading) {
     return (
@@ -82,6 +87,8 @@ export function AppMainContent({
               branches={branches}
               activeBranchId={activeBranchId}
               onPatientCreated={onPatientCreated}
+              dataSourceMode={dataSourceMode}
+              isHybridEntitySynced={isHybridEntitySynced}
             />
           </div>
         </div>
