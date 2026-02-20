@@ -5,6 +5,7 @@ import { Building2, Globe, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-re
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
 import { consumeAccessLinkViaApi, loginWithApi } from '../services/api';
+import { authenticateWithLocalCredentials } from '../services/authLinks';
 
 interface LoginProps {
   onLogin: (user: User) => void;
