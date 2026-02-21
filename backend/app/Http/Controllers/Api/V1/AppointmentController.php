@@ -13,6 +13,7 @@ use App\Models\InvoiceItem;
 use App\Models\User;
 use App\Services\Booking\DoctorScheduleService;
 use App\Support\ApiCache;
+use App\Support\Authorization\ClinicBranchAuthorization;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +22,10 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly DoctorScheduleService $scheduleService)
-    {
+    public function __construct(
+        private readonly DoctorScheduleService $scheduleService,
+        private readonly ClinicBranchAuthorization $authorization,
+    ) {
     }
 
     public function index(Request $request)
@@ -129,8 +132,7 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
 
         $clinicId = $request->user()->clinic_id;
 
@@ -142,7 +144,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $shiftedCount = DB::transaction(function () use ($clinicId, $validated, $request): int {
             $appointments = Appointment::query()
@@ -218,8 +220,7 @@ class AppointmentController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
 
         $clinicId = $request->user()->clinic_id;
         $date = (string) ($validated['date'] ?? now()->toDateString());
@@ -232,7 +233,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $appointments = Appointment::query()
             ->where('clinic_id', $clinicId)
@@ -340,8 +341,7 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
 
         $clinicId = $request->user()->clinic_id;
         $timezone = data_get($request->user()->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
@@ -384,7 +384,7 @@ class AppointmentController extends Controller
 
     public function reschedule(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
             'doctorId' => ['nullable', 'integer', 'exists:users,id'],
@@ -404,7 +404,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $validSlot = $this->scheduleService->generateSlotsForDoctor($doctor, $branchId, $validated['date'])->contains($validated['timeSlot']);
         abort_if(! $validSlot, 422, 'The selected slot is outside the doctor schedule.');
@@ -438,7 +438,7 @@ class AppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
             'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
@@ -484,7 +484,7 @@ class AppointmentController extends Controller
 
     public function startNow(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $actorRole = (string) $request->user()->role;
         $doctorAdvancedModeEnabled = (bool) data_get($request->user()->clinic?->settings, 'doctor_advanced_mode_enabled', false);
@@ -587,7 +587,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $validSlot = $this->scheduleService->generateSlotsForDoctor($doctor, $branchId, $date)->contains($timeSlot);
         abort_if(! $validSlot, 422, 'The selected slot is outside the doctor schedule.');

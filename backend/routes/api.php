@@ -101,13 +101,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
         Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
-        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id');
+        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
-        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id');
+        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
         Route::get('reports/financial', [FinancialReportController::class, 'index'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
             ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])

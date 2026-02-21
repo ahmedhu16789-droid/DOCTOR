@@ -7,11 +7,15 @@ use App\Models\CashSession;
 use App\Models\ReconciliationSummary;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
+use App\Support\Authorization\ClinicBranchAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CashSessionController extends Controller
 {
+    public function __construct(private readonly ClinicBranchAuthorization $authorization)
+    {
+    }
     public function open(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -45,7 +49,7 @@ class CashSessionController extends Controller
 
     public function close(Request $request, CashSession $cashSession): JsonResponse
     {
-        abort_unless($cashSession->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $cashSession);
 
         $validated = $request->validate([
             'collected_cash' => ['required', 'numeric', 'min:0'],
