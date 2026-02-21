@@ -133,6 +133,7 @@ class AppointmentController extends Controller
         ]);
 
         $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('applyShiftSuggestion', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
 
@@ -221,6 +222,7 @@ class AppointmentController extends Controller
         ]);
 
         $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('viewTimeline', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
         $date = (string) ($validated['date'] ?? now()->toDateString());
@@ -342,6 +344,7 @@ class AppointmentController extends Controller
         ]);
 
         $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('applyShiftSuggestion', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
         $timezone = data_get($request->user()->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
@@ -385,6 +388,8 @@ class AppointmentController extends Controller
     public function reschedule(Request $request, Appointment $appointment): JsonResponse
     {
         $this->authorization->assertTenantOwnership($request->user(), $appointment);
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorize('reschedule', $appointment);
 
         $validated = $request->validate([
             'doctorId' => ['nullable', 'integer', 'exists:users,id'],
@@ -395,6 +400,12 @@ class AppointmentController extends Controller
 
         $doctorId = (int) ($validated['doctorId'] ?? $appointment->doctor_id);
         $branchId = (int) ($validated['branchId'] ?? $appointment->branch_id);
+
+        if ($request->user()->role === 'DOCTOR') {
+            abort_if($doctorId !== (int) $appointment->doctor_id, 403, 'Doctors can only reschedule their own appointments.');
+            abort_if($branchId !== (int) $appointment->branch_id, 403, 'Doctors can only reschedule inside the same branch.');
+            abort_if($validated['date'] !== $appointment->date?->toDateString(), 403, 'Doctors can only reschedule same-day appointments.');
+        }
 
         $doctor = User::query()
             ->select(['id', 'clinic_id', 'schedule'])
@@ -441,10 +452,14 @@ class AppointmentController extends Controller
         $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
-            'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
+            'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,CANCELLED,NO_SHOW'],
         ]);
 
         $status = $validated['status'];
+
+        if ($status === 'CANCELLED') {
+            $this->authorize('cancel', $appointment);
+        }
 
         $appointment->status = $status;
 
@@ -486,14 +501,7 @@ class AppointmentController extends Controller
     {
         $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
-        $actorRole = (string) $request->user()->role;
-        $doctorAdvancedModeEnabled = (bool) data_get($request->user()->clinic?->settings, 'doctor_advanced_mode_enabled', false);
-
-        $canStartNow = $actorRole === 'RECEPTIONIST'
-            || in_array($actorRole, ['ADMIN', 'BRANCH_MANAGER'], true)
-            || ($actorRole === 'DOCTOR' && $doctorAdvancedModeEnabled);
-
-        abort_unless($canStartNow, 403, 'You are not allowed to start a visit from the queue.');
+        $this->authorize('startNow', $appointment);
 
         $allowedStatuses = ['SCHEDULED', 'WAITING'];
         abort_unless(in_array($appointment->status, $allowedStatuses, true), 422, 'Only scheduled or waiting appointments can be started now.');
