@@ -54,6 +54,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const [notes, setNotes] = useState('');
     const [plan, setPlan] = useState('');
     const [nextVisitDate, setNextVisitDate] = useState('');
+    const [nextVisitType, setNextVisitType] = useState<string>('exact');
+    const [nextVisitInterval, setNextVisitInterval] = useState<number>(1);
     const [prescription, setPrescription] = useState<Medication[]>([]);
     const [drugSuggestions, setDrugSuggestions] = useState<string[]>([]);
     const [selectedDrug, setSelectedDrug] = useState('');
@@ -73,6 +75,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const latestDiagnosis = React.useRef(diagnosis);
     const latestPlan = React.useRef(plan);
     const latestNextVisitDate = React.useRef(nextVisitDate);
+    const latestNextVisitType = React.useRef(nextVisitType);
+    const latestNextVisitInterval = React.useRef(nextVisitInterval);
     const latestPrescription = React.useRef(prescription);
     const [history, setHistory] = useState<VisitHistoryItem[]>([]);
     const [selectedVisit, setSelectedVisit] = useState<VisitHistoryItem | null>(null);
@@ -99,6 +103,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
         setDiagnosis(data.diagnosis ?? '');
         setPlan(data.plan ?? '');
         setNextVisitDate(data.nextVisitDate ?? '');
+        setNextVisitType(data.nextVisitType ?? 'exact');
+        setNextVisitInterval(data.nextVisitInterval ?? 1);
         setPrescription((data.prescription ?? []).map((medication) => ({
             id: medication.id,
             name: medication.name,
@@ -200,7 +206,19 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     useEffect(() => { latestDiagnosis.current = diagnosis; }, [diagnosis]);
     useEffect(() => { latestPlan.current = plan; }, [plan]);
     useEffect(() => { latestNextVisitDate.current = nextVisitDate; }, [nextVisitDate]);
+    useEffect(() => { latestNextVisitType.current = nextVisitType; }, [nextVisitType]);
+    useEffect(() => { latestNextVisitInterval.current = nextVisitInterval; }, [nextVisitInterval]);
     useEffect(() => { latestPrescription.current = prescription; }, [prescription]);
+
+    useEffect(() => {
+        if (nextVisitType !== 'exact' && nextVisitInterval > 0) {
+            const date = new Date();
+            if (nextVisitType === 'days') date.setDate(date.getDate() + nextVisitInterval);
+            else if (nextVisitType === 'weeks') date.setDate(date.getDate() + nextVisitInterval * 7);
+            else if (nextVisitType === 'months') date.setMonth(date.getMonth() + nextVisitInterval);
+            setNextVisitDate(date.toISOString().split('T')[0]);
+        }
+    }, [nextVisitType, nextVisitInterval]);
 
     // Auto-save DRAFT 1.5s after any clinical change — refs guarantee latest data
     useEffect(() => {
@@ -213,6 +231,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                     diagnosis: latestDiagnosis.current,
                     plan: latestPlan.current,
                     nextVisitDate: latestNextVisitDate.current || undefined,
+                    nextVisitType: latestNextVisitType.current,
+                    nextVisitInterval: latestNextVisitInterval.current,
                     status: 'DRAFT',
                     prescription: latestPrescription.current,
                 });
@@ -222,7 +242,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
             }
         }, 1500);
         return () => window.clearTimeout(timer);
-    }, [vitals, notes, diagnosis, plan, prescription, nextVisitDate]);
+    }, [vitals, notes, diagnosis, plan, prescription, nextVisitDate, nextVisitType, nextVisitInterval]);
 
 
     const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
@@ -234,6 +254,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                 diagnosis,
                 plan,
                 nextVisitDate: nextVisitDate || undefined,
+                nextVisitType,
+                nextVisitInterval,
                 status,
                 prescription,
             });
@@ -643,14 +665,56 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="mb-3">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('next_visit_date')}</label>
-                                            <input
-                                                type="date"
-                                                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 text-sm"
-                                                value={nextVisitDate}
-                                                onChange={e => setNextVisitDate(e.target.value)}
-                                            />
+                                        <div className="mb-4 bg-gray-50 p-4 rounded-xl border border-gray-200/60">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-3">{t('next_visit_date')}</label>
+                                            <div className="flex gap-4 items-center">
+                                                <div className="w-1/3">
+                                                    <select
+                                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 text-sm bg-white font-medium text-gray-700 transition-all"
+                                                        value={nextVisitType}
+                                                        onChange={e => {
+                                                            setNextVisitType(e.target.value);
+                                                            if (e.target.value === 'exact') setNextVisitInterval(1);
+                                                        }}
+                                                    >
+                                                        <option value="exact">{t('next_visit_type_exact')}</option>
+                                                        <option value="days">{t('next_visit_type_days')}</option>
+                                                        <option value="weeks">{t('next_visit_type_weeks')}</option>
+                                                        <option value="months">{t('next_visit_type_months')}</option>
+                                                    </select>
+                                                </div>
+                                                {nextVisitType === 'exact' ? (
+                                                    <div className="w-2/3">
+                                                        <input
+                                                            type="date"
+                                                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 text-sm font-medium text-gray-700 transition-all"
+                                                            value={nextVisitDate}
+                                                            onChange={e => setNextVisitDate(e.target.value)}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-2/3 flex items-center gap-3">
+                                                        <div className="relative">
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                className="w-24 p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 text-sm text-center font-bold text-gray-800 transition-all"
+                                                                value={nextVisitInterval}
+                                                                onChange={e => {
+                                                                    const val = Number(e.target.value);
+                                                                    setNextVisitInterval(val > 0 ? val : 1);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        {nextVisitDate && (
+                                                            <div className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 flex items-center gap-2">
+                                                                <span className="text-xs text-gray-400">{t('calculated_date')}</span>
+                                                                <span className="text-sm font-bold text-primary-700">{nextVisitDate}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         <textarea
                                             className="w-full p-3 border-2 border-gray-200 rounded-lg h-28 focus:outline-none focus:border-primary-400 resize-none text-sm"

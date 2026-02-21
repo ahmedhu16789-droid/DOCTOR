@@ -78,6 +78,12 @@ export const medical = {
     "plan": "الخطة والمتابعة",
     "plan_placeholder": "راحة لمدة 3 أيام، العودة في حالة استمرار الحمى...",
     "next_visit_date": "موعد الزيارة التالية",
+    "next_visit_type_exact": "تاريخ محدد",
+    "next_visit_type_days": "أيام",
+    "next_visit_type_weeks": "أسابيع",
+    "next_visit_type_months": "أشهر",
+    "in_time": "بعد",
+    "calculated_date": "تاريخ الزيارة:",
 
     // Prescription
     "rx_builder": "منشئ الروشتة",

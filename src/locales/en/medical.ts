@@ -78,6 +78,12 @@ export const medical = {
     "plan": "Plan & Follow-up",
     "plan_placeholder": "Rest for 3 days, return if fever persists...",
     "next_visit_date": "Next Visit Date",
+    "next_visit_type_exact": "Exact Date",
+    "next_visit_type_days": "Days",
+    "next_visit_type_weeks": "Weeks",
+    "next_visit_type_months": "Months",
+    "in_time": "In",
+    "calculated_date": "Calculated Date:",
 
     // Prescription
     "rx_builder": "Prescription Builder",
