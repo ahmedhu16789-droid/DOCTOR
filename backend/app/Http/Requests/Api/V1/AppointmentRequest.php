@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AppointmentRequest extends FormRequest
 {
@@ -13,10 +14,12 @@ class AppointmentRequest extends FormRequest
 
     public function rules(): array
     {
+        $clinicId = auth()->user()?->clinic_id;
+
         return [
-            'patientId' => ['required', 'integer', 'exists:patients,id'],
-            'doctorId' => ['required', 'integer', 'exists:users,id'],
-            'branchId' => ['required', 'integer', 'exists:branches,id'],
+            'patientId' => ['required', 'integer', Rule::exists('patients', 'id')->where('clinic_id', $clinicId)],
+            'doctorId' => ['required', 'integer', Rule::exists('users', 'id')->where('clinic_id', $clinicId)],
+            'branchId' => ['required', 'integer', Rule::exists('branches', 'id')->where('clinic_id', $clinicId)],
             'date' => ['required', 'date_format:Y-m-d'],
             'timeSlot' => ['required', 'date_format:H:i'],
             'status' => ['nullable', 'in:SCHEDULED,WAITING,IN_PROGRESS,COMPLETED,CANCELLED,NO_SHOW'],
