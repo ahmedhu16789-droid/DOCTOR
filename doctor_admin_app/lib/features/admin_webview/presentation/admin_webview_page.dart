@@ -110,7 +110,6 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
       body: SafeArea(
         child: Stack(
           children: [
-
             // Main Webview
             Positioned.fill(
               child: _isWebviewInitialized
@@ -130,7 +129,7 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
                                   var style = window.getComputedStyle(el);
                                   var isScrollableY = (style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
                                   var isScrollableX = (style.overflowX === 'auto' || style.overflowX === 'scroll') && el.scrollWidth > el.clientWidth;
-                                  
+
                                   if (isScrollableY || isScrollableX) {
                                     if (isScrollableY) el.scrollTop += $dy;
                                     if (isScrollableX) el.scrollLeft += $dx;
@@ -154,53 +153,60 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
 
             // Internal Background Worker for WhatsApp
             if (_isProcessingWhatsApp)
-              Positioned(
-                left: _isWhatsAppVisible ? 0 : -2000,
-                right: _isWhatsAppVisible ? 0 : null,
-                top: _isWhatsAppVisible ? 0 : 0,
-                bottom: _isWhatsAppVisible ? 0 : null,
-                child: Center(
-                  child: Container(
-                    decoration: _isWhatsAppVisible ? BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 10,
-                          spreadRadius: 5,
-                        )
-                      ],
-                      borderRadius: BorderRadius.circular(12),
-                    ) : null,
-                    width: 800,
-                    height: 600,
-                    child: WhatsAppAutomationDialog(
-                      messages: List.from(_whatsappQueue),
-                      onNeedsLogin: () {
-                        debugPrint('onNeedsLogin called! _isWhatsAppVisible: $_isWhatsAppVisible');
-                        if (!_isWhatsAppVisible && mounted) {
-                          setState(() {
-                            _isWhatsAppVisible = true;
-                          });
-                        }
-                      },
-                      onLoggedIn: () {
-                        debugPrint('onLoggedIn called! _isWhatsAppVisible: $_isWhatsAppVisible');
-                        if (_isWhatsAppVisible && mounted) {
-                          setState(() {
-                            _isWhatsAppVisible = false;
-                          });
-                        }
-                      },
-                      onCompleted: () {
-                        if (mounted) {
-                          setState(() {
-                            _whatsappQueue.clear();
-                            _isProcessingWhatsApp = false;
-                            _isWhatsAppVisible = false;
-                          });
-                        }
-                      },
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: !_isWhatsAppVisible,
+                  child: AnimatedOpacity(
+                    opacity: _isWhatsAppVisible ? 1 : 0.01,
+                    duration: const Duration(milliseconds: 250),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        decoration: _isWhatsAppVisible
+                            ? BoxDecoration(
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    spreadRadius: 5,
+                                  )
+                                ],
+                                borderRadius: BorderRadius.circular(12),
+                              )
+                            : null,
+                        width: _isWhatsAppVisible ? 800 : 10,
+                        height: _isWhatsAppVisible ? 600 : 10,
+                        child: WhatsAppAutomationDialog(
+                          messages: List.from(_whatsappQueue),
+                          onNeedsLogin: () {
+                            debugPrint('onNeedsLogin called! _isWhatsAppVisible: $_isWhatsAppVisible');
+                            if (!_isWhatsAppVisible && mounted) {
+                              setState(() {
+                                _isWhatsAppVisible = true;
+                              });
+                            }
+                          },
+                          onLoggedIn: () {
+                            debugPrint('onLoggedIn called! _isWhatsAppVisible: $_isWhatsAppVisible');
+                            // Move to background mode after login, while keeping a tiny mounted webview alive.
+                            if (_isWhatsAppVisible && mounted) {
+                              setState(() {
+                                _isWhatsAppVisible = false;
+                              });
+                            }
+                          },
+                          onCompleted: () {
+                            if (mounted) {
+                              setState(() {
+                                _whatsappQueue.clear();
+                                _isProcessingWhatsApp = false;
+                                _isWhatsAppVisible = false;
+                              });
+                            }
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
