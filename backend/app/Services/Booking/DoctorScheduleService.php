@@ -3,6 +3,7 @@
 namespace App\Services\Booking;
 
 use App\Models\Appointment;
+use App\Models\AppointmentSlotShift;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -13,7 +14,7 @@ class DoctorScheduleService
     {
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;
 
-        return collect($doctor->schedule ?? [])
+        $baseSlots = collect($doctor->schedule ?? [])
             ->filter(function (array $shift) use ($branchId, $dayOfWeek): bool {
                 return (string) ($shift['branchId'] ?? '') === (string) $branchId
                     && (int) ($shift['dayOfWeek'] ?? -1) === $dayOfWeek;
@@ -31,6 +32,47 @@ class DoctorScheduleService
 
                 return $result;
             })
+            ->unique()
+            ->sort()
+            ->values();
+
+        return $this->applyDailyShiftRules(
+            slots: $baseSlots,
+            clinicId: (int) $doctor->clinic_id,
+            doctorId: (int) $doctor->id,
+            branchId: $branchId,
+            date: $date,
+        );
+    }
+
+    private function applyDailyShiftRules(Collection $slots, int $clinicId, int $doctorId, int $branchId, string $date): Collection
+    {
+        $rules = AppointmentSlotShift::query()
+            ->select(['from_time', 'shift_minutes'])
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $doctorId)
+            ->where('branch_id', $branchId)
+            ->whereDate('date', $date)
+            ->orderBy('id')
+            ->get();
+
+        if ($rules->isEmpty()) {
+            return $slots;
+        }
+
+        foreach ($rules as $rule) {
+            $slots = $slots->map(function (string $time) use ($rule): string {
+                if ($time < $rule->from_time) {
+                    return $time;
+                }
+
+                return Carbon::createFromFormat('H:i', $time)
+                    ->addMinutes((int) $rule->shift_minutes)
+                    ->format('H:i');
+            });
+        }
+
+        return $slots
             ->unique()
             ->sort()
             ->values();

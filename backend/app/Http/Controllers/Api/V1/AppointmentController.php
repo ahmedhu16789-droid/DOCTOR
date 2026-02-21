@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AppointmentRequest;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\AppointmentSlotShift;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\User;
@@ -164,6 +165,15 @@ class AppointmentController extends Controller
                         ->format('H:i'),
                 ]);
             }
+
+            AppointmentSlotShift::query()->create([
+                'clinic_id' => $clinicId,
+                'doctor_id' => $validated['doctorId'],
+                'branch_id' => $validated['branchId'],
+                'date' => $validated['date'],
+                'from_time' => $validated['fromTime'],
+                'shift_minutes' => $validated['shiftMinutes'],
+            ]);
 
             return $appointments->count();
         });

@@ -57,6 +57,52 @@ class AppointmentRescheduleAndShiftTest extends TestCase
     }
 
 
+    public function test_bulk_shift_updates_future_available_slots_even_if_not_booked(): void
+    {
+        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+
+        Appointment::query()->create([
+            'clinic_id' => $clinic->id,
+            'branch_id' => $branch->id,
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+            'date' => '2026-03-10',
+            'time_slot' => '09:00',
+            'status' => 'SCHEDULED',
+        ]);
+
+        Sanctum::actingAs($doctor);
+
+        $this->postJson('/api/v1/appointments/shift', [
+            'doctorId' => $doctor->id,
+            'branchId' => $branch->id,
+            'date' => '2026-03-10',
+            'fromTime' => '08:00',
+            'shiftMinutes' => 60,
+        ])->assertOk();
+
+        $availableSlotsResponse = $this->getJson(sprintf(
+            '/api/v1/appointments/available-slots?doctorId=%d&branchId=%d&date=%s',
+            $doctor->id,
+            $branch->id,
+            '2026-03-10',
+        ))->assertOk();
+
+        $times = collect($availableSlotsResponse->json('data'))->pluck('time')->all();
+
+        $this->assertSame(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'], $times);
+        $this->assertSame('10:00', Appointment::query()->first()->time_slot);
+        $this->assertDatabaseHas('appointment_slot_shifts', [
+            'clinic_id' => $clinic->id,
+            'doctor_id' => $doctor->id,
+            'branch_id' => $branch->id,
+            'date' => '2026-03-10',
+            'from_time' => '08:00',
+            'shift_minutes' => 60,
+        ]);
+    }
+
+
     public function test_bulk_shift_is_forbidden_for_non_supported_roles(): void
     {
         [$doctor, $branch, $patient, $clinic] = $this->seedContext();
