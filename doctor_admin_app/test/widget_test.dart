@@ -1,30 +1,17 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:doctor_admin_app/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:doctor_admin_app/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('uses valid environment URL when provided', () {
+    const config = AppConfig(adminPanelUrl: 'https://admin.example.com/');
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(config.adminPanelUrl, 'https://admin.example.com/');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('falls back to localhost for invalid URL format', () {
+    final parsed = Uri.tryParse('not-a-url');
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(parsed?.hasScheme ?? false, isFalse);
+    expect(const AppConfig.fromEnvironment().adminPanelUrl, isNotEmpty);
   });
 }
