@@ -1,5 +1,6 @@
 import landingJson from "@/data/clinic.landing.json";
-import type { LandingData } from "@/types/landing";
+import type { LandingData, LandingDataRaw, Locale, LocalizedValue } from "@/types/landing";
+import { headers } from "next/headers";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -7,8 +8,28 @@ function assert(condition: unknown, message: string): asserts condition {
   }
 }
 
-export function getLandingData(): LandingData {
-  const data = landingJson as LandingData;
+function isLocalizedValue(value: unknown): value is LocalizedValue {
+  return typeof value === "object" && value !== null && "en" in value && "ar" in value;
+}
+
+function resolveLocalized<T>(value: T, locale: Locale): T {
+  if (Array.isArray(value)) return value.map((item) => resolveLocalized(item, locale)) as T;
+  if (isLocalizedValue(value)) return (value[locale] ?? value.en) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, nestedValue]) => [key, resolveLocalized(nestedValue, locale)])) as T;
+  }
+  return value;
+}
+
+export async function getCurrentLocale(): Promise<Locale> {
+  const headerStore = await headers();
+  const acceptLanguage = headerStore.get("accept-language")?.toLowerCase() ?? "";
+  return acceptLanguage.includes("ar") ? "ar" : "en";
+}
+
+export async function getLandingData(locale?: Locale): Promise<LandingData> {
+  const activeLocale = locale ?? (await getCurrentLocale());
+  const data = resolveLocalized(landingJson as LandingDataRaw, activeLocale) as LandingData;
 
   assert(data.hero?.title, "hero.title is required");
   assert(Array.isArray(data.header?.navLinks), "header.navLinks must be an array");

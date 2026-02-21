@@ -230,7 +230,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
   const handleSubmit = async () => {
     if (!clinicContext || !doctorId || !branchId || !selectedDate || !slot || !fullName || !phone) {
-      setFeedback({ type: "error", text: t("booking.validation.requiredFields") });
+      setFeedback({ type: "error", text: data.ui.validationRequiredFields });
       return;
     }
 
@@ -271,9 +271,9 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
       setConfirmedTicket(ticket);
       window.sessionStorage.setItem(BOOKING_TICKET_KEY, JSON.stringify(ticket));
-      setFeedback({ type: "success", text: t("booking.feedback.success") });
+      setFeedback({ type: "success", text: data.ui.submitSuccess });
     } catch {
-      setFeedback({ type: "error", text: t("booking.feedback.error") });
+      setFeedback({ type: "error", text: data.ui.submitError });
     } finally {
       setIsSubmitting(false);
     }
@@ -282,19 +282,17 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   const handlePrintTicket = () => {
     if (!confirmedTicket || typeof window === "undefined") return;
 
-    const printableDate = new Date(confirmedTicket.confirmedAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-US");
-    const printLang = locale;
-    const printDir = getLandingDir(locale);
+    const printableDate = new Date(confirmedTicket.confirmedAt).toLocaleString(data.ui.printLang === "ar" ? "ar-EG" : "en-US");
     const ticketWindow = window.open("", "_blank", "width=900,height=700");
     if (!ticketWindow) return;
 
     ticketWindow.document.write(`
       <!doctype html>
-      <html lang="${printLang}" dir="${printDir}">
+      <html lang="${data.ui.printLang}" dir="${data.ui.printDir}">
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Ticket ${confirmedTicket.bookingId}</title>
+          <title>${data.ui.printPageTitle} ${confirmedTicket.bookingId}</title>
           <style>
             body { font-family: "Tahoma", "Arial", sans-serif; background: #f8fafc; padding: 24px; color: #0f172a; }
             .ticket { max-width: 760px; margin: 0 auto; background: #fff; border: 2px dashed #0ea5e9; border-radius: 18px; overflow: hidden; }
@@ -316,21 +314,21 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
         <body>
           <article class="ticket">
             <header class="header">
-              <h1>${t("booking.print.title")}</h1>
-              <p>${t("booking.print.bookingNumber")}: ${confirmedTicket.bookingId}</p>
+              <h1>🎫 ${data.ui.printHeading}</h1>
+              <p>${data.ui.printBookingNumberLabel} ${confirmedTicket.bookingId}</p>
             </header>
             <section class="body">
               <div class="grid">
-                <div class="item"><span class="label">${t("booking.print.fullName")}</span><span class="value">${confirmedTicket.fullName}</span></div>
-                <div class="item"><span class="label">${t("booking.print.phone")}</span><span class="value">${confirmedTicket.phone}</span></div>
-                <div class="item"><span class="label">${t("booking.print.branch")}</span><span class="value">${confirmedTicket.branchName}</span></div>
-                <div class="item"><span class="label">${t("booking.print.specialty")}</span><span class="value">${confirmedTicket.specialty}</span></div>
-                <div class="item"><span class="label">${t("booking.print.doctor")}</span><span class="value">${confirmedTicket.doctorName}</span></div>
-                <div class="item"><span class="label">${t("booking.print.visitSchedule")}</span><span class="value">${confirmedTicket.date} - ${confirmedTicket.slot}</span></div>
-                <div class="item"><span class="label">${t("booking.print.genderAge")}</span><span class="value">${confirmedTicket.gender || "-"} / ${confirmedTicket.age || "-"}</span></div>
-                <div class="item"><span class="label">${t("booking.print.confirmedAt")}</span><span class="value">${printableDate}</span></div>
+                <div class="item"><span class="label">${data.ui.printPatientNameLabel}</span><span class="value">${confirmedTicket.fullName}</span></div>
+                <div class="item"><span class="label">${data.ui.printPhoneNumberLabel}</span><span class="value">${confirmedTicket.phone}</span></div>
+                <div class="item"><span class="label">${data.ui.printBranchLabel}</span><span class="value">${confirmedTicket.branchName}</span></div>
+                <div class="item"><span class="label">${data.ui.printSpecialtyLabel}</span><span class="value">${confirmedTicket.specialty}</span></div>
+                <div class="item"><span class="label">${data.ui.printDoctorLabel}</span><span class="value">${confirmedTicket.doctorName}</span></div>
+                <div class="item"><span class="label">${data.ui.printVisitScheduleLabel}</span><span class="value">${confirmedTicket.date} - ${confirmedTicket.slot}</span></div>
+                <div class="item"><span class="label">${data.ui.printGenderAgeLabel}</span><span class="value">${confirmedTicket.gender || "-"} / ${confirmedTicket.age || "-"}</span></div>
+                <div class="item"><span class="label">${data.ui.printConfirmedAtLabel}</span><span class="value">${printableDate}</span></div>
               </div>
-              <p class="note">${t("booking.print.note")}</p>
+              <p class="note">${data.ui.printNote}</p>
             </section>
           </article>
         </body>
@@ -347,7 +345,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
       <div className="flex flex-col gap-8 p-6 md:p-8" dir={textDir}>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {clinicContext?.branches?.length ? (
-            <Field label="الفرع">
+            <Field label={data.ui.branchLabel}>
               <Select value={branchId} onChange={(event) => setBranchId(event.target.value)}>
                 {clinicContext.branches.map((branch) => (
                   <option key={branch.id} value={branch.id}>{branch.name}</option>
@@ -381,7 +379,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
           <div className="flex flex-col gap-4">
             <h3 className="text-base font-bold text-slate-900">{data.booking.timeSlotsTitle}</h3>
-            {isLoadingSlots ? <p className="text-sm text-slate-500">{t("booking.loadingSlots")}</p> : null}
+            {isLoadingSlots ? <p className="text-sm text-slate-500">{data.ui.loadingSlots}</p> : null}
             <div className="grid grid-cols-3 gap-3">
               {availableSlots.map((time) => {
                 const isDisabled = !time.available;
@@ -434,17 +432,17 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
           {confirmedTicket ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-              <p className="mb-3 text-sm font-semibold text-emerald-700">{t("booking.ticket.summaryTitle", { bookingId: confirmedTicket.bookingId })}</p>
+              <p className="mb-3 text-sm font-semibold text-emerald-700">🎫 {data.ui.ticketTitle}{confirmedTicket.bookingId}</p>
               <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-2">
-                <p><span className="font-semibold">{t("booking.ticket.patientLabel")}</span> {confirmedTicket.fullName}</p>
-                <p><span className="font-semibold">{t("booking.ticket.phoneLabel")}</span> {confirmedTicket.phone}</p>
-                <p><span className="font-semibold">{t("booking.ticket.doctorLabel")}</span> {confirmedTicket.doctorName}</p>
-                <p><span className="font-semibold">{t("booking.ticket.specialtyLabel")}</span> {confirmedTicket.specialty}</p>
-                <p><span className="font-semibold">{t("booking.ticket.branchLabel")}</span> {confirmedTicket.branchName}</p>
-                <p><span className="font-semibold">{t("booking.ticket.scheduleLabel")}</span> {confirmedTicket.date} - {confirmedTicket.slot}</p>
+                <p><span className="font-semibold">{data.ui.ticketPatientLabel}</span> {confirmedTicket.fullName}</p>
+                <p><span className="font-semibold">{data.ui.ticketPhoneLabel}</span> {confirmedTicket.phone}</p>
+                <p><span className="font-semibold">{data.ui.ticketDoctorLabel}</span> {confirmedTicket.doctorName}</p>
+                <p><span className="font-semibold">{data.ui.ticketSpecialtyLabel}</span> {confirmedTicket.specialty}</p>
+                <p><span className="font-semibold">{data.ui.ticketBranchLabel}</span> {confirmedTicket.branchName}</p>
+                <p><span className="font-semibold">{data.ui.ticketScheduleLabel}</span> {confirmedTicket.date} - {confirmedTicket.slot}</p>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button type="button" className="bg-emerald-600 hover:bg-emerald-700" onClick={handlePrintTicket}>{t("booking.ticket.printButton")}</Button>
+                <Button type="button" className="bg-emerald-600 hover:bg-emerald-700" onClick={handlePrintTicket}> {data.ui.printTicketLabel} </Button>
               </div>
             </div>
           ) : null}
@@ -453,7 +451,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
       <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-100 bg-slate-50 p-6 md:flex-row">
         <p className="flex items-center gap-1 text-xs text-slate-500">🔒 {data.patientForm.privacyNote}</p>
-        <Button className="w-full px-8 py-3 md:w-auto" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? t("booking.submit.loading") : data.cta.confirmLabel}</Button>
+        <Button className="w-full px-8 py-3 md:w-auto" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? data.ui.submittingLabel : data.cta.confirmLabel}</Button>
       </div>
     </>
   );
