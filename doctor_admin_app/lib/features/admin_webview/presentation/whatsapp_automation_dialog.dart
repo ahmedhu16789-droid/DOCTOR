@@ -43,6 +43,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
   int _currentIndex = 0;
   String _statusMessage = 'Initializing...';
   StreamSubscription<LoadingState>? _loadingSubscription;
+  bool _isWhatsAppBootstrapped = false;
 
   @override
   void initState() {
@@ -96,6 +97,53 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     await Future.delayed(const Duration(seconds: 5));
   }
 
+
+  String _normalizePhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digits.isEmpty) return phone;
+
+    var cleaned = digits;
+    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
+    if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
+
+    if (cleaned.startsWith('20')) return cleaned;
+    if (cleaned.startsWith('0') && cleaned.length >= 10) return '20${cleaned.substring(1)}';
+    if (cleaned.length == 10 || cleaned.length == 11) return '20$cleaned';
+
+    return cleaned;
+  }
+
+  Future<bool> _bootstrapWhatsAppShell() async {
+    if (_isWhatsAppBootstrapped) return true;
+
+    await _controller.loadUrl('https://web.whatsapp.com/');
+    await _waitForPageLoad(timeout: const Duration(seconds: 40));
+
+    for (int i = 0; i < 40; i++) {
+      final state = await _executeScriptWithRetry(r"""
+        (function() {
+          var body = document.body;
+          if (!body) return 'NO_BODY';
+          var bodyLen = (body.innerText || '').length + (body.innerHTML || '').length;
+          var hasQr = !!document.querySelector('[data-ref]');
+          var hasSide = !!document.querySelector('#pane-side');
+          var hasLanding = !!document.querySelector('[data-testid="chat-list-search"]');
+          if (hasQr) return 'NEEDS_LOGIN';
+          if (hasSide || hasLanding) return 'READY';
+          if (bodyLen > 2000) return 'PARTIAL';
+          return 'BLANK';
+        })();
+      """, retries: 1, delay: const Duration(milliseconds: 1));
+
+      if (state == 'READY' || state == 'NEEDS_LOGIN' || state == 'PARTIAL') {
+        _isWhatsAppBootstrapped = true;
+        return true;
+      }
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+
+    return false;
+  }
 
   Future<String?> _executeScriptWithRetry(
     String script, {
@@ -157,12 +205,18 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     }
 
     try {
-      final url = 'https://web.whatsapp.com/send?phone=${msg.phone}';
+      final normalizedPhone = _normalizePhone(msg.phone);
+      final url = 'https://web.whatsapp.com/send?phone=$normalizedPhone';
+
+      final bootstrapReady = await _bootstrapWhatsAppShell();
+      if (!bootstrapReady) {
+        throw Exception('WhatsApp shell failed to initialize.');
+      }
 
       // --- Load the page and wait for it to complete ---
       await _controller.loadUrl(url);
-      await _waitForPageLoad();
-      debugPrint('WA: Page loaded for ${msg.phone}');
+      await _waitForPageLoad(timeout: const Duration(seconds: 35));
+      debugPrint('WA: Page loaded for ${msg.phone} (normalized: $normalizedPhone)');
 
       // --- Check for QR / Login screen ---
       final loginCheck = await _controller.executeScript(r'''
@@ -199,14 +253,21 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
         // Reload after login and wait for page
         if (mounted) setState(() => _statusMessage = 'Logged in! Loading chat...');
         await _controller.loadUrl(url);
-        await _waitForPageLoad();
+        await _waitForPageLoad(timeout: const Duration(seconds: 35));
       } else {
         widget.onLoggedIn?.call();
       }
 
-      final chatReady = await _waitForComposerReady();
+      var chatReady = await _waitForComposerReady();
       if (!chatReady) {
-        throw Exception('Chat is not ready for ${msg.phone}.');
+        final fallbackUrl = 'https://web.whatsapp.com/send?phone=$normalizedPhone&text=${Uri.encodeComponent(msg.text)}';
+        debugPrint('WA: Composer not ready. Retrying with fallback url...');
+        await _controller.loadUrl(fallbackUrl);
+        await _waitForPageLoad(timeout: const Duration(seconds: 35));
+        chatReady = await _waitForComposerReady();
+      }
+      if (!chatReady) {
+        throw Exception('Chat is not ready for ${msg.phone} (normalized: $normalizedPhone).');
       }
 
       final messageTextJson = jsonEncode(msg.text);
