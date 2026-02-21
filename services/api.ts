@@ -926,10 +926,11 @@ export const removeBillingItemViaApi = async (appointmentId: string, itemId: str
   return payload.data;
 };
 
-export const getFinancialReportFromApi = async (params?: { from?: string; to?: string }): Promise<FinancialReportPayload> => {
+export const getFinancialReportFromApi = async (params?: { from?: string; to?: string; branchId?: string }): Promise<FinancialReportPayload> => {
   const query = new URLSearchParams();
   if (params?.from) query.set('from', params.from);
   if (params?.to) query.set('to', params.to);
+  if (params?.branchId) query.set('branch_id', params.branchId);
 
   const payload = await apiFetch<{ data: FinancialReportPayload }>(`/reports/financial${query.toString() ? `?${query.toString()}` : ''}`);
   return payload.data;

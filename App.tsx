@@ -9,6 +9,7 @@ import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointment
 import { setStoredUser } from './services/core/authSession';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
+import { PatientPortalApp } from './patient-portal/PatientPortalApp';
 
 import { useTranslation } from 'react-i18next';
 
@@ -30,6 +31,9 @@ const DATA_SOURCE_MODE: DataSourceMode = (() => {
 
 const HYBRID_ID_MAP_STORAGE_KEY = 'doctor:hybrid-id-map:v1';
 export default function App() {
+  if (window.location.pathname.startsWith('/patient-portal')) {
+    return <PatientPortalApp />;
+  }
   const { t } = useTranslation();
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
   const [user, setUser] = useState<User | null>(null);
