@@ -12,6 +12,7 @@ import { DoctorProfile } from '../../pages/DoctorProfile';
 import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
 import { DoctorPayrollReports } from '../../pages/DoctorPayrollReports';
+import { AppointmentMigration } from '../../pages/AppointmentMigration';
 import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
 import { DataSourceMode } from '../../services/api';
 
@@ -138,6 +139,15 @@ export function AppMainContent({
 
       {activeTab === 'doctor-payroll' && user && (
         <DoctorPayrollReports />
+      )}
+
+      {activeTab === 'appointment-migration' && user && (
+        <AppointmentMigration
+          currentUser={user}
+          activeBranchId={activeBranchId}
+          branches={branches}
+          onShiftApplied={onRefresh}
+        />
       )}
 
       {activeTab === 'patients' && (

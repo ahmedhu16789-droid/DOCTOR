@@ -40,6 +40,16 @@ export const common = {
     "workspace": "مساحة العمل",
     "management": "الإدارة",
     "finance": "المالية",
+    "appointment_migration": "ترحيل المواعيد",
+    "date": "التاريخ",
+    "migration_from_time": "من الساعة",
+    "migration_duration": "مدة الترحيل",
+    "migration_minutes": "{{count}} دقيقة",
+    "migration_submit": "تنفيذ الترحيل",
+    "migration_loading": "جاري الترحيل...",
+    "migration_success": "تم ترحيل {{count}} موعد بنجاح.",
+    "migration_validation": "اختر الطبيب والفرع أولاً.",
+    "migration_error": "تعذر تنفيذ الترحيل حالياً.",
 
     // Roles
     "ADMIN": "مدير النظام",
