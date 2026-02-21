@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { getLandingDir, resolveLandingLocale, translateLanding, type LandingLocale } from "@/lib/i18n";
 import { createPublicAppointment, getAvailableSlots, type BookingClinicContext } from "@/lib/publicBookingApi";
 import type { AppointmentPageData } from "@/types/landing";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -57,6 +58,10 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [confirmedTicket, setConfirmedTicket] = useState<BookingTicket | null>(null);
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
+  const [locale, setLocale] = useState<LandingLocale>("ar");
+
+  const t = (key: Parameters<typeof translateLanding>[1], variables?: Record<string, string>) => translateLanding(locale, key, variables);
+  const textDir = getLandingDir(locale);
 
   const doctors = useMemo(() => {
     if (!clinicContext?.doctors?.length) {
@@ -77,6 +82,11 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     setDoctorId(doctors[0]?.id ?? "");
     setSlot("");
   }, [doctorId, doctors]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setLocale(resolveLandingLocale(document.documentElement.lang || navigator.language));
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -332,7 +342,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
   return (
     <>
-      <div className="flex flex-col gap-8 p-6 md:p-8">
+      <div className="flex flex-col gap-8 p-6 md:p-8" dir={textDir}>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {clinicContext?.branches?.length ? (
             <Field label={data.ui.branchLabel}>

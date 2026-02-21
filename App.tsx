@@ -45,6 +45,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const patientsRef = React.useRef<Patient[]>([]);
+  const refreshInFlightRef = React.useRef(false);
+  const lastPollAtRef = React.useRef(0);
 
   const getSessionStorageKey = (suffix: string, userId?: string) => `doctor:${suffix}:${userId ?? 'guest'}`;
   const readCachedSessionData = (userId?: string): { appointments: Appointment[]; patients: Patient[]; branches: Branch[] } | null => {
@@ -79,6 +82,10 @@ export default function App() {
 
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    patientsRef.current = patients;
+  }, [patients]);
 
   // Initial Session Check
   const sessionInitializedRef = React.useRef(false);
@@ -116,21 +123,7 @@ export default function App() {
           setUser(currentUser);
           setView('APP');
 
-          // Always fetch fresh data from the API — never trust the cache on page reload
-          const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
-            getPatientsFromApi(),
-            getAppointmentsFromApi([]),
-            getBranchesFromApi(),
-          ]);
-          const patientById = new Map(freshPatients.map((p) => [p.id, p]));
-          const hydrated = freshAppointments.map((apt) => ({
-            ...apt,
-            patientName: patientById.get(apt.patientId)?.name ?? apt.patientName,
-          }));
-          setPatients(freshPatients);
-          setAppointments(hydrated);
-          setBranches(freshBranches);
-          writeCachedSessionData({ patients: freshPatients, appointments: hydrated, branches: freshBranches }, currentUser.id);
+          // Data loading is handled by the unified loadData effect to avoid duplicate initial fetches.
         }
       } catch (error) {
         if (!cachedUser) {
@@ -148,9 +141,19 @@ export default function App() {
 
 
   // Shared data-refresh function that can be called from polling, button click, or initial mount
-  const refreshData = React.useCallback(async () => {
+  const refreshData = React.useCallback(async (mode: 'full' | 'appointments-only' = 'full') => {
     if (!user) return;
+    if (refreshInFlightRef.current) return;
+
+    refreshInFlightRef.current = true;
+
     try {
+      if (mode === 'appointments-only') {
+        const freshAppointments = await getAppointmentsFromApi(patientsRef.current);
+        setAppointments(freshAppointments);
+        return;
+      }
+
       const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
         getPatientsFromApi(),
         getAppointmentsFromApi([]),
@@ -164,8 +167,11 @@ export default function App() {
       setPatients(freshPatients);
       setAppointments(hydrated);
       setBranches(freshBranches);
+      writeCachedSessionData({ patients: freshPatients, appointments: hydrated, branches: freshBranches }, user.id);
     } catch (err) {
       console.error('refreshData error:', err);
+    } finally {
+      refreshInFlightRef.current = false;
     }
   }, [user]);
 
@@ -277,12 +283,24 @@ export default function App() {
     }
   }, [user, view]);
 
-  // Data Polling (Auto-Sync) — updates every 5s without manual refresh
+  // Data Polling (Auto-Sync) — lightweight appointments sync with overlap protection
   useEffect(() => {
     if (!user || view !== 'APP') return;
-    const interval = setInterval(() => { refreshData(); }, 5000);
+
+    const interval = setInterval(() => {
+      const isVisible = typeof document === 'undefined' ? true : !document.hidden;
+      const supportsLivePolling = activeTab === 'dashboard' || activeTab === 'appointments';
+      const minIntervalMs = 20_000;
+
+      if (!isVisible || !supportsLivePolling) return;
+      if (Date.now() - lastPollAtRef.current < minIntervalMs) return;
+
+      lastPollAtRef.current = Date.now();
+      void refreshData('appointments-only');
+    }, 5_000);
+
     return () => clearInterval(interval);
-  }, [user, view, refreshData]);
+  }, [user, view, activeTab, refreshData]);
 
 
   const doctorCurrentShiftBranchId = useMemo(() => {
