@@ -24,7 +24,7 @@ Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::post('auth/access-links/consume', [AccessLinkController::class, 'consume']);
 
-    Route::prefix('public/booking')->group(function (): void {
+    Route::prefix('public/booking')->middleware('throttle:public-booking')->group(function (): void {
         Route::get('clinic-context', [PublicBookingController::class, 'clinicContext']);
         Route::get('available-slots', [PublicBookingController::class, 'availableSlots']);
         Route::post('', [PublicBookingController::class, 'store']);

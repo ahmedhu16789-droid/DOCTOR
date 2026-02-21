@@ -1,6 +1,6 @@
 export type BookingClinicContext = {
   clinic: {
-    id: number;
+    id: string;
     name: string;
     phone: string;
     hours: string;
@@ -9,20 +9,17 @@ export type BookingClinicContext = {
   branches: Array<{
     id: number;
     name: string;
-    location: string;
-    contact_phone: string;
   }>;
   doctors: Array<{
     id: number;
     name: string;
     specialty: string;
-    consultationFee: number;
     branchIds: number[];
   }>;
 };
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
-const PUBLIC_CLINIC_ID = process.env.NEXT_PUBLIC_PUBLIC_CLINIC_ID ?? "1";
+const PUBLIC_CLINIC_ID = process.env.NEXT_PUBLIC_PUBLIC_CLINIC_ID ?? "00000000-0000-0000-0000-000000000001";
 
 async function backendFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BACKEND_URL}${path}`, {
@@ -43,16 +40,16 @@ async function backendFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function getClinicContext(): Promise<BookingClinicContext | null> {
   try {
-    const payload = await backendFetch<{ data: BookingClinicContext }>(`/api/v1/public/booking/clinic-context?clinicId=${PUBLIC_CLINIC_ID}`);
+    const payload = await backendFetch<{ data: BookingClinicContext }>(`/api/v1/public/booking/clinic-context?clinicPublicId=${PUBLIC_CLINIC_ID}`);
     return payload.data;
   } catch {
     return null;
   }
 }
 
-export async function getAvailableSlots(params: { clinicId: number; doctorId: number; branchId: number; date: string }) {
+export async function getAvailableSlots(params: { clinicPublicId: string; doctorId: number; branchId: number; date: string }) {
   const query = new URLSearchParams({
-    clinicId: String(params.clinicId),
+    clinicPublicId: params.clinicPublicId,
     doctorId: String(params.doctorId),
     branchId: String(params.branchId),
     date: params.date,
@@ -63,7 +60,7 @@ export async function getAvailableSlots(params: { clinicId: number; doctorId: nu
 }
 
 export async function createPublicAppointment(payload: {
-  clinicId: number;
+  clinicPublicId: string;
   doctorId: number;
   branchId: number;
   date: string;
@@ -80,4 +77,3 @@ export async function createPublicAppointment(payload: {
     body: JSON.stringify(payload),
   });
 }
-
