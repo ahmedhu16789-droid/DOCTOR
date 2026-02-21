@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\PatientResource;
 use App\Models\Patient;
+use App\Models\SensitiveAuditLog;
 use App\Support\ApiCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class PatientController extends Controller
 
         $patients = Patient::query()
                 ->select(['id', 'clinic_id', 'name', 'phone', 'gender', 'age', 'medical_history_summary', 'created_at'])
-                ->with(['appointments:id,patient_id,date,status'])
+                ->with(['appointments:id,patient_id,date,status', 'consents:id,patient_id,consent_type,granted,granted_at'])
                 ->when(
                     $request->filled('phone'),
                     fn ($query) => $query->where('phone', 'like', '%'.$phone.'%')
@@ -106,6 +107,10 @@ class PatientController extends Controller
             'age' => ['required', 'integer', 'min:0', 'max:120'],
             'medicalHistorySummary' => ['nullable', 'string', 'max:2000'],
             'portalPassword' => ['nullable', 'string', 'min:6', 'max:100'],
+            'consents' => ['nullable', 'array'],
+            'consents.treatment' => ['nullable', 'boolean'],
+            'consents.privacy' => ['nullable', 'boolean'],
+            'consents.communication' => ['nullable', 'boolean'],
         ]);
 
         $patient = Patient::create([
@@ -118,8 +123,53 @@ class PatientController extends Controller
             'portal_password' => $validated['portalPassword'] ?? null,
         ]);
 
+        $consentMap = [
+            'treatment' => (bool) data_get($validated, 'consents.treatment', false),
+            'privacy' => (bool) data_get($validated, 'consents.privacy', false),
+            'communication' => (bool) data_get($validated, 'consents.communication', false),
+        ];
+
+        foreach ($consentMap as $type => $granted) {
+            $patient->consents()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'consent_type' => $type,
+                'granted' => $granted,
+                'granted_at' => $granted ? now() : null,
+            ]);
+        }
+
+        $patient->load('consents:id,patient_id,consent_type,granted,granted_at');
+
         ApiCache::bump('patients.index', $request->user()->clinic_id);
 
         return response()->json(new PatientResource($patient), 201);
+    }
+
+    public function auditTimeline(Request $request, Patient $patient): JsonResponse
+    {
+        abort_unless(in_array((string) $request->user()?->role, ['ADMIN', 'BRANCH_MANAGER', 'DOCTOR', 'NURSE'], true), 403);
+        abort_unless((int) $patient->clinic_id === (int) $request->user()->clinic_id, 404);
+
+        $timeline = SensitiveAuditLog::query()
+            ->with('actor:id,name')
+            ->where('clinic_id', $request->user()->clinic_id)
+            ->where('patient_id', $patient->id)
+            ->latest('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (SensitiveAuditLog $log) => [
+                'id' => (string) $log->id,
+                'actionType' => $log->action_type,
+                'targetRecordType' => $log->target_record_type,
+                'targetRecordId' => (string) $log->target_record_id,
+                'timestamp' => optional($log->created_at)?->toIso8601String(),
+                'actor' => [
+                    'id' => (string) $log->actor_user_id,
+                    'name' => $log->actor?->name ?? 'System',
+                ],
+            ])
+            ->values();
+
+        return response()->json(['data' => $timeline]);
     }
 }

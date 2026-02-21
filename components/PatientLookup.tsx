@@ -23,6 +23,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
   const [newPhone, setNewPhone] = useState('');
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState<'Male' | 'Female'>('Male');
+  const [consentTreatment, setConsentTreatment] = useState(false);
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentCommunication, setConsentCommunication] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(async () => {
@@ -103,7 +106,12 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
         phone: newPhone,
         age: Number.parseInt(newAge, 10),
         gender: newGender,
-        medicalHistorySummary: 'New Patient'
+        medicalHistorySummary: 'New Patient',
+        consents: {
+          treatment: consentTreatment,
+          privacy: consentPrivacy,
+          communication: consentCommunication,
+        }
       });
 
       if (created) {
@@ -114,6 +122,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
       setNewName('');
       setNewPhone('');
       setNewAge('');
+      setConsentTreatment(false);
+      setConsentPrivacy(false);
+      setConsentCommunication(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -235,6 +246,22 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
               </div>
             </div>
 
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700">{t('consent_preferences')}</p>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={consentTreatment} onChange={(e) => setConsentTreatment(e.target.checked)} />
+                {t('consent_treatment')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={consentPrivacy} onChange={(e) => setConsentPrivacy(e.target.checked)} />
+                {t('consent_privacy')}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={consentCommunication} onChange={(e) => setConsentCommunication(e.target.checked)} />
+                {t('consent_communication')}
+              </label>
+            </div>
+
             <div className="flex space-x-3 pt-4">
               <button
                 type="button"
@@ -244,6 +271,9 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
                   setNewName('');
                   setNewPhone('');
                   setNewAge('');
+                  setConsentTreatment(false);
+                  setConsentPrivacy(false);
+                  setConsentCommunication(false);
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >

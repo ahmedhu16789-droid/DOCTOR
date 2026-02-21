@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle, ChevronLeft } from 'lucide-react';
+import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getMedicalEncounterFromApi, MedicalEncounterWithHistory } from '../services/api';
-import { Appointment, AppointmentStatus, Patient, PaymentStatus } from '../types';
+import { getMedicalEncounterFromApi, getPatientAuditTimelineFromApi, MedicalEncounterWithHistory, AuditTimelineEntry } from '../services/api';
+import { Appointment, AppointmentStatus, Patient, PaymentStatus, UserRole } from '../types';
 import { formatTimeTo12Hour } from '../utils/time';
 
 interface PatientsRecordsProps {
@@ -10,6 +10,7 @@ interface PatientsRecordsProps {
   appointments: Appointment[];
   selectedPatientId: string | null;
   onSelectPatient: (patientId: string | null) => void;
+  currentUserRole?: UserRole;
 }
 
 const dateTimeValue = (appointment: Appointment) => new Date(`${appointment.date}T${appointment.timeSlot}`).getTime();
@@ -58,11 +59,18 @@ export function PatientsRecords({
   appointments,
   selectedPatientId,
   onSelectPatient,
+  currentUserRole,
 }: PatientsRecordsProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [visitEncounters, setVisitEncounters] = useState<Record<string, MedicalEncounterWithHistory['data']>>({});
   const detailsRef = useRef<HTMLDivElement | null>(null);
+  const [auditTimeline, setAuditTimeline] = useState<AuditTimelineEntry[]>([]);
+
+  const canViewAuditTimeline = useMemo(
+    () => currentUserRole ? [UserRole.ADMIN, UserRole.BRANCH_MANAGER, UserRole.DOCTOR, UserRole.NURSE].includes(currentUserRole) : false,
+    [currentUserRole],
+  );
 
   const filteredPatients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -138,6 +146,29 @@ export function PatientsRecords({
       active = false;
     };
   }, [selectedPatientVisits]);
+
+  useEffect(() => {
+    let active = true;
+    if (!selectedPatientId || !canViewAuditTimeline) {
+      setAuditTimeline([]);
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadAudit = async () => {
+      const timeline = await getPatientAuditTimelineFromApi(selectedPatientId);
+      if (active) {
+        setAuditTimeline(timeline);
+      }
+    };
+
+    void loadAudit();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedPatientId, canViewAuditTimeline]);
 
   return (
     <div className="space-y-6">
@@ -421,6 +452,28 @@ export function PatientsRecords({
               <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
                 <UserRoundSearch className="w-8 h-8 mx-auto mb-3 text-gray-400" />
                 {t('no_visits_for_patient')}
+              </div>
+            )}
+
+            {canViewAuditTimeline && (
+              <div className="mt-6 rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldCheck className="w-4 h-4 text-gray-600" />
+                  <h4 className="text-sm font-semibold text-gray-800">Audit Timeline</h4>
+                </div>
+                {auditTimeline.length === 0 ? (
+                  <p className="text-sm text-gray-500">No sensitive activity logged yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {auditTimeline.map((event) => (
+                      <li key={event.id} className="rounded-md bg-gray-50 px-3 py-2 text-sm">
+                        <p className="font-medium text-gray-900">{event.actionType}</p>
+                        <p className="text-gray-600">Actor: {event.actor.name} • Target: {event.targetRecordType} #{event.targetRecordId}</p>
+                        <p className="text-xs text-gray-500">{new Date(event.timestamp).toLocaleString()}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

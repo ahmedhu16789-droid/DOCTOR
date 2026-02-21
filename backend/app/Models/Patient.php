@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Appointment;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Patient extends Authenticatable
 {
@@ -36,5 +37,15 @@ class Patient extends Authenticatable
     public function appointments(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function consents(): HasMany
+    {
+        return $this->hasMany(PatientConsent::class);
+    }
+
+    public function sensitiveAuditLogs(): HasMany
+    {
+        return $this->hasMany(SensitiveAuditLog::class);
     }
 }

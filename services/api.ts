@@ -140,6 +140,23 @@ interface ApiPatient {
     nameSimilarity: number;
     phoneExact: boolean;
   };
+  consents?: {
+    treatment: boolean;
+    privacy: boolean;
+    communication: boolean;
+  };
+}
+
+export interface AuditTimelineEntry {
+  id: string;
+  actionType: string;
+  targetRecordType: string;
+  targetRecordId: string;
+  timestamp: string;
+  actor: {
+    id: string;
+    name: string;
+  };
 }
 
 interface ApiBranch {
@@ -469,6 +486,7 @@ const normalizePatient = (patient: ApiPatient): Patient => ({
   lastVisit: patient.lastVisit ?? '-',
   balance: 0,
   duplicateHint: patient.duplicateHint,
+  consents: patient.consents,
 });
 
 const mapAppointmentType = (status: AppointmentStatus): 'Consultation' | 'Follow-up' | 'Procedure' => {
@@ -716,7 +734,14 @@ export const lookupPatientsByPhoneFromApi = async (phone: string, name?: string)
   return patients;
 };
 
-export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone' | 'age' | 'gender'> & { medicalHistorySummary?: string }): Promise<Patient> => {
+export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone' | 'age' | 'gender'> & {
+  medicalHistorySummary?: string;
+  consents?: {
+    treatment: boolean;
+    privacy: boolean;
+    communication: boolean;
+  };
+}): Promise<Patient> => {
   const payload = await apiFetch<ApiPatient>('/patients', {
     method: 'POST',
     body: JSON.stringify(patient),
@@ -724,6 +749,11 @@ export const createPatientViaApi = async (patient: Pick<Patient, 'name' | 'phone
   console.log('createPatientViaApi payload:', payload);
 
   return normalizePatient(payload);
+};
+
+export const getPatientAuditTimelineFromApi = async (patientId: string): Promise<AuditTimelineEntry[]> => {
+  const payload = await apiFetch<{ data: AuditTimelineEntry[] }>(`/patients/${patientId}/audit-timeline`);
+  return payload.data ?? [];
 };
 
 

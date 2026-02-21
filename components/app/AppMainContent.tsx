@@ -159,6 +159,7 @@ export function AppMainContent({
           appointments={allAppointments}
           selectedPatientId={selectedPatientId}
           onSelectPatient={onSelectPatient}
+          currentUserRole={user?.role}
         />
       )}
     </>
