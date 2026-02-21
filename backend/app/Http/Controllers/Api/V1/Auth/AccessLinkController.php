@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Actions\Auth\CreateOneTimeAccessLinkAction;
 use App\Http\Controllers\Controller;
 use App\Models\OneTimeAccessLink;
 use App\Models\User;
@@ -10,11 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AccessLinkController extends Controller
 {
-    public function create(Request $request): JsonResponse
+    public function create(Request $request, CreateOneTimeAccessLinkAction $createOneTimeAccessLink): JsonResponse
     {
         $validated = $request->validate([
             'userId' => ['required', 'integer', 'exists:users,id'],
@@ -29,33 +29,13 @@ class AccessLinkController extends Controller
             return response()->json(['message' => 'Target user must have an email.'], 422);
         }
 
-        $token = Str::random(64);
-        $tokenHash = hash('sha256', $token);
-        $now = Carbon::now();
-        $expiresAt = $now->copy()->addHours(24);
-
-        DB::transaction(function () use ($targetUser, $actor, $now, $expiresAt, $tokenHash): void {
-            OneTimeAccessLink::query()
-                ->where('user_id', $targetUser->id)
-                ->whereNull('used_at')
-                ->whereNull('revoked_at')
-                ->update(['revoked_at' => $now]);
-
-            OneTimeAccessLink::query()->create([
-                'clinic_id' => $targetUser->clinic_id,
-                'user_id' => $targetUser->id,
-                'created_by' => $actor->id,
-                'email' => mb_strtolower($targetUser->email),
-                'token_hash' => $tokenHash,
-                'expires_at' => $expiresAt,
-            ]);
-        });
+        $payload = DB::transaction(fn (): array => $createOneTimeAccessLink->execute($targetUser, $actor));
 
         return response()->json([
-            'token' => $token,
-            'expiresAt' => $expiresAt->toIso8601String(),
-            'userId' => (string) $targetUser->id,
-            'email' => $targetUser->email,
+            'token' => $payload['token'],
+            'expiresAt' => $payload['expiresAt']->toIso8601String(),
+            'userId' => $payload['userId'],
+            'email' => $payload['email'],
         ], 201);
     }
 
