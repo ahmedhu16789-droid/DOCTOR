@@ -42,7 +42,7 @@ class AppointmentController extends Controller
         //     fn () => Appointment::query()
         $appointments = Appointment::query()
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status', 'check_in_at', 'called_at', 'started_at', 'completed_at', 'no_show_at'])
-                ->with(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
+                ->with(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status,lifecycle_state', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
@@ -239,7 +239,7 @@ class AppointmentController extends Controller
             'status' => 'SCHEDULED',
         ]);
 
-        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -285,7 +285,7 @@ class AppointmentController extends Controller
         }
 
         $appointment->save();
-        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -352,7 +352,7 @@ class AppointmentController extends Controller
                 'added_by' => $request->user()->id,
             ]);
 
-            return $appointment->load('invoice.items');
+            return $appointment->load('invoice.items', 'invoice.auditLogs.actor:id,name');
         });
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);

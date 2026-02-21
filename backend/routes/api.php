@@ -61,8 +61,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'show']);
         Route::put('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'upsert']);
         Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
-        Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
+        Route::patch('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'updateItem']);
         Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
+        Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
+        Route::post('appointments/{appointment}/billing/finalize', [AppointmentBillingController::class, 'finalize']);
+        Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
+        Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);

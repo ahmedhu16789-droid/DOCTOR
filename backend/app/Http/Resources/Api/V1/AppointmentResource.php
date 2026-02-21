@@ -12,6 +12,7 @@ class AppointmentResource extends JsonResource
     {
         $timezone = data_get($this->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
         $now = now()->timezone($timezone);
+        $canViewAuditHistory = in_array((string) $request->user()?->role, ['FINANCE_ADMIN', 'ADMIN'], true);
 
         $scheduledStart = null;
         if ($this->date && $this->time_slot) {
@@ -62,6 +63,7 @@ class AppointmentResource extends JsonResource
                 'total' => (float) ($this->invoice?->total ?? 0),
                 'paidAmount' => (float) ($this->invoice?->paid_amount ?? 0),
                 'status' => $this->invoice?->status ?? 'UNPAID',
+                'lifecycleState' => $this->invoice?->lifecycle_state ?? 'DRAFT',
                 'items' => $this->invoice?->items?->map(fn ($item) => [
                     'id' => (string) $item->id,
                     'serviceId' => $item->service_id,
@@ -79,6 +81,22 @@ class AppointmentResource extends JsonResource
                     'reference' => null,
                     'type' => ((float) $transaction->amount) < 0 ? 'REFUND' : 'PAYMENT',
                 ])->values() ?? [],
+                'auditHistory' => $canViewAuditHistory
+                    ? ($this->invoice?->auditLogs?->map(fn ($log) => [
+                        'id' => (string) $log->id,
+                        'actionType' => $log->action_type,
+                        'targetEntityType' => $log->target_entity_type,
+                        'targetEntityId' => $log->target_entity_id,
+                        'beforeSnapshot' => $log->before_snapshot,
+                        'afterSnapshot' => $log->after_snapshot,
+                        'reason' => $log->reason,
+                        'occurredAt' => optional($log->occurred_at)->toIso8601String(),
+                        'actor' => [
+                            'id' => (string) ($log->actor?->id ?? ''),
+                            'name' => $log->actor?->name,
+                        ],
+                    ])->values() ?? [])
+                    : [],
             ],
             'encounterStatus' => $this->encounter?->status,
         ];
