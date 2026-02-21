@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\CashSession;
 use App\Models\FinancialAuditLog;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
@@ -138,9 +139,22 @@ class AppointmentBillingController extends Controller
             $this->recalculateInvoice($invoice);
 
             $payments->each(function (array $payment) use ($request, $appointment, $invoice, $validated): void {
+                $method = strtoupper((string) ($payment['method'] ?? 'CASH'));
+                $activeCashSessionId = null;
+
+                if ($method === 'CASH') {
+                    $activeCashSessionId = CashSession::query()
+                        ->where('clinic_id', $request->user()->clinic_id)
+                        ->where('branch_id', $appointment->branch_id)
+                        ->where('status', 'OPEN')
+                        ->latest('opened_at')
+                        ->value('id');
+                }
+
                 $transaction = Transaction::query()->create([
                     'clinic_id' => $request->user()->clinic_id,
                     'invoice_id' => $invoice->id,
+                    'cash_session_id' => $activeCashSessionId,
                     'amount' => (float) $payment['amount'],
                     'method' => $payment['method'] ?? null,
                     'metadata' => [

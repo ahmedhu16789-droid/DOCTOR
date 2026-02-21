@@ -14,6 +14,7 @@ class Transaction extends Model
     protected $fillable = [
         'clinic_id',
         'invoice_id',
+        'cash_session_id',
         'amount',
         'method',
         'metadata',
@@ -31,5 +32,10 @@ class Transaction extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(CashSession::class);
     }
 }

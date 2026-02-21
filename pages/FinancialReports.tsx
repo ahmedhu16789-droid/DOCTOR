@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DollarSign, TrendingUp, PieChart, Download, Building2 } from 'lucide-react';
-import { FinancialReportPayload, getFinancialReportFromApi } from '../services/api';
+import { FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { Branch } from '../types';
 
 export const FinancialReports: React.FC = () => {
     const { t } = useTranslation();
     const [report, setReport] = useState<FinancialReportPayload | null>(null);
+    const [reconciliationRows, setReconciliationRows] = useState<ReconciliationSummaryRecord[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
 
@@ -14,8 +19,12 @@ export const FinancialReports: React.FC = () => {
         const loadReport = async () => {
             try {
                 setIsLoading(true);
-                const payload = await getFinancialReportFromApi();
+                const [payload, branchRows] = await Promise.all([
+                    getFinancialReportFromApi(),
+                    getBranchesFromApi(),
+                ]);
                 setReport(payload);
+                setBranches(branchRows);
             } catch (error) {
                 console.error('Failed to load financial report', error);
                 setErrorMessage('Failed to load financial report');
@@ -26,6 +35,22 @@ export const FinancialReports: React.FC = () => {
 
         loadReport();
     }, []);
+
+    useEffect(() => {
+        const loadReconciliation = async () => {
+            try {
+                const rows = await getReconciliationReportFromApi({
+                    branchId: selectedBranchId || undefined,
+                    date: selectedDate,
+                });
+                setReconciliationRows(rows);
+            } catch (error) {
+                console.error('Failed to load reconciliation report', error);
+            }
+        };
+
+        loadReconciliation();
+    }, [selectedBranchId, selectedDate]);
 
     const stats = useMemo(() => {
         if (!report) {
@@ -126,6 +151,59 @@ export const FinancialReports: React.FC = () => {
                             </div>
                         ))}
                     </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+                    <h3 className="font-bold text-gray-900">Branch/day cash reconciliation</h3>
+                    <div className="flex gap-2">
+                        <select
+                            value={selectedBranchId}
+                            onChange={(event) => setSelectedBranchId(event.target.value)}
+                            className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                        >
+                            <option value="">All branches</option>
+                            {branches.map((branch) => (
+                                <option key={branch.id} value={branch.id}>{branch.name}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(event) => setSelectedDate(event.target.value)}
+                            className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                        />
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Branch</th>
+                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Opening</th>
+                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Expected</th>
+                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Collected</th>
+                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {reconciliationRows.map((row) => (
+                                <tr key={row.id}>
+                                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{row.branchName}</td>
+                                    <td className="px-6 py-4 text-sm text-right">{row.openingBalance.toLocaleString()} EGP</td>
+                                    <td className="px-6 py-4 text-sm text-right">{row.expectedCash.toLocaleString()} EGP</td>
+                                    <td className="px-6 py-4 text-sm text-right">{row.collectedCash.toLocaleString()} EGP</td>
+                                    <td className={`px-6 py-4 text-sm text-right font-semibold ${row.variance === 0 ? 'text-gray-700' : row.variance > 0 ? 'text-emerald-600' : 'text-red-600'}`}>{row.variance.toLocaleString()} EGP</td>
+                                </tr>
+                            ))}
+                            {reconciliationRows.length === 0 && (
+                                <tr>
+                                    <td className="px-6 py-6 text-sm text-gray-500" colSpan={5}>No reconciliation rows found for the selected filters.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
