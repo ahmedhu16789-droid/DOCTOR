@@ -1,16 +1,42 @@
-# doctor_admin_app
+# Doctor Admin App
 
-A new Flutter project.
+تطبيق Flutter يعرض لوحة التحكم داخل WebView بشكل قابل للتشغيل محليًا وفي بيئة الإنتاج.
 
-## Getting Started
+## Architecture
 
-This project is a starting point for a Flutter application.
+- `lib/config/app_config.dart`: مسؤول عن قراءة رابط لوحة التحكم من متغيرات البيئة.
+- `lib/features/admin_webview/presentation/admin_webview_page.dart`: شاشة الـ WebView مع تحميل، إعادة تحميل، وسحب للتحديث.
+- `lib/app/app.dart`: تجميع إعدادات التطبيق وربطها بالشاشة الرئيسية.
+- `lib/main.dart`: نقطة تشغيل التطبيق وحقن الإعدادات.
 
-A few resources to get you started if this is your first Flutter project:
+## Run
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Dev URL (default)
+بدون أي إعدادات إضافية، التطبيق يفتح:
+
+```text
+http://localhost:3000/
+```
+
+### Production URL
+مرّر الدومين وقت البناء أو التشغيل باستخدام `--dart-define`:
+
+```bash
+flutter run --dart-define=ADMIN_PANEL_URL=https://admin.example.com/
+```
+
+أو وقت الـ build:
+
+```bash
+flutter build apk --dart-define=ADMIN_PANEL_URL=https://admin.example.com/
+```
+
+## Platform Notes
+
+- Android: تم تفعيل `INTERNET` + `usesCleartextTraffic=true` لدعم localhost أثناء التطوير.
+- iOS: تم تفعيل `NSAllowsArbitraryLoadsInWebContent` لدعم روابط HTTP داخل WebView أثناء التطوير.
