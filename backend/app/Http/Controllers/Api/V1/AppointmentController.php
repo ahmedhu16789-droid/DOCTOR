@@ -41,8 +41,8 @@ class AppointmentController extends Controller
         //     md5(json_encode($filters)),
         //     fn () => Appointment::query()
         $appointments = Appointment::query()
-                ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status'])
-                ->with(['doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
+                ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status', 'check_in_at', 'called_at', 'started_at', 'completed_at', 'no_show_at'])
+                ->with(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'encounter:id,appointment_id,status'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
@@ -239,7 +239,7 @@ class AppointmentController extends Controller
             'status' => 'SCHEDULED',
         ]);
 
-        $appointment->load(['doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -258,19 +258,26 @@ class AppointmentController extends Controller
 
         $appointment->status = $status;
 
+        if ($status === 'WAITING' && ! $appointment->check_in_at) {
+            $appointment->check_in_at = now();
+        }
+
         if ($status === 'CALLED' && ! $appointment->called_at) {
             $appointment->called_at = now();
+            $appointment->check_in_at = $appointment->check_in_at ?? now();
         }
 
         if ($status === 'IN_PROGRESS') {
             $appointment->started_at = $appointment->started_at ?? now();
             $appointment->called_at = $appointment->called_at ?? now();
+            $appointment->check_in_at = $appointment->check_in_at ?? $appointment->called_at;
         }
 
         if ($status === 'COMPLETED') {
             $appointment->completed_at = now();
             $appointment->started_at = $appointment->started_at ?? now();
             $appointment->called_at = $appointment->called_at ?? $appointment->started_at;
+            $appointment->check_in_at = $appointment->check_in_at ?? $appointment->called_at;
         }
 
         if ($status === 'NO_SHOW') {
@@ -278,7 +285,7 @@ class AppointmentController extends Controller
         }
 
         $appointment->save();
-        $appointment->load(['doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 

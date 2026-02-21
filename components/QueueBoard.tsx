@@ -9,17 +9,38 @@ interface QueueBoardProps {
   onStatusChange: (id: string, status: AppointmentStatus) => void;
 }
 
-const StatusColumn = ({ 
-  title, 
-  items, 
+const getMetricLabel = (appointment: Appointment, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
+  if (appointment.status === AppointmentStatus.CANCELLED || appointment.status === AppointmentStatus.NO_SHOW) {
+    return null;
+  }
+
+  if (appointment.status === AppointmentStatus.IN_PROGRESS && appointment.queueMetrics?.serviceMinutes != null) {
+    return t('queue_board.service_time', { minutes: appointment.queueMetrics.serviceMinutes });
+  }
+
+  if ((appointment.status === AppointmentStatus.WAITING || appointment.status === AppointmentStatus.SCHEDULED || appointment.status === AppointmentStatus.CALLED)
+    && appointment.queueMetrics?.waitingMinutes != null) {
+    return t('queue_board.waiting_time', { minutes: appointment.queueMetrics.waitingMinutes });
+  }
+
+  if (appointment.queueMetrics?.delayMinutes != null && appointment.queueMetrics.delayMinutes > 0) {
+    return t('queue_board.delay_time', { minutes: appointment.queueMetrics.delayMinutes });
+  }
+
+  return null;
+};
+
+const StatusColumn = ({
+  title,
+  items,
   color,
   icon: Icon,
   onStatusChange,
   nextStatus,
   t
-}: { 
-  title: string, 
-  items: Appointment[], 
+}: {
+  title: string,
+  items: Appointment[],
   color: string,
   icon: any,
   onStatusChange: (id: string, status: AppointmentStatus) => void,
@@ -35,7 +56,10 @@ const StatusColumn = ({
       {items.length === 0 && (
         <div className="text-center py-8 text-gray-400 italic text-sm">{t('queue_board.empty')}</div>
       )}
-      {items.map(apt => (
+      {items.map(apt => {
+        const metricLabel = getMetricLabel(apt, t);
+
+        return (
         <div key={apt.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-2">
             <div>
@@ -49,22 +73,20 @@ const StatusColumn = ({
             )}
           </div>
           <p className="text-xs text-gray-500 mb-3">{apt.department} • {apt.doctorName}</p>
-          
+
           <div className="flex justify-between items-center">
-             <div className="text-xs text-gray-400">
-               {apt.status === AppointmentStatus.WAITING && t('queue_board.waiting_time', { minutes: 15 })}
-             </div>
-             {nextStatus && (
-               <button 
+            <div className="text-xs text-gray-500 min-h-4">{metricLabel}</div>
+            {nextStatus && (
+              <button
                 onClick={() => onStatusChange(apt.id, nextStatus)}
                 className="text-xs bg-primary-50 text-primary-700 hover:bg-primary-100 px-3 py-1.5 rounded-md font-medium transition-colors"
-               >
-                 {t('queue_board.move_to', { status: t(`queue_board.status.${nextStatus}`) })}
-               </button>
-             )}
+              >
+                {t('queue_board.move_to', { status: t(`queue_board.status.${nextStatus}`) })}
+              </button>
+            )}
           </div>
         </div>
-      ))}
+      )})}
     </div>
   </div>
 );
@@ -77,27 +99,27 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({ appointments, onStatusCh
 
   return (
     <div className="flex overflow-x-auto pb-4 gap-4 h-[calc(100vh-200px)]">
-      <StatusColumn 
+      <StatusColumn
         title={t('queue_board.column.waiting_room')}
-        items={waiting} 
+        items={waiting}
         color="border-amber-400 text-amber-600"
         icon={Clock}
         onStatusChange={onStatusChange}
         nextStatus={AppointmentStatus.IN_PROGRESS}
         t={t}
       />
-      <StatusColumn 
+      <StatusColumn
         title={t('queue_board.column.in_progress')}
-        items={inProgress} 
+        items={inProgress}
         color="border-blue-500 text-blue-600"
         icon={PlayCircle}
         onStatusChange={onStatusChange}
         nextStatus={AppointmentStatus.COMPLETED}
         t={t}
       />
-      <StatusColumn 
+      <StatusColumn
         title={t('queue_board.column.completed')}
-        items={completed} 
+        items={completed}
         color="border-emerald-500 text-emerald-600"
         icon={CheckCircle}
         onStatusChange={onStatusChange}

@@ -35,6 +35,17 @@ interface ApiAppointment {
   date: string;
   timeSlot: string;
   status: AppointmentStatus;
+  scheduledStartAt?: string | null;
+  checkInAt?: string | null;
+  calledAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  noShowAt?: string | null;
+  queueMetrics?: {
+    waitingMinutes?: number | null;
+    serviceMinutes?: number | null;
+    delayMinutes?: number | null;
+  };
   billing: {
     total: number;
     paidAmount: number;
@@ -370,6 +381,13 @@ const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[] =
     department: doctor?.specialty ?? Department.INTERNAL_MEDICINE,
     status: appointment.status,
     type: mapAppointmentType(appointment.status),
+    scheduledStartAt: appointment.scheduledStartAt,
+    checkInAt: appointment.checkInAt,
+    calledAt: appointment.calledAt,
+    startedAt: appointment.startedAt,
+    completedAt: appointment.completedAt,
+    noShowAt: appointment.noShowAt,
+    queueMetrics: appointment.queueMetrics,
     createdAt: new Date().toISOString(),
     billing: {
       items: (appointment.billing.items ?? []).map((item) => ({

@@ -28,6 +28,28 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
     .filter((a) => filterDoc === 'ALL' || a.doctorId === filterDoc)
     .sort((left, right) => left.timeSlot.localeCompare(right.timeSlot));
 
+
+  const getQueueMeta = (appointment: Appointment): string | null => {
+    if (appointment.status === AppointmentStatus.CANCELLED || appointment.status === AppointmentStatus.NO_SHOW) {
+      return null;
+    }
+
+    if (appointment.status === AppointmentStatus.IN_PROGRESS && appointment.queueMetrics?.serviceMinutes != null) {
+      return `${t('service')}: ${appointment.queueMetrics.serviceMinutes}m`;
+    }
+
+    if (appointment.queueMetrics?.waitingMinutes != null
+      && [AppointmentStatus.SCHEDULED, AppointmentStatus.WAITING, AppointmentStatus.CALLED].includes(appointment.status)) {
+      return `${t('waiting')}: ${appointment.queueMetrics.waitingMinutes}m`;
+    }
+
+    if (appointment.queueMetrics?.delayMinutes != null && appointment.queueMetrics.delayMinutes > 0) {
+      return `${t('delay')}: ${appointment.queueMetrics.delayMinutes}m`;
+    }
+
+    return null;
+  };
+
   const waiting = filtered.filter(a => a.status === AppointmentStatus.WAITING);
   const inProgress = filtered.filter(a => a.status === AppointmentStatus.IN_PROGRESS);
   const called = filtered.filter(a => a.status === AppointmentStatus.CALLED);
@@ -190,6 +212,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
                    `}>
                     {t(apt.status)}
                   </span>
+                  {getQueueMeta(apt) && <div className="text-xs text-gray-500 mt-1">{getQueueMeta(apt)}</div>}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getPaymentStatusBadge(apt.billing)}

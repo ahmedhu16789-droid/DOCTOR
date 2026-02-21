@@ -45,6 +45,8 @@ export const booking = {
     "queue_board.move_to": "Move to {{status}}",
     "queue_board.procedure_badge": "Procedure",
     "queue_board.waiting_time": "Waiting {{minutes}}m",
+    "queue_board.service_time": "Service {{minutes}}m",
+    "queue_board.delay_time": "Delayed {{minutes}}m",
     "queue_board.status.IN_PROGRESS": "In Progress",
     "queue_board.status.COMPLETED": "Completed",
 

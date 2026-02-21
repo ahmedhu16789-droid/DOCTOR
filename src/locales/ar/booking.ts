@@ -45,6 +45,8 @@ export const booking = {
     "queue_board.move_to": "نقل إلى {{status}}",
     "queue_board.procedure_badge": "إجراء",
     "queue_board.waiting_time": "منتظر منذ {{minutes}} د",
+    "queue_board.service_time": "الخدمة {{minutes}} د",
+    "queue_board.delay_time": "متأخر {{minutes}} د",
     "queue_board.status.IN_PROGRESS": "قيد التنفيذ",
     "queue_board.status.COMPLETED": "مكتمل",
 
