@@ -7,6 +7,23 @@ import { createPublicAppointment, getAvailableSlots, type BookingClinicContext }
 import type { AppointmentPageData } from "@/types/landing";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+const BOOKING_DRAFT_KEY = "doctor_booking_draft";
+const BOOKING_TICKET_KEY = "doctor_booking_ticket";
+
+type BookingTicket = {
+  bookingId: string;
+  branchName: string;
+  specialty: string;
+  doctorName: string;
+  date: string;
+  slot: string;
+  fullName: string;
+  phone: string;
+  age: string;
+  gender: string;
+  confirmedAt: string;
+};
+
 export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData; clinicContext: BookingClinicContext | null }) {
   const specialties = useMemo(() => {
     const apiSpecialties = Array.from(new Set((clinicContext?.doctors ?? []).map((doctor) => doctor.specialty).filter(Boolean)));
@@ -26,6 +43,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [confirmedTicket, setConfirmedTicket] = useState<BookingTicket | null>(null);
 
   const doctors = useMemo(() => {
     if (!clinicContext?.doctors?.length) {
@@ -42,6 +60,57 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     setDoctorId(doctors[0]?.id ?? "");
     setSlot("");
   }, [doctors]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedDraft = window.sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    const savedTicket = window.sessionStorage.getItem(BOOKING_TICKET_KEY);
+
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft) as Partial<BookingTicket> & { doctorId?: string; branchId?: string };
+        setSpecialty(draft.specialty ?? specialty);
+        setDoctorId(draft.doctorId ?? "");
+        setBranchId(draft.branchId ?? branchId);
+        setSelectedDate(draft.date ?? selectedDate);
+        setSlot(draft.slot ?? "");
+        setFullName(draft.fullName ?? "");
+        setPhone(draft.phone ?? "");
+        setAge(draft.age ?? "");
+        setGender(draft.gender ?? gender);
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+      }
+    }
+
+    if (savedTicket) {
+      try {
+        setConfirmedTicket(JSON.parse(savedTicket) as BookingTicket);
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_TICKET_KEY);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const draft = {
+      specialty,
+      doctorId,
+      branchId,
+      date: selectedDate,
+      slot,
+      fullName,
+      phone,
+      age,
+      gender,
+    };
+
+    window.sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  }, [age, branchId, doctorId, fullName, gender, phone, selectedDate, slot, specialty]);
 
   useEffect(() => {
     if (!clinicContext || !doctorId || !branchId || !selectedDate) {
@@ -101,12 +170,83 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
         },
       });
 
+      const selectedBranchName = clinicContext.branches.find((branch) => String(branch.id) === branchId)?.name ?? "-";
+      const selectedDoctorName = doctors.find((doctor) => doctor.id === doctorId)?.name ?? "-";
+
+      const ticket: BookingTicket = {
+        bookingId: `BK-${Date.now().toString().slice(-8)}`,
+        branchName: selectedBranchName,
+        specialty,
+        doctorName: selectedDoctorName,
+        date: selectedDate,
+        slot,
+        fullName,
+        phone,
+        age,
+        gender,
+        confirmedAt: new Date().toISOString(),
+      };
+
+      setConfirmedTicket(ticket);
+      window.sessionStorage.setItem(BOOKING_TICKET_KEY, JSON.stringify(ticket));
+
       setFeedback({ type: "success", text: "تم تأكيد الحجز بنجاح. سيقوم فريق العيادة بالتواصل معك قريبًا." });
     } catch {
       setFeedback({ type: "error", text: "تعذر إتمام الحجز الآن. حاول مرة أخرى بعد قليل." });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDownloadTicket = () => {
+    if (!confirmedTicket || typeof window === "undefined") return;
+
+    const lines = [
+      "Appointment Ticket",
+      `Booking ID: ${confirmedTicket.bookingId}`,
+      `Patient: ${confirmedTicket.fullName}`,
+      `Phone: ${confirmedTicket.phone}`,
+      `Doctor: ${confirmedTicket.doctorName}`,
+      `Specialty: ${confirmedTicket.specialty}`,
+      `Branch: ${confirmedTicket.branchName}`,
+      `Date: ${confirmedTicket.date}`,
+      `Time: ${confirmedTicket.slot}`,
+      `Confirmed At: ${new Date(confirmedTicket.confirmedAt).toLocaleString()}`,
+    ];
+
+    const stream = lines
+      .map((line, index) => `BT /F1 12 Tf 50 ${780 - index * 24} Td (${line.replace(/[()\\]/g, "")}) Tj ET`)
+      .join("\n");
+
+    const pdfObjects = [
+      "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+      "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
+      "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj",
+      `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
+      "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+    ];
+
+    let pdf = "%PDF-1.4\n";
+    const offsets: number[] = [0];
+    pdfObjects.forEach((obj) => {
+      offsets.push(pdf.length);
+      pdf += `${obj}\n`;
+    });
+
+    const xrefOffset = pdf.length;
+    pdf += `xref\n0 ${pdfObjects.length + 1}\n0000000000 65535 f \n`;
+    offsets.slice(1).forEach((offset) => {
+      pdf += `${offset.toString().padStart(10, "0")} 00000 n \n`;
+    });
+    pdf += `trailer << /Root 1 0 R /Size ${pdfObjects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+    const blob = new Blob([pdf], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${confirmedTicket.bookingId}.pdf`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -198,6 +338,23 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
             </div>
           </div>
           {feedback ? <p className={`text-sm ${feedback.type === "success" ? "text-green-600" : "text-red-600"}`}>{feedback.text}</p> : null}
+
+          {confirmedTicket ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <p className="mb-3 text-sm font-semibold text-emerald-700">🎫 Ticket #{confirmedTicket.bookingId}</p>
+              <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-2">
+                <p><span className="font-semibold">Patient:</span> {confirmedTicket.fullName}</p>
+                <p><span className="font-semibold">Phone:</span> {confirmedTicket.phone}</p>
+                <p><span className="font-semibold">Doctor:</span> {confirmedTicket.doctorName}</p>
+                <p><span className="font-semibold">Specialty:</span> {confirmedTicket.specialty}</p>
+                <p><span className="font-semibold">Branch:</span> {confirmedTicket.branchName}</p>
+                <p><span className="font-semibold">Schedule:</span> {confirmedTicket.date} - {confirmedTicket.slot}</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button type="button" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleDownloadTicket}>Download PDF</Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
