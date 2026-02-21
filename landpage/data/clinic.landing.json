@@ -21,167 +21,356 @@
     "logoText": "MediClinic"
   },
   "header": {
-    "ctaLabel": "Book Appointment",
+    "ctaLabel": {
+      "en": "Book Appointment",
+      "ar": "احجز موعدًا"
+    },
     "ctaHref": "/appointment",
     "navLinks": [
       {
-        "label": "Specialties",
+        "label": {
+          "en": "Specialties",
+          "ar": "التخصصات"
+        },
         "href": "#specialties"
       },
       {
-        "label": "Doctors",
+        "label": {
+          "en": "Doctors",
+          "ar": "الأطباء"
+        },
         "href": "#doctors"
       },
       {
-        "label": "Testimonials",
+        "label": {
+          "en": "Testimonials",
+          "ar": "آراء المرضى"
+        },
         "href": "#testimonials"
       },
       {
-        "label": "Contact",
+        "label": {
+          "en": "Contact",
+          "ar": "تواصل معنا"
+        },
         "href": "#contact"
       }
     ],
-    "skipToContentLabel": "Skip to content"
+    "skipToContentLabel": {
+      "en": "Skip to content",
+      "ar": "تخطَّ إلى المحتوى"
+    }
   },
   "hero": {
-    "badge": "ACCESS TO TOP HEALTH EXPERTS",
-    "title": "Expert Medical Care You Can Trust",
-    "highlight": "You Can Trust",
-    "description": "Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.",
+    "badge": {
+      "en": "ACCESS TO TOP HEALTH EXPERTS",
+      "ar": "الوصول إلى أفضل خبراء الصحة"
+    },
+    "title": {
+      "en": "Expert Medical Care You Can Trust",
+      "ar": "رعاية طبية خبيرة يمكنك الوثوق بها"
+    },
+    "highlight": {
+      "en": "You Can Trust",
+      "ar": "يمكنك الوثوق بها"
+    },
+    "description": {
+      "en": "Experience world-class healthcare with our team of board-certified specialists in Orthopedics, Dentistry, and Ophthalmology.",
+      "ar": "اختبر رعاية صحية عالمية المستوى مع فريقنا من الأخصائيين المعتمدين في العظام وطب الأسنان وطب العيون."
+    },
     "primaryCta": {
-      "label": "Book Appointment",
+      "label": {
+        "en": "Book Appointment",
+        "ar": "احجز موعدًا"
+      },
       "href": "/appointment"
     },
     "secondaryCta": {
-      "label": "Contact Us",
+      "label": {
+        "en": "Contact Us",
+        "ar": "تواصل معنا"
+      },
       "href": "#contact"
     },
     "backgroundImage": "https://images.pexels.com/photos/8460372/pexels-photo-8460372.jpeg",
-    "backgroundAlt": "Confident male doctor in white coat standing in a modern hospital hallway"
+    "backgroundAlt": {
+      "en": "Confident male doctor in white coat standing in a modern hospital hallway",
+      "ar": "طبيب واثق يرتدي معطفًا أبيض في ممر مستشفى حديث"
+    }
   },
   "stats": [
     {
       "value": "25+",
-      "label": "YEARS EXPERIENCE"
+      "label": {
+        "en": "YEARS EXPERIENCE",
+        "ar": "+25 سنة خبرة"
+      }
     },
     {
       "value": "10k+",
-      "label": "PATIENTS SERVED"
+      "label": {
+        "en": "PATIENTS SERVED",
+        "ar": "+10 آلاف مريض"
+      }
     },
     {
       "value": "98%",
-      "label": "SUCCESS RATE"
+      "label": {
+        "en": "SUCCESS RATE",
+        "ar": "98٪ نسبة نجاح"
+      }
     }
   ],
   "specialties": {
-    "eyebrow": "OUR EXPERTISE",
-    "title": "Comprehensive Specialized Care",
-    "description": "We offer specialized treatments tailored to your specific health needs with state-of-the-art facilities.",
-    "viewAllLabel": "View All Services",
+    "eyebrow": {
+      "en": "OUR EXPERTISE",
+      "ar": "خبراتنا"
+    },
+    "title": {
+      "en": "Comprehensive Specialized Care",
+      "ar": "رعاية تخصصية شاملة"
+    },
+    "description": {
+      "en": "We offer specialized treatments tailored to your specific health needs with state-of-the-art facilities.",
+      "ar": "نقدم علاجات تخصصية مصممة لاحتياجاتك الصحية مع مرافق حديثة ومتطورة."
+    },
+    "viewAllLabel": {
+      "en": "View All Services",
+      "ar": "عرض جميع الخدمات"
+    },
     "viewAllHref": "#contact",
     "items": [
       {
         "id": "orthopedics",
-        "title": "Orthopedics",
-        "description": "Advanced care for bones, joints, and musculoskeletal injuries including surgical and joint replacement surgery.",
+        "title": {
+          "en": "Orthopedics",
+          "ar": "طب العظام"
+        },
+        "description": {
+          "en": "Advanced care for bones, joints, and musculoskeletal injuries including surgical and joint replacement surgery.",
+          "ar": "رعاية متقدمة للعظام والمفاصل وإصابات الجهاز العضلي الهيكلي بما في ذلك الجراحات المتقدمة واستبدال المفاصل."
+        },
         "iconName": "orthopedics",
         "href": "/appointment"
       },
       {
         "id": "dentistry",
-        "title": "Dentistry",
-        "description": "Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.",
+        "title": {
+          "en": "Dentistry",
+          "ar": "طب الأسنان"
+        },
+        "description": {
+          "en": "Complete oral health services, cosmetic dentistry, implants, and orthodontic treatments.",
+          "ar": "خدمات متكاملة لصحة الفم، وطب الأسنان التجميلي، والزراعة، وتقويم الأسنان."
+        },
         "iconName": "dentistry",
         "href": "/appointment"
       },
       {
         "id": "ophthalmology",
-        "title": "Ophthalmology",
-        "description": "Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.",
+        "title": {
+          "en": "Ophthalmology",
+          "ar": "طب العيون"
+        },
+        "description": {
+          "en": "Expert eye care, comprehensive vision exams, and advanced laser vision correction surgery.",
+          "ar": "رعاية عيون متخصصة، وفحوصات شاملة للنظر، وجراحات تصحيح النظر بالليزر المتقدمة."
+        },
         "iconName": "ophthalmology",
         "href": "/appointment"
       }
     ],
-    "learnMoreLabel": "Learn More"
+    "learnMoreLabel": {
+      "en": "Learn More",
+      "ar": "اعرف المزيد"
+    }
   },
   "doctors": {
-    "eyebrow": "OUR TEAM",
-    "title": "Meet Our Specialists",
-    "description": "Our doctors are leaders in their fields, dedicated to providing compassionate and effective care.",
+    "eyebrow": {
+      "en": "OUR TEAM",
+      "ar": "فريقنا"
+    },
+    "title": {
+      "en": "Meet Our Specialists",
+      "ar": "تعرّف على أطبائنا المختصين"
+    },
+    "description": {
+      "en": "Our doctors are leaders in their fields, dedicated to providing compassionate and effective care.",
+      "ar": "أطباؤنا رواد في مجالاتهم ويكرّسون جهودهم لتقديم رعاية فعّالة وإنسانية."
+    },
     "items": [
       {
         "name": "Dr. James Smith",
-        "specialty": "Orthopedic Surgeon",
-        "experienceLabel": "17 YEARS EXP",
+        "specialty": {
+          "en": "Orthopedic Surgeon",
+          "ar": "Orthopedic Surgeon"
+        },
+        "experienceLabel": {
+          "en": "17 YEARS EXP",
+          "ar": "17 YEARS EXP"
+        },
         "imageSrc": "https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg",
-        "imageAlt": "Portrait of Dr. James Smith male orthopedic surgeon in navy suit"
+        "imageAlt": {
+          "en": "Portrait of Dr. James Smith male orthopedic surgeon in navy suit",
+          "ar": "Portrait of Dr. James Smith male orthopedic surgeon in navy suit"
+        }
       },
       {
         "name": "Dr. Robert Chen",
-        "specialty": "Dental Specialist",
-        "experienceLabel": "12 YEARS EXP",
+        "specialty": {
+          "en": "Dental Specialist",
+          "ar": "Dental Specialist"
+        },
+        "experienceLabel": {
+          "en": "12 YEARS EXP",
+          "ar": "12 YEARS EXP"
+        },
         "imageSrc": "https://images.pexels.com/photos/6129041/pexels-photo-6129041.jpeg",
-        "imageAlt": "Portrait of Dr. Robert Chen male dental specialist in blue scrubs"
+        "imageAlt": {
+          "en": "Portrait of Dr. Robert Chen male dental specialist in blue scrubs",
+          "ar": "Portrait of Dr. Robert Chen male dental specialist in blue scrubs"
+        }
       },
       {
         "name": "Dr. Michael Ross",
-        "specialty": "Ophthalmologist",
-        "experienceLabel": "15 YEARS EXP",
+        "specialty": {
+          "en": "Ophthalmologist",
+          "ar": "Ophthalmologist"
+        },
+        "experienceLabel": {
+          "en": "15 YEARS EXP",
+          "ar": "15 YEARS EXP"
+        },
         "imageSrc": "https://images.pexels.com/photos/6749779/pexels-photo-6749779.jpeg",
-        "imageAlt": "Portrait of Dr. Michael Ross male ophthalmologist in professional attire"
+        "imageAlt": {
+          "en": "Portrait of Dr. Michael Ross male ophthalmologist in professional attire",
+          "ar": "Portrait of Dr. Michael Ross male ophthalmologist in professional attire"
+        }
       }
     ]
   },
   "whyChooseUs": {
-    "eyebrow": "WHY CHOOSE US",
-    "title": "Patient-Centered Care With Modern Technology",
-    "description": "We combine medical expertise with compassionate care to ensure the best outcomes for our patients.",
+    "eyebrow": {
+      "en": "WHY CHOOSE US",
+      "ar": "لماذا نحن"
+    },
+    "title": {
+      "en": "Patient-Centered Care With Modern Technology",
+      "ar": "رعاية تتمحور حول المريض بتقنيات حديثة"
+    },
+    "description": {
+      "en": "We combine medical expertise with compassionate care to ensure the best outcomes for our patients.",
+      "ar": "نجمع بين الخبرة الطبية والرعاية الإنسانية لضمان أفضل النتائج لمرضانا."
+    },
     "imageSrc": "https://images.pexels.com/photos/7089628/pexels-photo-7089628.jpeg",
-    "imageAlt": "Modern clinic room with advanced monitoring and infusion equipment",
+    "imageAlt": {
+      "en": "Modern clinic room with advanced monitoring and infusion equipment",
+      "ar": "غرفة عيادة حديثة بمعدات متطورة"
+    },
     "features": [
       {
-        "title": "Experienced Specialists",
-        "description": "Board-certified doctors with years of practice."
+        "title": {
+          "en": "Experienced Specialists",
+          "ar": "Experienced Specialists"
+        },
+        "description": {
+          "en": "Board-certified doctors with years of practice.",
+          "ar": "Board-certified doctors with years of practice."
+        }
       },
       {
-        "title": "Modern Equipment",
-        "description": "Latest diagnostic and treatment technologies."
+        "title": {
+          "en": "Modern Equipment",
+          "ar": "Modern Equipment"
+        },
+        "description": {
+          "en": "Latest diagnostic and treatment technologies.",
+          "ar": "Latest diagnostic and treatment technologies."
+        }
       },
       {
-        "title": "Emergency Support",
-        "description": "24/7 dedicated support for urgent cases."
+        "title": {
+          "en": "Emergency Support",
+          "ar": "Emergency Support"
+        },
+        "description": {
+          "en": "24/7 dedicated support for urgent cases.",
+          "ar": "24/7 dedicated support for urgent cases."
+        }
       },
       {
-        "title": "Easy Booking",
-        "description": "Seamless online appointment scheduling."
+        "title": {
+          "en": "Easy Booking",
+          "ar": "Easy Booking"
+        },
+        "description": {
+          "en": "Seamless online appointment scheduling.",
+          "ar": "Seamless online appointment scheduling."
+        }
       }
     ]
   },
   "testimonials": {
-    "eyebrow": "TESTIMONIALS",
-    "title": "What Our Patients Say",
+    "eyebrow": {
+      "en": "TESTIMONIALS",
+      "ar": "آراء المرضى"
+    },
+    "title": {
+      "en": "What Our Patients Say",
+      "ar": "ماذا يقول مرضانا"
+    },
     "items": [
       {
-        "quote": "The professionalism at MediClinic is unmatched. Dr. Smith explained every orthopedic surgery step clearly and the recovery was faster than I expected. Highly recommended!",
+        "quote": {
+          "en": "The professionalism at MediClinic is unmatched. Dr. Smith explained every orthopedic surgery step clearly and the recovery was faster than I expected. Highly recommended!",
+          "ar": "The professionalism at MediClinic is unmatched. Dr. Smith explained every orthopedic surgery step clearly and the recovery was faster than I expected. Highly recommended!"
+        },
         "patientName": "John D",
-        "patientRole": "Recovered Patient",
+        "patientRole": {
+          "en": "Recovered Patient",
+          "ar": "Recovered Patient"
+        },
         "avatarSrc": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg",
-        "avatarAlt": "Headshot of male patient John D smiling"
+        "avatarAlt": {
+          "en": "Headshot of male patient John D smiling",
+          "ar": "Headshot of male patient John D smiling"
+        }
       },
       {
-        "quote": "I've always been nervous about dentistry, but Dr. Chen made the entire process painless. The facility is clean, modern, and the staff is incredibly respectful.",
+        "quote": {
+          "en": "I've always been nervous about dentistry, but Dr. Chen made the entire process painless. The facility is clean, modern, and the staff is incredibly respectful.",
+          "ar": "I've always been nervous about dentistry, but Dr. Chen made the entire process painless. The facility is clean, modern, and the staff is incredibly respectful."
+        },
         "patientName": "Mark S",
-        "patientRole": "Regular Patient",
+        "patientRole": {
+          "en": "Regular Patient",
+          "ar": "Regular Patient"
+        },
         "avatarSrc": "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg",
-        "avatarAlt": "Portrait of male patient Mark S in casual shirt"
+        "avatarAlt": {
+          "en": "Portrait of male patient Mark S in casual shirt",
+          "ar": "Portrait of male patient Mark S in casual shirt"
+        }
       }
     ]
   },
   "booking": {
-    "eyebrow": "BOOK APPOINTMENT",
-    "title": "Ready to prioritize your health?",
-    "description": "Schedule your visit with our top specialists today. Fill out the form and our team will confirm your appointment.",
-    "submitLabel": "Confirm Booking",
+    "eyebrow": {
+      "en": "BOOK APPOINTMENT",
+      "ar": "احجز موعدًا"
+    },
+    "title": {
+      "en": "Ready to prioritize your health?",
+      "ar": "هل أنت مستعد لإعطاء صحتك الأولوية؟"
+    },
+    "description": {
+      "en": "Schedule your visit with our top specialists today. Fill out the form and our team will confirm your appointment.",
+      "ar": "احجز زيارتك مع أفضل أطبائنا المختصين اليوم. املأ النموذج وسيتواصل فريقنا لتأكيد الموعد."
+    },
+    "submitLabel": {
+      "en": "Confirm Booking",
+      "ar": "تأكيد الحجز"
+    },
     "contact": {
       "phone": "(555) 123-4567",
       "address": "125 Health Ave, Medical District, NY",
@@ -191,134 +380,239 @@
     "fields": [
       {
         "name": "fullName",
-        "label": "Full Name",
+        "label": {
+          "en": "Full Name",
+          "ar": "الاسم الكامل"
+        },
         "type": "text",
-        "placeholder": "John Doe",
+        "placeholder": {
+          "en": "John Doe",
+          "ar": "محمد أحمد"
+        },
         "required": true
       },
       {
         "name": "phone",
-        "label": "Phone Number",
+        "label": {
+          "en": "Phone Number",
+          "ar": "رقم الهاتف"
+        },
         "type": "tel",
-        "placeholder": "(555) 000-0000",
+        "placeholder": {
+          "en": "(555) 000-0000",
+          "ar": "0000-000-555"
+        },
         "required": true
       },
       {
         "name": "specialty",
-        "label": "Specialty",
+        "label": {
+          "en": "Specialty",
+          "ar": "التخصص"
+        },
         "type": "select",
-        "placeholder": "Orthopedics",
+        "placeholder": {
+          "en": "Orthopedics",
+          "ar": "طب العظام"
+        },
         "required": true,
         "options": [
-          "Orthopedics",
-          "Dentistry",
-          "Ophthalmology"
+          {
+            "en": "Orthopedics",
+            "ar": "طب العظام"
+          },
+          {
+            "en": "Dentistry",
+            "ar": "طب الأسنان"
+          },
+          {
+            "en": "Ophthalmology",
+            "ar": "طب العيون"
+          }
         ]
       },
       {
         "name": "preferredDate",
-        "label": "Preferred Date",
+        "label": {
+          "en": "Preferred Date",
+          "ar": "التاريخ المفضل"
+        },
         "type": "date",
-        "placeholder": "",
+        "placeholder": {
+          "en": "",
+          "ar": ""
+        },
         "required": true
       }
     ],
-    "formTitle": "Request Appointment"
+    "formTitle": {
+      "en": "Request Appointment",
+      "ar": "طلب موعد"
+    }
   },
   "footer": {
-    "description": "Providing trusted medical care for over 25 years. Our multi-specialty clinic is dedicated to your well-being.",
+    "description": {
+      "en": "Providing trusted medical care for over 25 years. Our multi-specialty clinic is dedicated to your well-being.",
+      "ar": "نقدّم رعاية طبية موثوقة منذ أكثر من 25 عامًا. عيادتنا متعددة التخصصات مكرسة لراحتك وصحتك."
+    },
     "socialLinks": [
       {
-        "label": "Facebook",
+        "label": {
+          "en": "Facebook",
+          "ar": "Facebook"
+        },
         "href": "#",
         "short": "FB"
       },
       {
-        "label": "Twitter",
+        "label": {
+          "en": "Twitter",
+          "ar": "Twitter"
+        },
         "href": "#",
         "short": "TW"
       },
       {
-        "label": "LinkedIn",
+        "label": {
+          "en": "LinkedIn",
+          "ar": "LinkedIn"
+        },
         "href": "#",
         "short": "LI"
       }
     ],
     "columns": [
       {
-        "title": "Quick Links",
+        "title": {
+          "en": "Quick Links",
+          "ar": "Quick Links"
+        },
         "links": [
           {
-            "label": "About Us",
+            "label": {
+              "en": "About Us",
+              "ar": "About Us"
+            },
             "href": "#"
           },
           {
-            "label": "Our Doctors",
+            "label": {
+              "en": "Our Doctors",
+              "ar": "Our Doctors"
+            },
             "href": "#doctors"
           },
           {
-            "label": "Specialties",
+            "label": {
+              "en": "Specialties",
+              "ar": "Specialties"
+            },
             "href": "#specialties"
           },
           {
-            "label": "Patient Reviews",
+            "label": {
+              "en": "Patient Reviews",
+              "ar": "Patient Reviews"
+            },
             "href": "#testimonials"
           },
           {
-            "label": "Privacy Policy",
+            "label": {
+              "en": "Privacy Policy",
+              "ar": "Privacy Policy"
+            },
             "href": "#"
           }
         ]
       },
       {
-        "title": "Services",
+        "title": {
+          "en": "Services",
+          "ar": "Services"
+        },
         "links": [
           {
-            "label": "Orthopedics",
+            "label": {
+              "en": "Orthopedics",
+              "ar": "Orthopedics"
+            },
             "href": "#specialties"
           },
           {
-            "label": "Dentistry",
+            "label": {
+              "en": "Dentistry",
+              "ar": "Dentistry"
+            },
             "href": "#specialties"
           },
           {
-            "label": "Ophthalmology",
+            "label": {
+              "en": "Ophthalmology",
+              "ar": "Ophthalmology"
+            },
             "href": "#specialties"
           },
           {
-            "label": "Emergency Care",
+            "label": {
+              "en": "Emergency Care",
+              "ar": "Emergency Care"
+            },
             "href": "#contact"
           },
           {
-            "label": "Diagnostic Lab",
+            "label": {
+              "en": "Diagnostic Lab",
+              "ar": "Diagnostic Lab"
+            },
             "href": "#contact"
           }
         ]
       },
       {
-        "title": "Contact Us",
+        "title": {
+          "en": "Contact Us",
+          "ar": "Contact Us"
+        },
         "links": [
           {
-            "label": "125 Health Ave, Medical District, NY 10001, USA",
+            "label": {
+              "en": "125 Health Ave, Medical District, NY 10001, USA",
+              "ar": "125 Health Ave, Medical District, NY 10001, USA"
+            },
             "href": "#contact"
           },
           {
-            "label": "(555) 123-4567",
+            "label": {
+              "en": "(555) 123-4567",
+              "ar": "(555) 123-4567"
+            },
             "href": "tel:+15551234567"
           },
           {
-            "label": "contact@mediclinic.com",
+            "label": {
+              "en": "contact@mediclinic.com",
+              "ar": "contact@mediclinic.com"
+            },
             "href": "mailto:contact@mediclinic.com"
           },
           {
-            "label": "Mon-Sat: 8:00 AM - 8:00 PM",
+            "label": {
+              "en": "Mon-Sat: 8:00 AM - 8:00 PM",
+              "ar": "Mon-Sat: 8:00 AM - 8:00 PM"
+            },
             "href": "#contact"
           }
         ]
       }
     ],
-    "copyright": "\u00a9 2026 MediClinic. All rights reserved.",
-    "credits": "Designed with care for patients."
+    "copyright": {
+      "en": "© 2026 MediClinic. All rights reserved.",
+      "ar": "© 2026 ميدي كلينك. جميع الحقوق محفوظة."
+    },
+    "credits": {
+      "en": "Designed with care for patients.",
+      "ar": "صُمم بعناية من أجل المرضى."
+    }
   },
   "appointmentPage": {
     "seo": {
@@ -343,68 +637,170 @@
       },
       "links": [
         {
-          "label": "Services",
+          "label": {
+            "en": "Services",
+            "ar": "الخدمات"
+          },
           "href": "#services"
         },
         {
-          "label": "Doctors",
+          "label": {
+            "en": "Doctors",
+            "ar": "الأطباء"
+          },
           "href": "#doctors"
         },
         {
-          "label": "Contact",
+          "label": {
+            "en": "Contact",
+            "ar": "تواصل معنا"
+          },
           "href": "#contact"
         }
       ],
-      "ctaLabel": "My Account",
+      "ctaLabel": {
+        "en": "My Account",
+        "ar": "حسابي"
+      },
       "ctaHref": "#account",
-      "skipToContentLabel": "Skip to appointment content"
+      "skipToContentLabel": {
+        "en": "Skip to appointment content",
+        "ar": "تخطَّ إلى محتوى الحجز"
+      }
     },
     "clinicInfo": {
-      "title": "Clinic Information",
-      "description": "We specialize in advanced medical care with a focus on Orthopedics, Dentistry, and Ophthalmology.",
-      "noticeTitle": "Important Notice",
-      "noticeText": "Please be advised that our current roster consists entirely of male specialists.",
-      "locationLabel": "Location",
+      "title": {
+        "en": "Clinic Information",
+        "ar": "معلومات العيادة"
+      },
+      "description": {
+        "en": "We specialize in advanced medical care with a focus on Orthopedics, Dentistry, and Ophthalmology.",
+        "ar": "نتخصص في الرعاية الطبية المتقدمة مع التركيز على العظام وطب الأسنان وطب العيون."
+      },
+      "noticeTitle": {
+        "en": "Important Notice",
+        "ar": "ملاحظة مهمة"
+      },
+      "noticeText": {
+        "en": "Please be advised that our current roster consists entirely of male specialists.",
+        "ar": "يرجى العلم أن طاقمنا الحالي يتكوّن بالكامل من أطباء رجال."
+      },
+      "locationLabel": {
+        "en": "Location",
+        "ar": "الموقع"
+      },
       "location": "123 Health Blvd, Medical City",
-      "phoneLabel": "Phone",
+      "phoneLabel": {
+        "en": "Phone",
+        "ar": "الهاتف"
+      },
       "phone": "+1 (555) 019-2834",
-      "hoursLabel": "Working Hours",
+      "hoursLabel": {
+        "en": "Working Hours",
+        "ar": "ساعات العمل"
+      },
       "hours": "Mon-Fri: 8:00 AM - 6:00 PM",
       "mapImageSrc": "https://images.pexels.com/photos/1170979/pexels-photo-1170979.jpeg",
-      "mapImageAlt": "Modern clinic building and surrounding city streets",
-      "mapButtonLabel": "View on Map"
+      "mapImageAlt": {
+        "en": "Modern clinic building and surrounding city streets",
+        "ar": "مبنى عيادة حديث والشوارع المحيطة"
+      },
+      "mapButtonLabel": {
+        "en": "View on Map",
+        "ar": "عرض على الخريطة"
+      }
     },
     "booking": {
-      "pageTitle": "Book Your Appointment",
-      "title": "Book Your Appointment",
-      "subtitle": "Complete the steps below to schedule your visit with our specialists.",
+      "pageTitle": {
+        "en": "Book Your Appointment",
+        "ar": "احجز موعدك"
+      },
+      "title": {
+        "en": "Book Your Appointment",
+        "ar": "احجز موعدك"
+      },
+      "subtitle": {
+        "en": "Complete the steps below to schedule your visit with our specialists.",
+        "ar": "أكمل الخطوات التالية لتحديد زيارتك مع أطبائنا المختصين."
+      },
       "steps": [
-        "Selection",
-        "Schedule",
-        "Details"
+        {
+          "en": "Selection",
+          "ar": "الاختيار"
+        },
+        {
+          "en": "Schedule",
+          "ar": "الموعد"
+        },
+        {
+          "en": "Details",
+          "ar": "البيانات"
+        }
       ],
-      "specialtyLabel": "Select Specialty",
-      "doctorLabel": "Select Doctor",
+      "specialtyLabel": {
+        "en": "Select Specialty",
+        "ar": "اختر التخصص"
+      },
+      "doctorLabel": {
+        "en": "Select Doctor",
+        "ar": "اختر الطبيب"
+      },
       "specialtyOptions": [
-        "Orthopedics",
-        "Dentistry",
-        "Ophthalmology"
+        {
+          "en": "Orthopedics",
+          "ar": "طب العظام"
+        },
+        {
+          "en": "Dentistry",
+          "ar": "طب الأسنان"
+        },
+        {
+          "en": "Ophthalmology",
+          "ar": "طب العيون"
+        }
       ],
       "doctorOptions": [
         "Dr. Ahmed Al-Mansour",
         "Dr. Khaled Youssef",
         "Dr. Omar Fayed"
       ],
-      "calendarTitle": "Select Date",
-      "calendarMonthLabel": "October 2023",
+      "calendarTitle": {
+        "en": "Select Date",
+        "ar": "اختر التاريخ"
+      },
+      "calendarMonthLabel": {
+        "en": "October 2023",
+        "ar": "أكتوبر 2023"
+      },
       "weekDays": [
-        "Su",
-        "Mo",
-        "Tu",
-        "We",
-        "Th",
-        "Fr",
-        "Sa"
+        {
+          "en": "Su",
+          "ar": "ح"
+        },
+        {
+          "en": "Mo",
+          "ar": "ن"
+        },
+        {
+          "en": "Tu",
+          "ar": "ث"
+        },
+        {
+          "en": "We",
+          "ar": "ر"
+        },
+        {
+          "en": "Th",
+          "ar": "خ"
+        },
+        {
+          "en": "Fr",
+          "ar": "ج"
+        },
+        {
+          "en": "Sa",
+          "ar": "س"
+        }
       ],
       "days": [
         {
@@ -468,7 +864,10 @@
           "status": "available"
         }
       ],
-      "timeSlotsTitle": "Available Slots",
+      "timeSlotsTitle": {
+        "en": "Available Slots",
+        "ar": "المواعيد المتاحة"
+      },
       "timeSlots": [
         {
           "label": "09:00 AM",
@@ -508,28 +907,67 @@
         }
       ],
       "legend": {
-        "selected": "Selected",
-        "available": "Available",
-        "unavailable": "Unavailable"
+        "selected": {
+          "en": "Selected",
+          "ar": "محدد"
+        },
+        "available": {
+          "en": "Available",
+          "ar": "متاح"
+        },
+        "unavailable": {
+          "en": "Unavailable",
+          "ar": "غير متاح"
+        }
       }
     },
     "patientForm": {
-      "title": "Patient Details",
-      "fullNameLabel": "Full Name",
-      "fullNamePlaceholder": "e.g. John Doe",
-      "phoneLabel": "Phone Number",
+      "title": {
+        "en": "Patient Details",
+        "ar": "بيانات المريض"
+      },
+      "fullNameLabel": {
+        "en": "Full Name",
+        "ar": "الاسم الكامل"
+      },
+      "fullNamePlaceholder": {
+        "en": "e.g. John Doe",
+        "ar": "مثال: محمد أحمد"
+      },
+      "phoneLabel": {
+        "en": "Phone Number",
+        "ar": "رقم الهاتف"
+      },
       "phonePlaceholder": "+1 (555) 000-0000",
-      "ageLabel": "Age",
+      "ageLabel": {
+        "en": "Age",
+        "ar": "العمر"
+      },
       "agePlaceholder": "28",
-      "genderLabel": "Gender",
+      "genderLabel": {
+        "en": "Gender",
+        "ar": "النوع"
+      },
       "genderOptions": [
-        "Male",
-        "Female"
+        {
+          "en": "Male",
+          "ar": "ذكر"
+        },
+        {
+          "en": "Female",
+          "ar": "أنثى"
+        }
       ],
-      "privacyNote": "Your personal data is secure and HIPAA compliant."
+      "privacyNote": {
+        "en": "Your personal data is secure and HIPAA compliant.",
+        "ar": "بياناتك الشخصية آمنة ومتوافقة مع معايير الخصوصية."
+      }
     },
     "cta": {
-      "confirmLabel": "Confirm Appointment",
+      "confirmLabel": {
+        "en": "Confirm Appointment",
+        "ar": "تأكيد الموعد"
+      },
       "action": "submit-placeholder"
     },
     "physicians": [
@@ -548,6 +986,120 @@
         "specialty": "Ophthalmology",
         "imageSrc": "https://images.pexels.com/photos/6749779/pexels-photo-6749779.jpeg"
       }
-    ]
+    ],
+    "ui": {
+      "loadingSlots": {
+        "en": "Loading available slots...",
+        "ar": "جاري تحميل المواعيد المتاحة..."
+      },
+      "validationRequiredFields": {
+        "en": "Please complete all required booking fields.",
+        "ar": "يرجى إكمال جميع الحقول المطلوبة للحجز."
+      },
+      "ticketTitle": {
+        "en": "Ticket #",
+        "ar": "رقم التذكرة #"
+      },
+      "ticketPatientLabel": {
+        "en": "Patient:",
+        "ar": "المريض:"
+      },
+      "ticketPhoneLabel": {
+        "en": "Phone:",
+        "ar": "الهاتف:"
+      },
+      "ticketDoctorLabel": {
+        "en": "Doctor:",
+        "ar": "الطبيب:"
+      },
+      "ticketSpecialtyLabel": {
+        "en": "Specialty:",
+        "ar": "التخصص:"
+      },
+      "ticketBranchLabel": {
+        "en": "Branch:",
+        "ar": "الفرع:"
+      },
+      "ticketScheduleLabel": {
+        "en": "Schedule:",
+        "ar": "الموعد:"
+      },
+      "printTicketLabel": {
+        "en": "Print / Download PDF",
+        "ar": "طباعة / تنزيل PDF"
+      },
+      "submittingLabel": {
+        "en": "Booking...",
+        "ar": "جاري الحجز..."
+      },
+      "printNote": {
+        "en": "Please keep this ticket and present it at arrival. You can choose Save as PDF from the print window to download it as PDF.",
+        "ar": "يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الحضور. يمكنك اختيار \"Save as PDF\" من نافذة الطباعة لتنزيلها كملف PDF."
+      },
+      "submitSuccess": {
+        "en": "Appointment confirmed successfully. Our clinic team will contact you shortly.",
+        "ar": "تم تأكيد الحجز بنجاح. سيقوم فريق العيادة بالتواصل معك قريبًا."
+      },
+      "submitError": {
+        "en": "Unable to complete booking right now. Please try again shortly.",
+        "ar": "تعذر إتمام الحجز الآن. حاول مرة أخرى بعد قليل."
+      },
+      "branchLabel": {
+        "en": "Branch",
+        "ar": "الفرع"
+      },
+      "printPageTitle": {
+        "en": "Ticket",
+        "ar": "تذكرة"
+      },
+      "printLang": {
+        "en": "en",
+        "ar": "ar"
+      },
+      "printDir": {
+        "en": "ltr",
+        "ar": "rtl"
+      },
+      "printHeading": {
+        "en": "Appointment Ticket",
+        "ar": "تذكرة الحجز"
+      },
+      "printBookingNumberLabel": {
+        "en": "Booking number:",
+        "ar": "رقم الحجز:"
+      },
+      "printPatientNameLabel": {
+        "en": "Patient Name",
+        "ar": "اسم المريض"
+      },
+      "printPhoneNumberLabel": {
+        "en": "Phone Number",
+        "ar": "رقم الهاتف"
+      },
+      "printBranchLabel": {
+        "en": "Branch",
+        "ar": "الفرع"
+      },
+      "printSpecialtyLabel": {
+        "en": "Specialty",
+        "ar": "التخصص"
+      },
+      "printDoctorLabel": {
+        "en": "Doctor",
+        "ar": "الطبيب"
+      },
+      "printVisitScheduleLabel": {
+        "en": "Visit Schedule",
+        "ar": "موعد الزيارة"
+      },
+      "printGenderAgeLabel": {
+        "en": "Gender / Age",
+        "ar": "النوع / السن"
+      },
+      "printConfirmedAtLabel": {
+        "en": "Confirmed At",
+        "ar": "تاريخ التأكيد"
+      }
+    }
   }
 }
