@@ -24,6 +24,18 @@ type BookingTicket = {
   confirmedAt: string;
 };
 
+type BookingDraft = {
+  specialty: string;
+  doctorId: string;
+  branchId: string;
+  date: string;
+  slot: string;
+  fullName: string;
+  phone: string;
+  age: string;
+  gender: string;
+};
+
 export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData; clinicContext: BookingClinicContext | null }) {
   const specialties = useMemo(() => {
     const apiSpecialties = Array.from(new Set((clinicContext?.doctors ?? []).map((doctor) => doctor.specialty).filter(Boolean)));
@@ -44,6 +56,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [confirmedTicket, setConfirmedTicket] = useState<BookingTicket | null>(null);
+  const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
 
   const doctors = useMemo(() => {
     if (!clinicContext?.doctors?.length) {
@@ -57,9 +70,65 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   }, [branchId, clinicContext?.doctors, data.booking.doctorOptions, specialty]);
 
   useEffect(() => {
+    if (doctorId && doctors.some((doctor) => doctor.id === doctorId)) {
+      return;
+    }
+
     setDoctorId(doctors[0]?.id ?? "");
     setSlot("");
-  }, [doctors]);
+  }, [doctorId, doctors]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedDraft = window.sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    const savedTicket = window.sessionStorage.getItem(BOOKING_TICKET_KEY);
+
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft) as Partial<BookingDraft>;
+        setSpecialty(draft.specialty ?? specialties[0] ?? "");
+        setDoctorId(draft.doctorId ?? "");
+        setBranchId(draft.branchId ?? (clinicContext?.branches[0] ? String(clinicContext.branches[0].id) : ""));
+        setSelectedDate(draft.date ?? new Date().toISOString().slice(0, 10));
+        setSlot(draft.slot ?? "");
+        setFullName(draft.fullName ?? "");
+        setPhone(draft.phone ?? "");
+        setAge(draft.age ?? "");
+        setGender(draft.gender ?? data.patientForm.genderOptions[0] ?? "");
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+      }
+    }
+
+    if (savedTicket) {
+      try {
+        setConfirmedTicket(JSON.parse(savedTicket) as BookingTicket);
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_TICKET_KEY);
+      }
+    }
+
+    setHasHydratedStorage(true);
+  }, [clinicContext?.branches, data.patientForm.genderOptions, specialties]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hasHydratedStorage) return;
+
+    const draft: BookingDraft = {
+      specialty,
+      doctorId,
+      branchId,
+      date: selectedDate,
+      slot,
+      fullName,
+      phone,
+      age,
+      gender,
+    };
+
+    window.sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  }, [age, branchId, doctorId, fullName, gender, hasHydratedStorage, phone, selectedDate, slot, specialty]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -130,8 +199,11 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
       .then((slots) => {
         if (!active) return;
         setAvailableSlots(slots);
-        const firstAvailable = slots.find((item) => item.available)?.time ?? "";
-        setSlot(firstAvailable);
+        const hasCurrentSlot = slots.some((item) => item.time === slot && item.available);
+        if (!hasCurrentSlot) {
+          const firstAvailable = slots.find((item) => item.available)?.time ?? "";
+          setSlot(firstAvailable);
+        }
       })
       .catch(() => {
         if (!active) return;
@@ -144,7 +216,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     return () => {
       active = false;
     };
-  }, [branchId, clinicContext, doctorId, selectedDate]);
+  }, [branchId, clinicContext, doctorId, selectedDate, slot]);
 
   const handleSubmit = async () => {
     if (!clinicContext || !doctorId || !branchId || !selectedDate || !slot || !fullName || !phone) {
@@ -189,7 +261,6 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
       setConfirmedTicket(ticket);
       window.sessionStorage.setItem(BOOKING_TICKET_KEY, JSON.stringify(ticket));
-
       setFeedback({ type: "success", text: "تم تأكيد الحجز بنجاح. سيقوم فريق العيادة بالتواصل معك قريبًا." });
     } catch {
       setFeedback({ type: "error", text: "تعذر إتمام الحجز الآن. حاول مرة أخرى بعد قليل." });
@@ -198,55 +269,65 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     }
   };
 
-  const handleDownloadTicket = () => {
+  const handlePrintTicket = () => {
     if (!confirmedTicket || typeof window === "undefined") return;
 
-    const lines = [
-      "Appointment Ticket",
-      `Booking ID: ${confirmedTicket.bookingId}`,
-      `Patient: ${confirmedTicket.fullName}`,
-      `Phone: ${confirmedTicket.phone}`,
-      `Doctor: ${confirmedTicket.doctorName}`,
-      `Specialty: ${confirmedTicket.specialty}`,
-      `Branch: ${confirmedTicket.branchName}`,
-      `Date: ${confirmedTicket.date}`,
-      `Time: ${confirmedTicket.slot}`,
-      `Confirmed At: ${new Date(confirmedTicket.confirmedAt).toLocaleString()}`,
-    ];
+    const printableDate = new Date(confirmedTicket.confirmedAt).toLocaleString("ar-EG");
+    const ticketWindow = window.open("", "_blank", "width=900,height=700");
+    if (!ticketWindow) return;
 
-    const stream = lines
-      .map((line, index) => `BT /F1 12 Tf 50 ${780 - index * 24} Td (${line.replace(/[()\\]/g, "")}) Tj ET`)
-      .join("\n");
+    ticketWindow.document.write(`
+      <!doctype html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Ticket ${confirmedTicket.bookingId}</title>
+          <style>
+            body { font-family: "Tahoma", "Arial", sans-serif; background: #f8fafc; padding: 24px; color: #0f172a; }
+            .ticket { max-width: 760px; margin: 0 auto; background: #fff; border: 2px dashed #0ea5e9; border-radius: 18px; overflow: hidden; }
+            .header { background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; padding: 22px; }
+            .header h1 { margin: 0 0 6px; font-size: 24px; }
+            .header p { margin: 0; opacity: 0.95; }
+            .body { padding: 22px; }
+            .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+            .item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+            .label { display: block; color: #475569; font-size: 12px; margin-bottom: 4px; }
+            .value { font-weight: 700; font-size: 15px; }
+            .note { margin-top: 16px; padding: 12px; border-radius: 10px; background: #ecfeff; border: 1px solid #a5f3fc; font-size: 13px; }
+            @media print {
+              body { background: #fff; padding: 0; }
+              .ticket { border-style: solid; border-color: #0f172a; border-radius: 0; max-width: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <article class="ticket">
+            <header class="header">
+              <h1>🎫 تذكرة الحجز</h1>
+              <p>رقم الحجز: ${confirmedTicket.bookingId}</p>
+            </header>
+            <section class="body">
+              <div class="grid">
+                <div class="item"><span class="label">اسم المريض</span><span class="value">${confirmedTicket.fullName}</span></div>
+                <div class="item"><span class="label">رقم الهاتف</span><span class="value">${confirmedTicket.phone}</span></div>
+                <div class="item"><span class="label">الفرع</span><span class="value">${confirmedTicket.branchName}</span></div>
+                <div class="item"><span class="label">التخصص</span><span class="value">${confirmedTicket.specialty}</span></div>
+                <div class="item"><span class="label">الطبيب</span><span class="value">${confirmedTicket.doctorName}</span></div>
+                <div class="item"><span class="label">موعد الزيارة</span><span class="value">${confirmedTicket.date} - ${confirmedTicket.slot}</span></div>
+                <div class="item"><span class="label">النوع / السن</span><span class="value">${confirmedTicket.gender || "-"} / ${confirmedTicket.age || "-"}</span></div>
+                <div class="item"><span class="label">تاريخ التأكيد</span><span class="value">${printableDate}</span></div>
+              </div>
+              <p class="note">يرجى الاحتفاظ بهذه التذكرة وإبرازها عند الحضور. يمكنك اختيار "Save as PDF" من نافذة الطباعة لتنزيلها PDF.</p>
+            </section>
+          </article>
+        </body>
+      </html>
+    `);
 
-    const pdfObjects = [
-      "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-      "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-      "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj",
-      `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
-      "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    ];
-
-    let pdf = "%PDF-1.4\n";
-    const offsets: number[] = [0];
-    pdfObjects.forEach((obj) => {
-      offsets.push(pdf.length);
-      pdf += `${obj}\n`;
-    });
-
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${pdfObjects.length + 1}\n0000000000 65535 f \n`;
-    offsets.slice(1).forEach((offset) => {
-      pdf += `${offset.toString().padStart(10, "0")} 00000 n \n`;
-    });
-    pdf += `trailer << /Root 1 0 R /Size ${pdfObjects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-    const blob = new Blob([pdf], { type: "application/pdf" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${confirmedTicket.bookingId}.pdf`;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    ticketWindow.document.close();
+    ticketWindow.focus();
+    ticketWindow.print();
   };
 
   return (
@@ -351,7 +432,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
                 <p><span className="font-semibold">Schedule:</span> {confirmedTicket.date} - {confirmedTicket.slot}</p>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button type="button" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleDownloadTicket}>Download PDF</Button>
+                <Button type="button" className="bg-emerald-600 hover:bg-emerald-700" onClick={handlePrintTicket}>طباعة / تنزيل PDF</Button>
               </div>
             </div>
           ) : null}
