@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } from '../types';
+import { Select } from '../components/common/Select';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
 import { getDoctorProfileFromApi, getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
@@ -669,19 +670,19 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-3">{t('next_visit_date')}</label>
                                             <div className="flex gap-4 items-center">
                                                 <div className="w-1/3">
-                                                    <select
-                                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 text-sm bg-white font-medium text-gray-700 transition-all"
+                                                    <Select
                                                         value={nextVisitType}
-                                                        onChange={e => {
-                                                            setNextVisitType(e.target.value);
-                                                            if (e.target.value === 'exact') setNextVisitInterval(1);
+                                                        onChange={val => {
+                                                            setNextVisitType(val);
+                                                            if (val === 'exact') setNextVisitInterval(1);
                                                         }}
-                                                    >
-                                                        <option value="exact">{t('next_visit_type_exact')}</option>
-                                                        <option value="days">{t('next_visit_type_days')}</option>
-                                                        <option value="weeks">{t('next_visit_type_weeks')}</option>
-                                                        <option value="months">{t('next_visit_type_months')}</option>
-                                                    </select>
+                                                        options={[
+                                                            { value: 'exact', label: t('next_visit_type_exact') },
+                                                            { value: 'days', label: t('next_visit_type_days') },
+                                                            { value: 'weeks', label: t('next_visit_type_weeks') },
+                                                            { value: 'months', label: t('next_visit_type_months') }
+                                                        ]}
+                                                    />
                                                 </div>
                                                 {nextVisitType === 'exact' ? (
                                                     <div className="w-2/3">

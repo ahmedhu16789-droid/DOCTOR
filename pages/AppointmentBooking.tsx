@@ -2,15 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Appointment, Branch, Department, Patient, User } from '../types';
 import { DEPARTMENTS } from '../constants';
 import { PatientLookup } from '../components/PatientLookup';
-import { CheckCircle, Calendar, User as UserIcon } from 'lucide-react';
+import { Select } from '../components/common/Select';
+import { CheckCircle, Calendar, User as UserIcon, Clock, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DataSourceMode, createPatientViaApi, getAvailableSlotsBulkFromApi, getDoctorsFromApi, lookupPatientsByPhoneFromApi } from '../services/api';
 import { formatTimeTo12Hour } from '../utils/time';
 
 interface AppointmentBookingProps {
-  onBook: (apt: Partial<Appointment>) => void;
+  onBook: (apt: Partial<Appointment> & { earlyCheckinForAppointmentId?: string }) => void;
   patients: Patient[];
   branches: Branch[];
+  allAppointments?: Appointment[];
   activeBranchId: string;
   onPatientCreated: (patient: Patient) => void;
   onStepChange?: (step: BookingStep) => void;
@@ -20,7 +22,7 @@ interface AppointmentBookingProps {
 
 type BookingStep = 'IDENTIFICATION' | 'SELECTION' | 'CONFIRMATION';
 
-export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, activeBranchId, onPatientCreated, onStepChange, dataSourceMode, isHybridEntitySynced }) => {
+export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, patients, branches, allAppointments = [], activeBranchId, onPatientCreated, onStepChange, dataSourceMode, isHybridEntitySynced }) => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState<BookingStep>('IDENTIFICATION');
@@ -33,6 +35,21 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   const [doctors, setDoctors] = useState<User[]>([]);
   const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
   const [bookingGuardMessage, setBookingGuardMessage] = useState<string | null>(null);
+  const [isEarlyCheckin, setIsEarlyCheckin] = useState(false);
+
+  // Find if the selected patient has a later SCHEDULED appointment today
+  const patientLaterAppointment = useMemo(() => {
+    if (!selectedPatient) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().slice(0, 5);
+    return allAppointments.find(
+      (apt) =>
+        apt.patientId === selectedPatient.id &&
+        apt.date === today &&
+        apt.timeSlot > nowTime &&
+        ['SCHEDULED', 'WAITING'].includes(apt.status)
+    ) ?? null;
+  }, [selectedPatient, allAppointments]);
 
   const activeBranch = useMemo(() => branches.find((branch) => branch.id === activeBranchId), [activeBranchId, branches]);
 
@@ -117,12 +134,14 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
         type: 'Consultation',
         billing: {
           subtotal: selectedDoctor.consultationFee || 400
-        } as any
+        } as any,
+        ...(isEarlyCheckin && patientLaterAppointment ? { earlyCheckinForAppointmentId: patientLaterAppointment.id } : {}),
       });
       setStep('IDENTIFICATION');
       setSelectedPatient(null);
       setSelectedTime('');
       setSelectedDoctor(null);
+      setIsEarlyCheckin(false);
     }
   };
 
@@ -220,17 +239,17 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('department')}</label>
-                <select
-                  value={selectedDept}
-                  onChange={(e) => {
-                    setSelectedDept(e.target.value as Department);
-                    setSelectedDoctor(null);
-                    setSelectedTime('');
-                  }}
-                  className="block w-full mt-1 text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
-                >
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <div className="mt-1">
+                  <Select
+                    value={selectedDept}
+                    onChange={(val) => {
+                      setSelectedDept(val as Department);
+                      setSelectedDoctor(null);
+                      setSelectedTime('');
+                    }}
+                    options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase">{t('date')}</label>
@@ -309,6 +328,36 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                 {bookingGuardMessage}
               </div>
             )}
+
+            {/* Early check-in notice */}
+            {patientLaterAppointment && (
+              <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${isEarlyCheckin ? 'border-orange-300 bg-orange-50' : 'border-blue-200 bg-blue-50'}`}>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isEarlyCheckin ? 'text-orange-600' : 'text-blue-500'}`} />
+                  <div className="flex-1">
+                    <p className={`font-semibold ${isEarlyCheckin ? 'text-orange-800' : 'text-blue-800'}`}>
+                      هذا المريض لديه موعد لاحق اليوم
+                    </p>
+                    <p className={`mt-0.5 ${isEarlyCheckin ? 'text-orange-700' : 'text-blue-700'}`}>
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      الساعة {formatTimeTo12Hour(patientLaterAppointment.timeSlot)}
+                    </p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isEarlyCheckin}
+                        onChange={(e) => setIsEarlyCheckin(e.target.checked)}
+                        className="w-4 h-4 accent-orange-500"
+                      />
+                      <span className={`text-sm font-medium ${isEarlyCheckin ? 'text-orange-800' : 'text-blue-700'}`}>
+                        المريض حضر مبكراً — إلغاء موعد الساعة {formatTimeTo12Hour(patientLaterAppointment.timeSlot)} بصمت (بدون إشعار)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4">
               <button onClick={() => setStep('SELECTION')} className="flex-1 py-3.5 border border-gray-300 rounded-lg font-medium text-2xl sm:text-xl hover:bg-gray-50">{t('back')}</button>
               <button onClick={handleConfirm} className="flex-[2] py-3.5 bg-primary-600 text-white rounded-lg font-bold text-xl hover:bg-primary-700 shadow-lg">{t('confirm_booking')}</button>

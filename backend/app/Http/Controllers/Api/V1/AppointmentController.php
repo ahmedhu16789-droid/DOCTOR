@@ -187,31 +187,6 @@ class AppointmentController extends Controller
                 return 0;
             }
 
-            $alreadyShifted = AppointmentSlotShift::query()
-                ->where('clinic_id', $clinicId)
-                ->where('doctor_id', $validated['doctorId'])
-                ->where('branch_id', $validated['branchId'])
-                ->whereDate('date', $validated['date'])
-                ->where('from_time', $validated['fromTime'])
-                ->where('shift_minutes', $validated['shiftMinutes'])
-                ->exists();
-
-            if ($alreadyShifted) {
-                throw ValidationException::withMessages([
-                    'shiftMinutes' => 'This shift has already been applied for the selected scope.',
-                ]);
-            }
-
-            AppointmentSlotShift::query()->create([
-                'clinic_id' => $clinicId,
-                'doctor_id' => $validated['doctorId'],
-                'branch_id' => $validated['branchId'],
-                'date' => $validated['date'],
-                'from_time' => $validated['fromTime'],
-                'shift_minutes' => $validated['shiftMinutes'],
-                'applied_by_user_id' => $request->user()->id,
-            ]);
-
             return $appointments->count();
         });
 
@@ -616,6 +591,20 @@ class AppointmentController extends Controller
         $branchId = $request->integer('branchId');
         $date = $request->string('date')->value();
         $timeSlot = $request->string('timeSlot')->value();
+        $earlyCheckinForAppointmentId = $request->integer('earlyCheckinForAppointmentId') ?: null;
+
+        // Validate early check-in target if provided
+        $earlyCheckinOriginal = null;
+        if ($earlyCheckinForAppointmentId) {
+            $earlyCheckinOriginal = Appointment::query()
+                ->where('clinic_id', $request->user()->clinic_id)
+                ->where('patient_id', $request->integer('patientId'))
+                ->whereIn('status', ['SCHEDULED', 'WAITING'])
+                ->whereKey($earlyCheckinForAppointmentId)
+                ->first();
+
+            abort_if(! $earlyCheckinOriginal, 422, 'The original appointment was not found or is already in progress.');
+        }
 
         $doctor = User::query()
             ->select(['id', 'clinic_id', 'schedule'])
@@ -639,7 +628,15 @@ class AppointmentController extends Controller
 
         abort_if($alreadyBooked, 422, 'The selected slot is no longer available.');
 
-        $appointment = DB::transaction(function () use ($request, $doctorId, $branchId, $date, $timeSlot): Appointment {
+        $appointment = DB::transaction(function () use ($request, $doctorId, $branchId, $date, $timeSlot, $earlyCheckinOriginal): Appointment {
+            // Silently cancel the original appointment (no notification)
+            if ($earlyCheckinOriginal) {
+                $earlyCheckinOriginal->update([
+                    'status' => 'CANCELLED',
+                    'cancellation_reason' => 'EARLY_CHECKIN',
+                ]);
+            }
+
             $appointment = Appointment::create([
                 'clinic_id' => $request->user()->clinic_id,
                 'patient_id' => $request->integer('patientId'),

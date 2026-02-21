@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Select } from '../common/Select';
 import { ScheduleGrid } from './ScheduleGrid';
 import { BranchSelector } from './BranchSelector';
 import { User, UserRole, Department, Branch } from '../../types';
@@ -149,11 +150,20 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('department')}</label>
-                                <select {...register('specialty')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
-                                    {(departments.length ? departments : Object.values(Department).map((d) => ({ value: d, labelEn: d, labelAr: d }))).map((d) => (
-                                        <option key={d.value} value={d.value}>{i18n.language === 'ar' ? d.labelAr : d.labelEn}</option>
-                                    ))}
-                                </select>
+                                <Controller
+                                    name="specialty"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            options={(departments.length ? departments : Object.values(Department).map((d) => ({ value: d, labelEn: d, labelAr: d }))).map((d) => ({
+                                                value: d.value,
+                                                label: i18n.language === 'ar' ? d.labelAr : d.labelEn
+                                            }))}
+                                        />
+                                    )}
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('consultation_fee')}</label>

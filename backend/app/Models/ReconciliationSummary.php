@@ -26,7 +26,7 @@ class ReconciliationSummary extends Model
     protected function casts(): array
     {
         return [
-            'reconciliation_date' => 'date',
+            'reconciliation_date' => 'date:Y-m-d',
             'opening_balance' => 'float',
             'expected_cash' => 'float',
             'collected_cash' => 'float',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Select } from '../common/Select';
 import { getDashboardAnalytics, DashboardRevenuePoint } from '../../services/dashboardRepository';
 
 const FALLBACK: DashboardRevenuePoint[] = [
@@ -68,9 +69,13 @@ export const RevenueChart: React.FC<Props> = ({ branchId }) => {
           <h3 className="font-bold text-gray-900 text-lg">{t('revenue_analytics')}</h3>
           <p className="text-sm text-gray-500">{t('weekly_income')}</p>
         </div>
-        <select className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-sky-500 outline-none">
-          <option>{t('last_7_days')}</option>
-        </select>
+        <div className="w-32">
+          <Select
+            value="7days"
+            onChange={() => { }}
+            options={[{ value: '7days', label: t('last_7_days') }]}
+          />
+        </div>
       </div>
 
       <div className="flex-1 w-full relative overflow-hidden" style={{ minHeight: 180 }}>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Lock, Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { KPICard } from '../components/dashboard/KPICard';
+import { Select } from '../components/common/Select';
 import {
   DoctorPayrollReportFilters,
   DoctorPayrollReportRecord,
@@ -197,27 +198,23 @@ export const DoctorPayrollReports: React.FC = () => {
 
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <select
+          <Select
             value={filters.doctorId}
-            onChange={(e) => handleFilterChange('doctorId', e.target.value)}
-            className="h-10 rounded-lg border border-gray-300 px-3 text-sm"
-          >
-            <option value="">{t('doctor_payroll.filters.doctor')}</option>
-            {doctors.map((doctor) => (
-              <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-            ))}
-          </select>
+            onChange={(val) => handleFilterChange('doctorId', val)}
+            options={[
+              { value: '', label: t('doctor_payroll.filters.doctor') },
+              ...doctors.map((doctor) => ({ value: doctor.id, label: doctor.name }))
+            ]}
+          />
 
-          <select
+          <Select
             value={filters.branchId}
-            onChange={(e) => handleFilterChange('branchId', e.target.value)}
-            className="h-10 rounded-lg border border-gray-300 px-3 text-sm"
-          >
-            <option value="">{t('doctor_payroll.filters.branch')}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
+            onChange={(val) => handleFilterChange('branchId', val)}
+            options={[
+              { value: '', label: t('doctor_payroll.filters.branch') },
+              ...branches.map((branch) => ({ value: branch.id, label: branch.name }))
+            ]}
+          />
 
           <input
             type="month"
@@ -226,16 +223,16 @@ export const DoctorPayrollReports: React.FC = () => {
             className="h-10 rounded-lg border border-gray-300 px-3 text-sm"
           />
 
-          <select
+          <Select
             value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="h-10 rounded-lg border border-gray-300 px-3 text-sm"
-          >
-            <option value="">{t('doctor_payroll.filters.status')}</option>
-            <option value="OPEN">{t('doctor_payroll.status.open')}</option>
-            <option value="CLOSED">{t('doctor_payroll.status.closed')}</option>
-            <option value="SETTLED">{t('doctor_payroll.status.settled')}</option>
-          </select>
+            onChange={(val) => handleFilterChange('status', val)}
+            options={[
+              { value: '', label: t('doctor_payroll.filters.status') },
+              { value: 'OPEN', label: t('doctor_payroll.status.open') },
+              { value: 'CLOSED', label: t('doctor_payroll.status.closed') },
+              { value: 'SETTLED', label: t('doctor_payroll.status.settled') }
+            ]}
+          />
         </div>
       </div>
 

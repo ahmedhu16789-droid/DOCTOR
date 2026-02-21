@@ -22,6 +22,7 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
 
   final List<WhatsAppMessage> _whatsappQueue = [];
   bool _isProcessingWhatsApp = false;
+  bool _isWhatsAppVisible = false;
 
   @override
   void initState() {
@@ -32,10 +33,10 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
   Future<void> _initWebview() async {
     try {
       await _controller.initialize();
-      await _controller.setBackgroundColor(Colors.transparent);
-      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.allow);
 
       _controller.webMessage.listen((event) {
+        debugPrint('WebView received message: $event');
         try {
           final data = jsonDecode(event);
           if (data['type'] == 'WHATSAPP_BATCH' && data['messages'] != null) {
@@ -47,6 +48,7 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
               setState(() {
                 _whatsappQueue.addAll(messages);
                 _isProcessingWhatsApp = true;
+                _isWhatsAppVisible = true; // Always show immediately so WebView renders properly
               });
             }
           }
@@ -104,31 +106,10 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Stack(
           children: [
-            // Internal Background Worker for WhatsApp
-            if (_isProcessingWhatsApp)
-              Positioned(
-                left: -2000, // Move off-screen
-                top: 0,
-                child: SizedBox(
-                  width: 800,
-                  height: 600,
-                  child: WhatsAppAutomationDialog(
-                    messages: List.from(_whatsappQueue),
-                    onCompleted: () {
-                      if (mounted) {
-                        setState(() {
-                          _whatsappQueue.clear();
-                          _isProcessingWhatsApp = false;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
 
             // Main Webview
             Positioned.fill(
@@ -170,6 +151,60 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
                     )
                   : const Center(child: CircularProgressIndicator()),
             ),
+
+            // Internal Background Worker for WhatsApp
+            if (_isProcessingWhatsApp)
+              Positioned(
+                left: _isWhatsAppVisible ? 0 : -2000,
+                right: _isWhatsAppVisible ? 0 : null,
+                top: _isWhatsAppVisible ? 0 : 0,
+                bottom: _isWhatsAppVisible ? 0 : null,
+                child: Center(
+                  child: Container(
+                    decoration: _isWhatsAppVisible ? BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          spreadRadius: 5,
+                        )
+                      ],
+                      borderRadius: BorderRadius.circular(12),
+                    ) : null,
+                    width: 800,
+                    height: 600,
+                    child: WhatsAppAutomationDialog(
+                      messages: List.from(_whatsappQueue),
+                      onNeedsLogin: () {
+                        debugPrint('onNeedsLogin called! _isWhatsAppVisible: $_isWhatsAppVisible');
+                        if (!_isWhatsAppVisible && mounted) {
+                          setState(() {
+                            _isWhatsAppVisible = true;
+                          });
+                        }
+                      },
+                      onLoggedIn: () {
+                        debugPrint('onLoggedIn called! _isWhatsAppVisible: $_isWhatsAppVisible');
+                        if (_isWhatsAppVisible && mounted) {
+                          setState(() {
+                            _isWhatsAppVisible = false;
+                          });
+                        }
+                      },
+                      onCompleted: () {
+                        if (mounted) {
+                          setState(() {
+                            _whatsappQueue.clear();
+                            _isProcessingWhatsApp = false;
+                            _isWhatsAppVisible = false;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

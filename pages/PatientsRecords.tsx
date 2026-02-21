@@ -3,7 +3,7 @@ import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stetho
 import { useTranslation } from 'react-i18next';
 import { getMedicalEncounterFromApi, getPatientAuditTimelineFromApi, MedicalEncounterWithHistory, AuditTimelineEntry } from '../services/api';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus, UserRole } from '../types';
-import { formatTimeTo12Hour } from '../utils/time';
+import { formatTimeTo12Hour, formatDateShort } from '../utils/time';
 
 interface PatientsRecordsProps {
   patients: Patient[];
@@ -208,7 +208,7 @@ export function PatientsRecords({
               >
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{patient.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{patient.phone}</td>
-                <td className="px-6 py-4 text-sm text-gray-700">{patient.lastVisit || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">{formatDateShort(patient.lastVisit)}</td>
                 <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{patient.medicalHistorySummary}</td>
                 <td className="px-6 py-4 text-sm text-end">
                   <button
@@ -277,7 +277,7 @@ export function PatientsRecords({
               </div>
               <div className="rounded-lg border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-500 mb-1">{t('last_visit')}</p>
-                <p className="text-lg font-bold text-gray-900">{selectedPatient.lastVisit || '-'}</p>
+                <p className="text-lg font-bold text-gray-900">{formatDateShort(selectedPatient.lastVisit)}</p>
               </div>
               <div className="rounded-lg border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-500 mb-1">{t('paid_total')}</p>

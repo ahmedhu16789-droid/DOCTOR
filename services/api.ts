@@ -921,6 +921,7 @@ export const createAppointmentViaApi = async (
       date: appointment.date,
       timeSlot: appointment.timeSlot,
       status: appointment.status ?? AppointmentStatus.SCHEDULED,
+      earlyCheckinForAppointmentId: appointment.earlyCheckinForAppointmentId,
       billing: {
         total: appointment.billing?.total ?? 0,
         paidAmount: appointment.billing?.paidAmount ?? 0,

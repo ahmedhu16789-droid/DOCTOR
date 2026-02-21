@@ -90,9 +90,9 @@ export interface User {
   email?: string;
   phone?: string;
   status?: 'ACTIVE' | 'INACTIVE';
-  
+
   // Specific to Doctors/Staff
-  consultationFee?: number; 
+  consultationFee?: number;
   schedule?: WeeklyShift[];
   payroll?: PayrollConfig;
   activeBranchId?: string;
@@ -230,6 +230,7 @@ export interface Appointment {
   };
   billing: BillingDetails; // Financial State
   createdAt: string;
+  earlyCheckinForAppointmentId?: string;
 }
 
 export interface QueueItem extends Appointment {

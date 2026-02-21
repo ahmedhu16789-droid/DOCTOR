@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Select } from '../common/Select';
 import { getDelayInsightViaApi, getDoctorsFromApi, previewShiftAppointmentsViaApi, shiftAppointmentsViaApi } from '../../services/api';
+import { sendWhatsAppQueue, WhatsAppMessage } from '../../utils/whatsapp';
 import { User, UserRole } from '../../types';
 
 interface BulkShiftPanelProps {
@@ -101,6 +103,23 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
         shiftMinutes,
       });
 
+      if (result.shiftedData && result.shiftedData.length > 0) {
+        const doctorName = doctorOptions.find((d) => d.id === doctorId)?.name ?? '';
+        const whatsappQueue: WhatsAppMessage[] = result.shiftedData
+          .filter((d: any) => d.patientPhone)
+          .map((d: any) => {
+            const drText = doctorName ? ` مع د. ${doctorName}` : '';
+            return {
+              phone: d.patientPhone,
+              text: `مرحباً، تم تعديل موعدك${drText} ليكون الساعة ${d.afterTime} بدلاً من ${d.beforeTime}. شكراً لتفهمكم ونتمنى لكم دوام الصحة والعافية.`,
+            };
+          });
+
+        if (whatsappQueue.length > 0) {
+          sendWhatsAppQueue(whatsappQueue);
+        }
+      }
+
       setFeedback(t('migration_success', { count: result.shiftedAppointments }));
       setPreviewRows(null);
       await onShiftApplied?.();
@@ -164,15 +183,11 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('doctor')}</label>
-            <select
+            <Select
               value={doctorId}
-              onChange={(event) => setDoctorId(event.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {doctorOptions.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setDoctorId(val)}
+              options={doctorOptions.map((doctor) => ({ value: doctor.id, label: doctor.name }))}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -198,15 +213,11 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('migration_duration')}</label>
-            <select
-              value={shiftMinutes}
-              onChange={(event) => setShiftMinutes(Number(event.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {SHIFT_MINUTES_OPTIONS.map((minutes) => (
-                <option key={minutes} value={minutes}>{t('migration_minutes', { count: minutes })}</option>
-              ))}
-            </select>
+            <Select
+              value={shiftMinutes.toString()}
+              onChange={(val) => setShiftMinutes(Number(val))}
+              options={SHIFT_MINUTES_OPTIONS.map((minutes) => ({ value: minutes.toString(), label: t('migration_minutes', { count: minutes }) }))}
+            />
           </div>
 
           <div className="flex gap-2">

@@ -32,7 +32,7 @@ class MedicalEncounter extends Model
     {
         return [
             'vitals' => 'array',
-            'next_visit_date' => 'date',
+            'next_visit_date' => 'date:Y-m-d',
             'next_visit_interval' => 'integer',
             'finalized_at' => 'datetime',
         ];

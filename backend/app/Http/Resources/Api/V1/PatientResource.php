@@ -15,7 +15,7 @@ class PatientResource extends JsonResource
                 ->where('status', 'COMPLETED')
                 ->sortByDesc('date')
                 ->first()
-                ?->date;
+                ?->date?->toDateString();
         }, null);
 
         return [

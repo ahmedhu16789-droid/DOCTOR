@@ -162,7 +162,7 @@ class MedicalEncounterController extends Controller
             'nextVisitType' => $encounter->next_visit_type,
             'nextVisitInterval' => $encounter->next_visit_interval,
             'status' => $encounter->status,
-            'date' => $encounter->appointment?->date,
+            'date' => $encounter->appointment?->date?->toDateString(),
             'timeSlot' => $encounter->appointment?->time_slot,
             'prescription' => $encounter->prescriptions->map(fn ($medication) => [
                 'id' => (string) $medication->id,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Appointment, AppointmentStatus, PaymentEntry, UserRole, PaymentStatus } from '../types';
 import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard, RotateCw } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
+import { Select } from './common/Select';
 import { formatTimeTo12Hour } from '../utils/time';
 import { useTranslation } from 'react-i18next';
 import { getClinicSettingsFromApi } from '../services/api';
@@ -198,16 +199,16 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-bold text-gray-900">{t('patient_queue')}</h2>
           {userRole !== UserRole.DOCTOR && (
-            <select
-              className="text-sm border-gray-300 rounded-lg focus:ring-primary-500"
-              value={filterDoc}
-              onChange={(e) => setFilterDoc(e.target.value)}
-            >
-              <option value="ALL">{t('all_roles').replace('Roles', 'Doctors')}</option>
-              {uniqueDoctors.map(doc => (
-                <option key={doc.id} value={doc.id}>{doc.name}</option>
-              ))}
-            </select>
+            <div className="w-48">
+              <Select
+                value={filterDoc}
+                onChange={(val) => setFilterDoc(val)}
+                options={[
+                  { value: 'ALL', label: t('all_roles').replace('Roles', 'Doctors') },
+                  ...uniqueDoctors.map(doc => ({ value: doc.id, label: doc.name }))
+                ]}
+              />
+            </div>
           )}
         </div>
         <div className="flex gap-2">

@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Select } from '../common/Select';
 import { ScheduleGrid } from './ScheduleGrid';
 import { BranchSelector } from './BranchSelector';
 import { Branch, Employee, UserRole } from '../../types';
@@ -84,11 +85,17 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ initialData, branche
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">{t('system_role')}</label>
-              <select {...register('role')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>{t(role.toLowerCase() as any)}</option>
-                ))}
-              </select>
+              <Controller
+                name="role"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={roleOptions.map((role) => ({ value: role, label: t(role.toLowerCase() as any) }))}
+                  />
+                )}
+              />
             </div>
             <div className="md:col-span-2">
               <Controller

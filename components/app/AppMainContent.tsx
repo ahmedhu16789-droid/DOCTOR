@@ -94,6 +94,7 @@ export function AppMainContent({
               onBook={onBook}
               patients={patients}
               branches={branches}
+              allAppointments={allAppointments}
               activeBranchId={activeBranchId}
               onPatientCreated={onPatientCreated}
               dataSourceMode={dataSourceMode}

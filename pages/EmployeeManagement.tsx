@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Employee, UserRole, Branch } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
+import { Select } from '../components/common/Select';
 import { UserPlus, Search, MapPin, DollarSign, Clock, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createAccessLinkViaApi, createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
@@ -122,12 +123,16 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
               className="w-full pl-9 rtl:pr-9 rtl:pl-4 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
-          <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className="border-gray-300 rounded-lg text-sm">
-            <option value="">{t('all_roles')}</option>
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>{t(role.toLowerCase() as any)}</option>
-            ))}
-          </select>
+          <div className="w-48">
+            <Select
+              value={selectedRole}
+              onChange={(val) => setSelectedRole(val)}
+              options={[
+                { value: '', label: t('all_roles') },
+                ...roleOptions.map((role) => ({ value: role, label: t(role.toLowerCase() as any) }))
+              ]}
+            />
+          </div>
         </div>
 
         <table className="min-w-full divide-y divide-gray-200">

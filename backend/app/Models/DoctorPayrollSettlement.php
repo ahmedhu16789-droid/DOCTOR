@@ -25,7 +25,7 @@ class DoctorPayrollSettlement extends Model
     protected function casts(): array
     {
         return [
-            'settlement_date' => 'date',
+            'settlement_date' => 'date:Y-m-d',
             'amount' => 'decimal:2',
         ];
     }

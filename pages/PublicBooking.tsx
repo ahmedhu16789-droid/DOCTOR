@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Department, Patient, TimeSlot, User } from '../types';
 import { BRANCHES, DEPARTMENTS } from '../constants';
 import { MapPin, Star, ArrowRight, Phone, CheckCircle, UserPlus, User as UserIcon, ChevronLeft, CreditCard, Banknote } from 'lucide-react';
+import { Select } from '../components/common/Select';
 import { useTranslation } from 'react-i18next';
 import { formatTimeTo12Hour } from '../utils/time';
 import { getPublicBookingRepository, PublicBookingMode } from '../services/publicBookingRepository';
@@ -162,14 +163,16 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             <span className="font-bold text-lg text-gray-800">{t('clinic_name')}</span>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as PublicBookingMode)}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
-            >
-              <option value="demo">Demo mode</option>
-              <option value="backend">Backend mode</option>
-            </select>
+            <div className="w-36">
+              <Select
+                value={mode}
+                onChange={(val) => setMode(val as PublicBookingMode)}
+                options={[
+                  { value: 'demo', label: 'Demo mode' },
+                  { value: 'backend', label: 'Backend mode' }
+                ]}
+              />
+            </div>
             <button onClick={onBackToLogin} className="text-sm text-gray-500 hover:text-primary-600">
               {t('staff_login')}
             </button>
@@ -206,8 +209,8 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
                     key={b.id}
                     onClick={() => setSelectedBranch(b.id)}
                     className={`p-4 border rounded-xl text-left transition-all ${selectedBranch === b.id
-                        ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <MapPin className={`w-5 h-5 mb-2 rtl:ml-2 rtl:mr-0 ${selectedBranch === b.id ? 'text-primary-600' : 'text-gray-400'}`} />
@@ -220,13 +223,11 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('select_department')}</label>
-              <select
+              <Select
                 value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value as Department)}
-                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 py-3 text-lg"
-              >
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+                onChange={(val) => setSelectedDept(val as Department)}
+                options={DEPARTMENTS.map(d => ({ value: d, label: d }))}
+              />
             </div>
 
             <button

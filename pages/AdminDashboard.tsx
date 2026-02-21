@@ -3,6 +3,7 @@ import { User, UserRole, Branch, Department } from '../types';
 import { MOCK_USERS, BRANCHES } from '../constants';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
+import { Select } from '../components/common/Select';
 import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createAccessLinkViaApi, createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
@@ -134,18 +135,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                             className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 rtl:pr-9 rtl:pl-3 text-sm focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
-                    <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="rounded-lg border border-gray-300 py-2 px-3 text-sm focus:ring-primary-500 focus:border-primary-500">
-                        <option value="ALL">{t('all_departments')}</option>
-                        {departmentOptions.map((department) => (
-                            <option key={department.value} value={department.value}>{i18n.language === 'ar' ? department.labelAr : department.labelEn}</option>
-                        ))}
-                    </select>
-                    <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="rounded-lg border border-gray-300 py-2 px-3 text-sm focus:ring-primary-500 focus:border-primary-500">
-                        <option value="ALL">{t('all_branches')}</option>
-                        {branches.map((branch) => (
-                            <option key={branch.id} value={branch.id}>{branch.name}</option>
-                        ))}
-                    </select>
+                    <div className="w-full">
+                        <Select
+                            value={departmentFilter}
+                            onChange={(val) => setDepartmentFilter(val)}
+                            options={[
+                                { value: 'ALL', label: t('all_departments') },
+                                ...departmentOptions.map((department) => ({
+                                    value: department.value,
+                                    label: i18n.language === 'ar' ? department.labelAr : department.labelEn
+                                }))
+                            ]}
+                        />
+                    </div>
+                    <div className="w-full">
+                        <Select
+                            value={branchFilter}
+                            onChange={(val) => setBranchFilter(val)}
+                            options={[
+                                { value: 'ALL', label: t('all_branches') },
+                                ...branches.map((branch) => ({ value: branch.id, label: branch.name }))
+                            ]}
+                        />
+                    </div>
                 </div>
                 <div className="overflow-auto">
                     <table className="min-w-full divide-y divide-gray-200">

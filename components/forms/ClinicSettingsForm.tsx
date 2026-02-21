@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Save, Mail, Clock, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Select } from '../common/Select';
 import { ClinicSettingsPayload, getClinicSettingsFromApi, updateClinicSettingsViaApi } from '../../services/api';
 
 export const ClinicSettingsForm: React.FC = () => {
@@ -10,7 +11,7 @@ export const ClinicSettingsForm: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
-    const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm<ClinicSettingsPayload>({
+    const { register, control, handleSubmit, formState: { isSubmitting }, reset } = useForm<ClinicSettingsPayload>({
         defaultValues: {
             name: '',
             email: '',
@@ -146,10 +147,12 @@ export const ClinicSettingsForm: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Commission basis</label>
-                                <select {...register('commission_basis')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
-                                    <option value="PAID_AMOUNT">Paid amount</option>
-                                    <option value="INVOICE_TOTAL">Invoice total</option>
-                                </select>
+                                <Controller name="commission_basis" control={control} render={({ field }) => (
+                                    <Select value={field.value} onChange={field.onChange} options={[
+                                        { value: 'PAID_AMOUNT', label: 'Paid amount' },
+                                        { value: 'INVOICE_TOTAL', label: 'Invoice total' }
+                                    ]} />
+                                )} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Accrual day of month</label>
@@ -176,10 +179,12 @@ export const ClinicSettingsForm: React.FC = () => {
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                             <label className="block text-sm font-medium text-gray-700">{t('tv_queue_display_mode_label')}</label>
-                            <select {...register('tv_queue_display_mode')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
-                                <option value="FULL_NAME">{t('tv_queue_display_mode_full_name')}</option>
-                                <option value="MASKED_NAME">{t('tv_queue_display_mode_masked_name')}</option>
-                            </select>
+                            <Controller name="tv_queue_display_mode" control={control} render={({ field }) => (
+                                <Select value={field.value} onChange={field.onChange} options={[
+                                    { value: 'FULL_NAME', label: t('tv_queue_display_mode_full_name') },
+                                    { value: 'MASKED_NAME', label: t('tv_queue_display_mode_masked_name') }
+                                ]} />
+                            )} />
                             <p className="text-xs text-gray-500">{t('tv_queue_display_mode_helper')}</p>
                         </div>
                     </div>
@@ -195,21 +200,27 @@ export const ClinicSettingsForm: React.FC = () => {
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Clock className="h-5 w-5 text-gray-400" />
                                     </div>
-                                    <select {...register('timezone')} className="block w-full pl-10 rounded-md border-gray-300 border p-2 bg-white">
-                                        <option value="Africa/Cairo">{t('timezone_africa_cairo')}</option>
-                                        <option value="Asia/Riyadh">{t('timezone_asia_riyadh')}</option>
-                                        <option value="Asia/Dubai">{t('timezone_asia_dubai')}</option>
-                                        <option value="Europe/London">{t('timezone_europe_london')}</option>
-                                    </select>
+                                    <div className="flex-1 w-full pl-8">
+                                        <Controller name="timezone" control={control} render={({ field }) => (
+                                            <Select value={field.value} onChange={field.onChange} options={[
+                                                { value: 'Africa/Cairo', label: t('timezone_africa_cairo') },
+                                                { value: 'Asia/Riyadh', label: t('timezone_asia_riyadh') },
+                                                { value: 'Asia/Dubai', label: t('timezone_asia_dubai') },
+                                                { value: 'Europe/London', label: t('timezone_europe_london') }
+                                            ]} />
+                                        )} />
+                                    </div>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t('default_currency')}</label>
-                                <select {...register('currency')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
-                                    <option value="EGP">{t('currency_egp')}</option>
-                                    <option value="USD">{t('currency_usd')}</option>
-                                    <option value="SAR">{t('currency_sar')}</option>
-                                </select>
+                                <Controller name="currency" control={control} render={({ field }) => (
+                                    <Select value={field.value} onChange={field.onChange} options={[
+                                        { value: 'EGP', label: t('currency_egp') },
+                                        { value: 'USD', label: t('currency_usd') },
+                                        { value: 'SAR', label: t('currency_sar') }
+                                    ]} />
+                                )} />
                             </div>
                         </div>
                     </div>

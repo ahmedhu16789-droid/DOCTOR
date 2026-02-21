@@ -71,7 +71,7 @@ class AppointmentResource extends JsonResource
             'doctorId' => (string) $this->doctor_id,
             'branchId' => (string) $this->branch_id,
             'doctorName' => $this->doctor?->name ?? 'Doctor',
-            'date' => $this->date,
+            'date' => $this->date?->format('Y-m-d'),
             'timeSlot' => $this->time_slot,
             'status' => $this->status,
             'scheduledStartAt' => $scheduledStart?->toIso8601String(),

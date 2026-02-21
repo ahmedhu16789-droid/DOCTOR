@@ -31,8 +31,8 @@ class DoctorPayrollContract extends Model
             'commission_percentage' => 'decimal:2',
             'additional_services_commission_enabled' => 'boolean',
             'additional_services_commission_percentage' => 'decimal:2',
-            'effective_from' => 'date',
-            'effective_to' => 'date',
+            'effective_from' => 'date:Y-m-d',
+            'effective_to' => 'date:Y-m-d',
             'is_active' => 'boolean',
         ];
     }

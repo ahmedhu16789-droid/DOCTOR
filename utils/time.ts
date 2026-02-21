@@ -21,3 +21,10 @@ export const formatDateTo12Hour = (date: Date): string => {
 
   return `${String(normalizedHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
 };
+
+/** Returns only the YYYY-MM-DD portion of any date string (handles ISO 8601 too) */
+export const formatDateShort = (date: string | null | undefined): string => {
+  if (!date) return '-';
+  return date.includes('T') ? date.split('T')[0] : date;
+};
+

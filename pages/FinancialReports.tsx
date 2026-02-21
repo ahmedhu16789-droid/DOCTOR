@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { KPICard } from '../components/dashboard/KPICard';
+import { Select } from '../components/common/Select';
 import { DollarSign, TrendingUp, PieChart, Download, Building2 } from 'lucide-react';
 import { exportFinancialReportCsvFromApi, FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
 import { useTranslation } from 'react-i18next';
@@ -145,16 +146,16 @@ export const FinancialReports: React.FC = () => {
                     <p className="text-xs text-gray-500 mt-1">Scope: {selectedBranchName}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <select
-                        value={selectedBranchId}
-                        onChange={(event) => setSelectedBranchId(event.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
-                    >
-                        <option value="">All branches</option>
-                        {branches.map((branch) => (
-                            <option key={branch.id} value={branch.id}>{branch.name}</option>
-                        ))}
-                    </select>
+                    <div className="w-48">
+                        <Select
+                            value={selectedBranchId}
+                            onChange={(val) => setSelectedBranchId(val)}
+                            options={[
+                                { value: '', label: 'All branches' },
+                                ...branches.map((branch) => ({ value: branch.id, label: branch.name }))
+                            ]}
+                        />
+                    </div>
                     <input
                         type="date"
                         value={selectedFromDate}
@@ -252,16 +253,16 @@ export const FinancialReports: React.FC = () => {
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
                     <h3 className="font-bold text-gray-900">Branch/day cash reconciliation</h3>
                     <div className="flex gap-2">
-                        <select
-                            value={selectedBranchId}
-                            onChange={(event) => setSelectedBranchId(event.target.value)}
-                            className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-                        >
-                            <option value="">All branches</option>
-                            {branches.map((branch) => (
-                                <option key={branch.id} value={branch.id}>{branch.name}</option>
-                            ))}
-                        </select>
+                        <div className="w-48">
+                            <Select
+                                value={selectedBranchId}
+                                onChange={(val) => setSelectedBranchId(val)}
+                                options={[
+                                    { value: '', label: 'All branches' },
+                                    ...branches.map((branch) => ({ value: branch.id, label: branch.name }))
+                                ]}
+                            />
+                        </div>
                         <input
                             type="date"
                             value={selectedDate}

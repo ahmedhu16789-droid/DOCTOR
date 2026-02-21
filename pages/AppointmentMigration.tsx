@@ -3,6 +3,7 @@ import { AlertCircle, Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getDoctorsFromApi, shiftAppointmentsViaApi } from '../services/api';
 import { sendWhatsAppQueue, WhatsAppMessage } from '../utils/whatsapp';
+import { Select } from '../components/common/Select';
 import { Branch, User, UserRole } from '../types';
 
 interface AppointmentMigrationProps {
@@ -163,30 +164,22 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('doctor')}</label>
-            <select
+            <Select
               value={doctorId}
-              onChange={(event) => setDoctorId(event.target.value)}
+              onChange={(val) => setDoctorId(val)}
               disabled={currentUser.role === UserRole.DOCTOR}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-              ))}
-            </select>
+              options={doctors.map((doctor) => ({ value: doctor.id, label: doctor.name }))}
+            />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('branches')}</label>
-            <select
+            <Select
               value={branchId}
-              onChange={(event) => setBranchId(event.target.value)}
+              onChange={(val) => setBranchId(val)}
               disabled={currentUser.role !== UserRole.ADMIN}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {branchOptions.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name}</option>
-              ))}
-            </select>
+              options={branchOptions.map((branch) => ({ value: branch.id, label: branch.name }))}
+            />
           </div>
         </div>
 
@@ -211,25 +204,26 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('migration_duration')}</label>
-            <select
+            <Select
               value={shiftMinutes}
-              onChange={(event) => setShiftMinutes(Number(event.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {SHIFT_MINUTES_OPTIONS.map((minutes) => (
-                <option key={minutes} value={minutes}>{t('migration_minutes', { count: minutes })}</option>
-              ))}
-            </select>
+              onChange={(val) => setShiftMinutes(Number(val))}
+              options={SHIFT_MINUTES_OPTIONS.map((minutes) => ({
+                value: minutes,
+                label: t('migration_minutes', { count: minutes })
+              }))}
+            />
           </div>
         </div>
 
         {feedback && <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">{feedback}</p>}
-        {error && (
-          <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-3 py-2 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{error}</span>
-          </p>
-        )}
+        {
+          error && (
+            <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-3 py-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+            </p>
+          )
+        }
 
         <button
           type="submit"
@@ -238,7 +232,7 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
         >
           {isSubmitting ? t('migration_loading') : t('migration_submit')}
         </button>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
