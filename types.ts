@@ -142,6 +142,11 @@ export interface Transaction {
   type: 'PAYMENT' | 'REFUND';
 }
 
+export interface PaymentEntry {
+  amount: number;
+  method: PaymentMethod;
+}
+
 export interface BillingDetails {
   items: InvoiceItem[];
   subtotal: number;

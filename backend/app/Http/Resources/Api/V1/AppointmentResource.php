@@ -30,6 +30,15 @@ class AppointmentResource extends JsonResource
                     'unitPrice' => (float) $item->unit_price,
                     'total' => (float) $item->total,
                 ])->values() ?? [],
+                'transactions' => $this->invoice?->transactions?->map(fn ($transaction) => [
+                    'id' => (string) $transaction->id,
+                    'amount' => (float) $transaction->amount,
+                    'method' => $transaction->method,
+                    'timestamp' => optional($transaction->paid_at)->toIso8601String(),
+                    'recordedBy' => 'system',
+                    'reference' => null,
+                    'type' => ((float) $transaction->amount) < 0 ? 'REFUND' : 'PAYMENT',
+                ])->values() ?? [],
             ],
             'encounterStatus' => $this->encounter?->status,
         ];

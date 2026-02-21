@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Appointment, AppointmentStatus, UserRole, PaymentStatus } from '../types';
+import { Appointment, AppointmentStatus, PaymentEntry, UserRole, PaymentStatus } from '../types';
 import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard, RotateCw } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { formatTimeTo12Hour } from '../utils/time';
@@ -9,7 +9,7 @@ interface ReceptionQueueProps {
   appointments: Appointment[];
   onUpdateStatus: (id: string, status: AppointmentStatus) => void;
   onOpenEncounter?: (appointment: Appointment) => void;
-  onProcessPayment: (aptId: string, amount: number, method: any) => void;
+  onProcessPayment: (aptId: string, payments: PaymentEntry[]) => void;
   onRefresh?: () => Promise<void>;
   userRole: UserRole;
 }
@@ -250,8 +250,8 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
         <PaymentModal
           appointment={paymentApt}
           onClose={() => setPaymentApt(null)}
-          onProcessPayment={(id, amount, method) => {
-            onProcessPayment(id, amount, method);
+          onProcessPayment={(id, payments) => {
+            onProcessPayment(id, payments);
             // Don't close immediately, wait for receipt step inside modal
           }}
         />
