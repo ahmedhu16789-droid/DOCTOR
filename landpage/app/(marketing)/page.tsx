@@ -11,33 +11,36 @@ import { WhyChooseUs } from "@/components/landing/WhyChooseUs";
 import { getLandingData } from "@/lib/getLandingData";
 import { getLandingJsonLd } from "@/lib/seoJsonLd";
 
-const data = getLandingData();
+export async function generateMetadata(): Promise<Metadata> {
+  const data = await getLandingData();
 
-export const metadata: Metadata = {
-  title: data.seo.title,
-  description: data.seo.description,
-  keywords: data.seo.keywords,
-  alternates: {
-    canonical: data.seo.canonical,
-  },
-  openGraph: {
+  return {
     title: data.seo.title,
     description: data.seo.description,
-    url: data.seo.canonical,
-    siteName: data.seo.siteName,
-    images: [{ url: data.seo.openGraphImage }],
-    type: "website",
-  },
-  twitter: {
-    card: data.seo.twitterCard,
-    title: data.seo.title,
-    description: data.seo.description,
-    images: [data.seo.openGraphImage],
-  },
-  robots: data.seo.robots,
-};
+    keywords: data.seo.keywords,
+    alternates: {
+      canonical: data.seo.canonical,
+    },
+    openGraph: {
+      title: data.seo.title,
+      description: data.seo.description,
+      url: data.seo.canonical,
+      siteName: data.seo.siteName,
+      images: [{ url: data.seo.openGraphImage }],
+      type: "website",
+    },
+    twitter: {
+      card: data.seo.twitterCard,
+      title: data.seo.title,
+      description: data.seo.description,
+      images: [data.seo.openGraphImage],
+    },
+    robots: data.seo.robots,
+  };
+}
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const data = await getLandingData();
   const jsonLd = getLandingJsonLd(data);
 
   return (

@@ -8,33 +8,37 @@ import { getLandingData } from "@/lib/getLandingData";
 import { getAppointmentJsonLd } from "@/lib/seoJsonLd";
 import { getClinicContext } from "@/lib/publicBookingApi";
 
-const data = getLandingData();
-const appointment = data.appointmentPage;
+export async function generateMetadata(): Promise<Metadata> {
+  const data = await getLandingData();
+  const appointment = data.appointmentPage;
 
-export const metadata: Metadata = {
-  title: appointment.seo.title,
-  description: appointment.seo.description,
-  keywords: appointment.seo.keywords,
-  alternates: {
-    canonical: appointment.seo.canonical,
-  },
-  openGraph: {
+  return {
     title: appointment.seo.title,
     description: appointment.seo.description,
-    url: appointment.seo.canonical,
-    siteName: data.seo.siteName,
-    images: [{ url: appointment.seo.openGraphImage }],
-    type: "website",
-  },
-  twitter: {
-    card: appointment.seo.twitterCard,
-    title: appointment.seo.title,
-    description: appointment.seo.description,
-    images: [appointment.seo.openGraphImage],
-  },
-};
+    keywords: appointment.seo.keywords,
+    alternates: {
+      canonical: appointment.seo.canonical,
+    },
+    openGraph: {
+      title: appointment.seo.title,
+      description: appointment.seo.description,
+      url: appointment.seo.canonical,
+      siteName: data.seo.siteName,
+      images: [{ url: appointment.seo.openGraphImage }],
+      type: "website",
+    },
+    twitter: {
+      card: appointment.seo.twitterCard,
+      title: appointment.seo.title,
+      description: appointment.seo.description,
+      images: [appointment.seo.openGraphImage],
+    },
+  };
+}
 
 export default async function AppointmentPage() {
+  const data = await getLandingData();
+  const appointment = data.appointmentPage;
   const jsonLd = getAppointmentJsonLd(data);
   const clinicContext = await getClinicContext();
 

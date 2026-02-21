@@ -1,3 +1,20 @@
+export type Locale = "en" | "ar";
+
+export type LocalizedValue = {
+  en: string;
+  ar: string;
+};
+
+export type LandingDataRaw = DeepLocalized<LandingData>;
+
+type DeepLocalized<T> = T extends string
+  ? string | LocalizedValue
+  : T extends Array<infer U>
+    ? Array<DeepLocalized<U>>
+    : T extends object
+      ? { [K in keyof T]: DeepLocalized<T[K]> }
+      : T;
+
 export type NavLink = {
   label: string;
   href: string;
@@ -134,6 +151,36 @@ export type AppointmentPageData = {
   cta: {
     confirmLabel: string;
     action: string;
+  };
+  ui: {
+    loadingSlots: string;
+    validationRequiredFields: string;
+    submitSuccess: string;
+    submitError: string;
+    branchLabel: string;
+    ticketTitle: string;
+    ticketPatientLabel: string;
+    ticketPhoneLabel: string;
+    ticketDoctorLabel: string;
+    ticketSpecialtyLabel: string;
+    ticketBranchLabel: string;
+    ticketScheduleLabel: string;
+    printTicketLabel: string;
+    submittingLabel: string;
+    printNote: string;
+    printPageTitle: string;
+    printLang: string;
+    printDir: "ltr" | "rtl";
+    printHeading: string;
+    printBookingNumberLabel: string;
+    printPatientNameLabel: string;
+    printPhoneNumberLabel: string;
+    printBranchLabel: string;
+    printSpecialtyLabel: string;
+    printDoctorLabel: string;
+    printVisitScheduleLabel: string;
+    printGenderAgeLabel: string;
+    printConfirmedAtLabel: string;
   };
   physicians: Array<{
     name: string;
