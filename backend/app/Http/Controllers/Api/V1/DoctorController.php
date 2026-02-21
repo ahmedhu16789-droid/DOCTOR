@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\DoctorUpsertRequest;
 use App\Http\Resources\Api\V1\DoctorResource;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,12 +72,15 @@ class DoctorController extends Controller
         abort_unless($doctor->role === 'DOCTOR', 404);
 
         $doctor = DB::transaction(function () use ($request, $doctor): User {
+            $previousConsultationFee = (float) ($doctor->consultation_fee ?? 0);
+            $newConsultationFee = (float) $request->input('consultationFee');
+
             $doctor->update([
                 'name' => $request->string('name')->value(),
                 'email' => $request->string('email')->value() ?: null,
                 'phone' => $request->string('phone')->value() ?: null,
                 'specialty' => $request->string('specialty')->value(),
-                'consultation_fee' => $request->input('consultationFee'),
+                'consultation_fee' => $newConsultationFee,
                 'schedule' => $request->input('schedule', []),
                 'payroll' => $request->input('payroll'),
                 'exam_finding_templates' => $request->input('examFindingTemplates', []),
@@ -105,6 +110,10 @@ class DoctorController extends Controller
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
 
+            if ($previousConsultationFee !== $newConsultationFee) {
+                $this->syncPendingPublicBookingConsultationFees($doctor, $newConsultationFee);
+            }
+
             return $doctor->load('branches');
         });
 
@@ -118,5 +127,46 @@ class DoctorController extends Controller
         return collect($request->input('assignedBranches', []))
             ->mapWithKeys(fn ($branchId) => [(int) $branchId => ['clinic_id' => $clinicId]])
             ->all();
+    }
+
+    private function syncPendingPublicBookingConsultationFees(User $doctor, float $newConsultationFee): void
+    {
+        $invoiceIds = Invoice::query()
+            ->where('clinic_id', $doctor->clinic_id)
+            ->whereHas('appointment', fn ($query) => $query
+                ->where('doctor_id', $doctor->id)
+                ->whereIn('status', ['SCHEDULED', 'WAITING', 'CALLED', 'IN_PROGRESS']))
+            ->whereHas('items', fn ($query) => $query
+                ->where('service_id', 'srv_cns')
+                ->where('category', InvoiceItem::CATEGORY_CONSULTATION)
+                ->whereNull('added_by'))
+            ->pluck('id');
+
+        if ($invoiceIds->isEmpty()) {
+            return;
+        }
+
+        InvoiceItem::query()
+            ->whereIn('invoice_id', $invoiceIds)
+            ->where('service_id', 'srv_cns')
+            ->where('category', InvoiceItem::CATEGORY_CONSULTATION)
+            ->whereNull('added_by')
+            ->update([
+                'unit_price' => $newConsultationFee,
+                'total' => $newConsultationFee,
+            ]);
+
+        Invoice::query()
+            ->whereIn('id', $invoiceIds)
+            ->get()
+            ->each(function (Invoice $invoice): void {
+                $subtotal = (float) $invoice->items()->sum('total');
+                $paidAmount = (float) $invoice->paid_amount;
+
+                $invoice->forceFill([
+                    'total' => $subtotal,
+                    'status' => $paidAmount >= $subtotal ? 'PAID' : ($paidAmount > 0 ? 'PARTIAL' : 'UNPAID'),
+                ])->save();
+            });
     }
 }
