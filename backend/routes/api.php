@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
-        Route::get('appointments', [AppointmentController::class, 'index']);
+        Route::get('appointments', [AppointmentController::class, 'index'])->middleware('branch.access:branchId');
         Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
         Route::post('appointments', [AppointmentController::class, 'store']);
@@ -63,9 +63,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
         Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
         Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
-        Route::get('reports/dashboard', [DashboardController::class, 'index']);
-        Route::get('reports/financial', [FinancialReportController::class, 'index']);
-        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
+        Route::get('reports/dashboard', [DashboardController::class, 'index'])->middleware('branch.access:branchId');
+        Route::get('reports/financial', [FinancialReportController::class, 'index'])->middleware('branch.access:branchId,branch_id');
+        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])->middleware('branch.access:branch_id,branchId');
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
         Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle']);
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
