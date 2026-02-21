@@ -131,6 +131,57 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
   }, [age, branchId, doctorId, fullName, gender, hasHydratedStorage, phone, selectedDate, slot, specialty]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedDraft = window.sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    const savedTicket = window.sessionStorage.getItem(BOOKING_TICKET_KEY);
+
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft) as Partial<BookingTicket> & { doctorId?: string; branchId?: string };
+        setSpecialty(draft.specialty ?? specialty);
+        setDoctorId(draft.doctorId ?? "");
+        setBranchId(draft.branchId ?? branchId);
+        setSelectedDate(draft.date ?? selectedDate);
+        setSlot(draft.slot ?? "");
+        setFullName(draft.fullName ?? "");
+        setPhone(draft.phone ?? "");
+        setAge(draft.age ?? "");
+        setGender(draft.gender ?? gender);
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+      }
+    }
+
+    if (savedTicket) {
+      try {
+        setConfirmedTicket(JSON.parse(savedTicket) as BookingTicket);
+      } catch {
+        window.sessionStorage.removeItem(BOOKING_TICKET_KEY);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const draft = {
+      specialty,
+      doctorId,
+      branchId,
+      date: selectedDate,
+      slot,
+      fullName,
+      phone,
+      age,
+      gender,
+    };
+
+    window.sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  }, [age, branchId, doctorId, fullName, gender, phone, selectedDate, slot, specialty]);
+
+  useEffect(() => {
     if (!clinicContext || !doctorId || !branchId || !selectedDate) {
       setAvailableSlots([]);
       return;
