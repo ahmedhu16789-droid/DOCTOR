@@ -315,6 +315,46 @@ class DoctorPayrollControllerTest extends TestCase
         ])->assertStatus(422);
     }
 
+
+    public function test_current_month_closed_period_still_accepts_new_commission_entries_until_month_end(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $currentMonth = now()->format('Y-m');
+
+        DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $currentMonth,
+            'total_earned' => 100,
+            'total_adjustments' => 0,
+            'total_settled' => 0,
+            'status' => 'CLOSED',
+            'closed_at' => now(),
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $currentMonth,
+            'earning_type' => 'COMMISSION',
+            'basis_amount' => 100,
+            'rate' => 10,
+            'amount' => 10,
+            'currency' => 'EGP',
+            'status' => 'PENDING',
+        ]);
+
+        $this->assertDatabaseHas('doctor_earnings_ledger', [
+            'doctor_id' => $doctor->id,
+            'period_month' => $currentMonth,
+            'earning_type' => 'COMMISSION',
+            'amount' => '10.00',
+        ]);
+    }
+
     public function test_closed_period_blocks_non_adjustment_ledger_entries(): void
     {
         [$actor, $doctor] = $this->createUsersInSameClinic();
