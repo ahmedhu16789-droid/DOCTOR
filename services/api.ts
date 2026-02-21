@@ -217,6 +217,20 @@ export interface FinancialReportPayload {
   recentTransactions: FinancialTransaction[];
 }
 
+
+export interface ReconciliationSummaryRecord {
+  id: string;
+  cashSessionId: string;
+  branchId: string;
+  branchName: string;
+  date: string;
+  openingBalance: number;
+  expectedCash: number;
+  collectedCash: number;
+  variance: number;
+  closedBy?: string | null;
+}
+
 export interface DoctorPayrollReportFilters {
   doctorId?: string;
   branchId?: string;
@@ -803,6 +817,16 @@ export const getFinancialReportFromApi = async (params?: { from?: string; to?: s
 
   const payload = await apiFetch<{ data: FinancialReportPayload }>(`/reports/financial${query.toString() ? `?${query.toString()}` : ''}`);
   return payload.data;
+};
+
+
+export const getReconciliationReportFromApi = async (params?: { branchId?: string; date?: string }): Promise<ReconciliationSummaryRecord[]> => {
+  const query = new URLSearchParams();
+  if (params?.branchId) query.set('branch_id', params.branchId);
+  if (params?.date) query.set('date', params.date);
+
+  const payload = await apiFetch<{ data: ReconciliationSummaryRecord[] }>(`/reports/reconciliation${query.toString() ? `?${query.toString()}` : ''}`);
+  return payload.data ?? [];
 };
 
 export const getDoctorPayrollReportFromApi = async (params?: DoctorPayrollReportFilters): Promise<DoctorPayrollReportRecord[]> => {

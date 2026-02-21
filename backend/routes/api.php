@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\MedicationController;
 use App\Http\Controllers\Api\V1\MedicalEncounterController;
 use App\Http\Controllers\Api\V1\AppointmentBillingController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\DoctorProfileController;
@@ -70,6 +71,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
         Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
+        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id');
+        Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
+        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id');
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
