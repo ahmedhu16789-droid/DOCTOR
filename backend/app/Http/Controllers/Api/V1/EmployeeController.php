@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Auth\CreateOneTimeAccessLinkAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\EmployeeUpsertRequest;
 use App\Http\Resources\Api\V1\EmployeeResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -26,15 +29,15 @@ class EmployeeController extends Controller
         return EmployeeResource::collection($employees);
     }
 
-    public function store(EmployeeUpsertRequest $request)
+    public function store(EmployeeUpsertRequest $request, CreateOneTimeAccessLinkAction $createOneTimeAccessLink)
     {
-        $employee = DB::transaction(function () use ($request): User {
+        $payload = DB::transaction(function () use ($request, $createOneTimeAccessLink): array {
             $employee = User::create([
                 'clinic_id' => $request->user()->clinic_id,
                 'name' => $request->string('name')->value(),
                 'email' => $request->string('email')->value() ?: null,
                 'phone' => $request->string('phone')->value(),
-                'password' => bcrypt('employee12345'),
+                'password' => Hash::make(Str::random(40)),
                 'role' => $request->string('role')->value(),
                 'job_title' => $request->string('jobTitle')->value(),
                 'schedule' => $request->input('schedule', []),
@@ -43,10 +46,31 @@ class EmployeeController extends Controller
 
             $employee->branches()->sync($this->branchPivotPayload($request));
 
-            return $employee->load('branches');
+            $employee->load('branches');
+
+            $accessLink = null;
+
+            if ($employee->email) {
+                $accessLink = $createOneTimeAccessLink->execute($employee, $request->user());
+            }
+
+            return [
+                'employee' => $employee,
+                'accessLink' => $accessLink,
+            ];
         });
 
-        return response()->json(new EmployeeResource($employee), 201);
+        return response()->json([
+            'employee' => new EmployeeResource($payload['employee']),
+            'accessLink' => $payload['accessLink']
+                ? [
+                    'token' => $payload['accessLink']['token'],
+                    'expiresAt' => $payload['accessLink']['expiresAt']->toIso8601String(),
+                    'userId' => $payload['accessLink']['userId'],
+                    'email' => $payload['accessLink']['email'],
+                ]
+                : null,
+        ], 201);
     }
 
     public function update(EmployeeUpsertRequest $request, User $employee)

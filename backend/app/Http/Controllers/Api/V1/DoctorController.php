@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Actions\Auth\CreateOneTimeAccessLinkAction;
 use App\Http\Requests\Api\V1\DoctorUpsertRequest;
 use App\Http\Resources\Api\V1\DoctorResource;
 use App\Models\Invoice;
@@ -10,6 +11,8 @@ use App\Models\InvoiceItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DoctorController extends Controller
 {
@@ -28,15 +31,15 @@ class DoctorController extends Controller
         return DoctorResource::collection($doctors);
     }
 
-    public function store(DoctorUpsertRequest $request)
+    public function store(DoctorUpsertRequest $request, CreateOneTimeAccessLinkAction $createOneTimeAccessLink)
     {
-        $doctor = DB::transaction(function () use ($request): User {
+        $payload = DB::transaction(function () use ($request, $createOneTimeAccessLink): array {
             $doctor = User::create([
                 'clinic_id' => $request->user()->clinic_id,
                 'name' => $request->string('name')->value(),
                 'email' => $request->string('email')->value() ?: null,
                 'phone' => $request->string('phone')->value() ?: null,
-                'password' => bcrypt('doctor12345'),
+                'password' => Hash::make(Str::random(40)),
                 'role' => 'DOCTOR',
                 'specialty' => $request->string('specialty')->value(),
                 'consultation_fee' => $request->input('consultationFee'),
@@ -61,10 +64,31 @@ class DoctorController extends Controller
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
 
-            return $doctor->load('branches');
+            $doctor->load('branches');
+
+            $accessLink = null;
+
+            if ($doctor->email) {
+                $accessLink = $createOneTimeAccessLink->execute($doctor, $request->user());
+            }
+
+            return [
+                'doctor' => $doctor,
+                'accessLink' => $accessLink,
+            ];
         });
 
-        return response()->json(new DoctorResource($doctor), 201);
+        return response()->json([
+            'doctor' => new DoctorResource($payload['doctor']),
+            'accessLink' => $payload['accessLink']
+                ? [
+                    'token' => $payload['accessLink']['token'],
+                    'expiresAt' => $payload['accessLink']['expiresAt']->toIso8601String(),
+                    'userId' => $payload['accessLink']['userId'],
+                    'email' => $payload['accessLink']['email'],
+                ]
+                : null,
+        ], 201);
     }
 
     public function update(DoctorUpsertRequest $request, User $doctor)
