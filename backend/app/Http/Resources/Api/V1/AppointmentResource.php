@@ -39,6 +39,30 @@ class AppointmentResource extends JsonResource
             ? $scheduledStart->diffInMinutes($now)
             : null;
 
+
+        $latestNotification = $this->notificationLogs->first();
+        $notificationSummary = [
+            'latestStatus' => $latestNotification?->status,
+            'latestEvent' => $latestNotification?->event,
+            'latestChannel' => $latestNotification?->channel,
+            'latestRecipient' => $latestNotification?->recipient,
+            'latestQueuedAt' => $latestNotification?->queued_at?->toIso8601String(),
+            'latestSentAt' => $latestNotification?->sent_at?->toIso8601String(),
+            'latestFailedAt' => $latestNotification?->failed_at?->toIso8601String(),
+            'lastError' => $latestNotification?->error_message,
+            'history' => $this->notificationLogs->take(5)->map(fn ($log) => [
+                'id' => (string) $log->id,
+                'event' => $log->event,
+                'channel' => $log->channel,
+                'status' => $log->status,
+                'attempts' => (int) $log->attempts,
+                'queuedAt' => $log->queued_at?->toIso8601String(),
+                'sentAt' => $log->sent_at?->toIso8601String(),
+                'failedAt' => $log->failed_at?->toIso8601String(),
+                'errorMessage' => $log->error_message,
+            ])->values(),
+        ];
+
         return [
             'id' => (string) $this->id,
             'patientId' => (string) $this->patient_id,
@@ -100,6 +124,7 @@ class AppointmentResource extends JsonResource
                     : [],
             ],
             'encounterStatus' => $this->encounter?->status,
+            'notifications' => $notificationSummary,
         ];
     }
 }

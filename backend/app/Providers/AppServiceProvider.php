@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Events\AppointmentNotificationRequested;
+use App\Listeners\QueueAppointmentNotificationListener;
+use App\Services\Notifications\Transports\NotificationTransport;
+use App\Services\Notifications\Transports\SmsLogTransport;
+use Illuminate\Support\Facades\Event;
 use App\Models\Appointment;
 use App\Policies\AppointmentPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -18,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(NotificationTransport::class, SmsLogTransport::class);
     }
 
     /**
@@ -26,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(AppointmentNotificationRequested::class, QueueAppointmentNotificationListener::class);
         Gate::policy(Appointment::class, AppointmentPolicy::class);
 
         RateLimiter::for('public-booking', function (Request $request): Limit {
