@@ -1,16 +1,29 @@
 import { User } from '../../types';
 
-const TOKEN_KEY = 'afcm_api_token';
 const USER_KEY = 'afcm_current_user';
+const TOKEN_TTL_MS = Number(import.meta.env.VITE_AUTH_TOKEN_TTL_MS ?? 5 * 60 * 1000);
 
-export const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
+let memoryToken: { value: string; expiresAt: number } | null = null;
+
+export const getToken = (): string | null => {
+  if (!memoryToken) return null;
+  if (memoryToken.expiresAt <= Date.now()) {
+    memoryToken = null;
+    return null;
+  }
+
+  return memoryToken.value;
+};
 
 export const setToken = (token: string): void => {
-  localStorage.setItem(TOKEN_KEY, token);
+  memoryToken = {
+    value: token,
+    expiresAt: Date.now() + TOKEN_TTL_MS,
+  };
 };
 
 export const clearAuthSession = (): void => {
-  localStorage.removeItem(TOKEN_KEY);
+  memoryToken = null;
   localStorage.removeItem(USER_KEY);
 };
 

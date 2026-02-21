@@ -1,7 +1,7 @@
 import { Appointment, AppointmentStatus, Branch, Department, Medication, Patient, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
 import { MOCK_USERS } from '../constants';
 import { apiFetch } from './core/httpClient';
-import { clearAuthSession, getStoredUser, getToken, setStoredUser, setToken } from './core/authSession';
+import { clearAuthSession, getStoredUser, setStoredUser, setToken } from './core/authSession';
 
 const patientLookupCache = new Map<string, { ts: number; data: Patient[] }>();
 const doctorsCache = new Map<string, { ts: number; data: User[] }>();
@@ -21,7 +21,7 @@ interface ApiUser {
 }
 
 interface ApiLoginResponse {
-  token: string;
+  token?: string;
   user: ApiUser;
   clinicId: string;
 }
@@ -390,7 +390,10 @@ export const loginWithApi = async (email: string, password: string): Promise<Use
     body: JSON.stringify({ email, password }),
   }, false);
 
-  setToken(response.token);
+  if (response.token) {
+    setToken(response.token);
+  }
+
   const user = normalizeUser(response.user);
   setStoredUser(user);
 
@@ -398,9 +401,6 @@ export const loginWithApi = async (email: string, password: string): Promise<Use
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const token = getToken();
-  if (!token) throw new Error('No token found');
-
   const response = await apiFetch<{ user: ApiUser; clinicId: string }>('/auth/me');
   const user = normalizeUser(response.user);
   setStoredUser(user);
