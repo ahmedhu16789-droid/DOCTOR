@@ -2,8 +2,12 @@ import { getToken } from './authSession';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
 const inFlightRequests = new Map<string, Promise<unknown>>();
+const getCache = new Map<string, { expiresAt: number; data: unknown }>();
+const GET_CACHE_TTL_MS = Number(import.meta.env.VITE_API_GET_CACHE_TTL_MS ?? 15000);
 
 const resolveMethod = (options: RequestInit): string => (options.method ?? 'GET').toUpperCase();
+const normalizePath = (path: string): string => (path.startsWith('/') ? path : `/${path}`);
+const getRequestUrl = (path: string): string => `${API_BASE_URL.replace(/\/$/, '')}${normalizePath(path)}`;
 
 const createRequestKey = (path: string, options: RequestInit, withAuth: boolean, token: string | null): string => {
   const method = resolveMethod(options);
@@ -16,7 +20,19 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
   const method = resolveMethod(options);
   const hasAbortSignal = Boolean(options.signal);
   const shouldDeduplicate = method === 'GET' && !hasAbortSignal;
-  const requestKey = createRequestKey(path, options, withAuth, token);
+  const normalizedPath = normalizePath(path);
+  const requestKey = createRequestKey(normalizedPath, options, withAuth, token);
+
+  if (shouldDeduplicate) {
+    const cached = getCache.get(requestKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data as T;
+    }
+
+    if (cached) {
+      getCache.delete(requestKey);
+    }
+  }
 
   if (shouldDeduplicate) {
     const existingRequest = inFlightRequests.get(requestKey);
@@ -26,7 +42,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
   }
 
   const requestPromise = (async () => {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(getRequestUrl(normalizedPath), {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -45,7 +61,20 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
       return undefined as T;
     }
 
-    return response.json() as Promise<T>;
+    const payload = await response.json() as T;
+
+    if (method === 'GET' && GET_CACHE_TTL_MS > 0) {
+      getCache.set(requestKey, {
+        expiresAt: Date.now() + GET_CACHE_TTL_MS,
+        data: payload,
+      });
+    }
+
+    if (method !== 'GET') {
+      getCache.clear();
+    }
+
+    return payload;
   })();
 
   if (!shouldDeduplicate) {
