@@ -170,7 +170,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $activeShift = collect($user->schedule ?? [])->first(function (array $shift) use ($dayOfWeek, $currentTime): bool {
+        $activeShift = collect($user->schedule ?? [])->first(function (array $shift) use ($dayOfWeek, $currentTime, $isDebug): bool {
             $start = (string) ($shift['startTime'] ?? '00:00');
             $end = (string) ($shift['endTime'] ?? '00:00');
             $shiftDay = (int) ($shift['dayOfWeek'] ?? -1);
