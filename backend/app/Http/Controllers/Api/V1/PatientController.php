@@ -105,6 +105,7 @@ class PatientController extends Controller
             'gender' => ['required', 'in:Male,Female'],
             'age' => ['required', 'integer', 'min:0', 'max:120'],
             'medicalHistorySummary' => ['nullable', 'string', 'max:2000'],
+            'portalPassword' => ['nullable', 'string', 'min:6', 'max:100'],
         ]);
 
         $patient = Patient::create([
@@ -114,6 +115,7 @@ class PatientController extends Controller
             'gender' => $validated['gender'],
             'age' => $validated['age'],
             'medical_history_summary' => $validated['medicalHistorySummary'] ?? 'New Patient',
+            'portal_password' => $validated['portalPassword'] ?? null,
         ]);
 
         ApiCache::bump('patients.index', $request->user()->clinic_id);
