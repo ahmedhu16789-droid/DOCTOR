@@ -316,7 +316,7 @@ class DoctorPayrollControllerTest extends TestCase
     }
 
 
-    public function test_current_month_closed_period_still_accepts_new_commission_entries_until_month_end(): void
+    public function test_settled_period_without_month_close_still_accepts_new_commission_entries(): void
     {
         [$actor, $doctor] = $this->createUsersInSameClinic();
 
@@ -328,9 +328,9 @@ class DoctorPayrollControllerTest extends TestCase
             'period_month' => $currentMonth,
             'total_earned' => 100,
             'total_adjustments' => 0,
-            'total_settled' => 0,
-            'status' => 'CLOSED',
-            'closed_at' => now(),
+            'total_settled' => 100,
+            'status' => 'SETTLED',
+            'closed_at' => null,
         ]);
 
         Sanctum::actingAs($actor);
@@ -352,6 +352,40 @@ class DoctorPayrollControllerTest extends TestCase
             'period_month' => $currentMonth,
             'earning_type' => 'COMMISSION',
             'amount' => '10.00',
+        ]);
+    }
+
+    public function test_current_month_closed_period_blocks_new_commission_entries_immediately(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $currentMonth = now()->format('Y-m');
+
+        DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $currentMonth,
+            'total_earned' => 100,
+            'total_adjustments' => 0,
+            'total_settled' => 0,
+            'status' => 'CLOSED',
+            'closed_at' => now(),
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $this->expectException(\RuntimeException::class);
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => $currentMonth,
+            'earning_type' => 'COMMISSION',
+            'basis_amount' => 100,
+            'rate' => 10,
+            'amount' => 10,
+            'currency' => 'EGP',
+            'status' => 'PENDING',
         ]);
     }
 
