@@ -96,6 +96,49 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     await Future.delayed(const Duration(seconds: 5));
   }
 
+
+  Future<String?> _executeScriptWithRetry(
+    String script, {
+    int retries = 12,
+    Duration delay = const Duration(milliseconds: 700),
+  }) async {
+    for (int i = 0; i < retries; i++) {
+      final result = await _controller.executeScript(script);
+      final value = result?.toString().trim();
+      if (value != null && value.isNotEmpty && value != 'null') {
+        return value;
+      }
+      await Future.delayed(delay);
+    }
+    return null;
+  }
+
+  Future<bool> _waitForComposerReady() async {
+    for (int i = 0; i < 50; i++) {
+      final state = await _executeScriptWithRetry(r'''
+        (function() {
+          if (document.querySelector('[data-ref]')) return 'NEEDS_LOGIN';
+
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+
+          if (!composer) return 'WAITING_CHAT';
+
+          var rect = composer.getBoundingClientRect();
+          var visible = rect.width > 0 && rect.height > 0;
+          return visible ? 'CHAT_READY' : 'CHAT_HIDDEN';
+        })();
+      ''', retries: 1, delay: const Duration(milliseconds: 1));
+
+      if (state == 'CHAT_READY') return true;
+      if (state == 'NEEDS_LOGIN') return false;
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+    return false;
+  }
+
   void _processNextMessage() async {
     if (_isProcessing) return;
     if (_currentIndex >= widget.messages.length) {
@@ -161,24 +204,9 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
         widget.onLoggedIn?.call();
       }
 
-      // Wait until composer is rendered in the chat page.
-      String chatState = 'UNKNOWN';
-      for (int i = 0; i < 25; i++) {
-        final state = await _controller.executeScript(r'''
-          (function() {
-            if (document.querySelector('[data-ref]')) return 'NEEDS_LOGIN';
-            var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
-                           document.querySelector('[contenteditable="true"][role="textbox"]');
-            return composer ? 'CHAT_READY' : 'WAITING_CHAT';
-          })();
-        ''');
-        chatState = state?.toString().trim() ?? 'NULL';
-        if (chatState == 'CHAT_READY' || chatState == 'NEEDS_LOGIN') break;
-        await Future.delayed(const Duration(milliseconds: 800));
-      }
-
-      if (chatState != 'CHAT_READY') {
-        throw Exception('Chat is not ready for ${msg.phone}. state=$chatState');
+      final chatReady = await _waitForComposerReady();
+      if (!chatReady) {
+        throw Exception('Chat is not ready for ${msg.phone}.');
       }
 
       final messageTextJson = jsonEncode(msg.text);
@@ -186,6 +214,8 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
         (function() {
           var message = $messageTextJson;
           var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
                          document.querySelector('[contenteditable="true"][role="textbox"]');
           if (!composer) return 'COMPOSER_NOT_FOUND';
 
@@ -203,7 +233,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
             inputType: 'insertText'
           }));
 
-          return 'TEXT_READY';
+          return 'TEXT_READY:' + composer.tagName;
         })();
       ''');
       debugPrint('WA Fill: $fillResult');
@@ -303,6 +333,8 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
 
           // 4. Simulate Enter on compose textbox.
           var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
                          document.querySelector('[contenteditable="true"][role="textbox"]');
           if (composer) {
             composer.focus();
