@@ -114,7 +114,10 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
         date: selectedDate,
         timeSlot: selectedTime,
         department: selectedDept,
-        type: 'Consultation'
+        type: 'Consultation',
+        billing: {
+          subtotal: selectedDoctor.consultationFee || 400
+        } as any
       });
       setStep('IDENTIFICATION');
       setSelectedPatient(null);

@@ -51,6 +51,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
       dayOfWeek: dayIndex,
       startTime: '09:00',
       endTime: '17:00',
+      slotDuration: 30,
       branchId: activeBranchId,
       id: Math.random().toString()
     });
@@ -263,6 +264,19 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({ control, name, assig
                               {...control.register(`${name}.${field.index}.endTime`)}
                               className={clsx(
                                 "p-1.5 border rounded-md text-sm font-medium focus:ring-2 focus:ring-primary-500 w-28",
+                                conflict ? "border-red-300 text-red-900 bg-red-50" : "border-gray-300 text-gray-700"
+                              )}
+                            />
+                          </div>
+                          <div className="flex flex-col ml-2 border-l pl-3 border-gray-200">
+                            <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">{t('schedule_duration_mins', 'Duration (mins)')}</label>
+                            <input
+                              type="number"
+                              min="5"
+                              step="5"
+                              {...control.register(`${name}.${field.index}.slotDuration`, { valueAsNumber: true })}
+                              className={clsx(
+                                "p-1.5 border rounded-md text-sm font-medium focus:ring-2 focus:ring-primary-500 w-24",
                                 conflict ? "border-red-300 text-red-900 bg-red-50" : "border-gray-300 text-gray-700"
                               )}
                             />

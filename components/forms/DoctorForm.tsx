@@ -31,8 +31,8 @@ const doctorSchema = z.object({
         dayOfWeek: z.number(),
         startTime: z.string(),
         endTime: z.string(),
-        slotDuration: z.number(),
-        branchId: z.string().optional()
+        slotDuration: z.number().optional().default(30),
+        branchId: z.string().nullable().optional()
     })).optional()
 });
 

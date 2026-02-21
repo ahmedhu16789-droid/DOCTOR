@@ -67,25 +67,32 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const created = await onAddNewPatient({
-      name: newName,
-      phone: newPhone,
-      age: Number.parseInt(newAge, 10),
-      gender: newGender,
-      medicalHistorySummary: 'New Patient'
-    });
+    try {
+      const created = await onAddNewPatient({
+        name: newName,
+        phone: newPhone,
+        age: Number.parseInt(newAge, 10),
+        gender: newGender,
+        medicalHistorySummary: 'New Patient'
+      });
 
-    if (created) {
-      onSelectPatient(created);
+      if (created) {
+        onSelectPatient(created);
+      }
+
+      setIsCreating(false);
+      setNewName('');
+      setNewPhone('');
+      setNewAge('');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsCreating(false);
-    setNewName('');
-    setNewPhone('');
-    setNewAge('');
   };
 
   return (
@@ -205,11 +212,29 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
             </div>
 
             <div className="flex space-x-3 pt-4">
-              <button type="button" onClick={() => setIsCreating(false)} className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewName('');
+                  setNewPhone('');
+                  setNewAge('');
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
                 {t('cancel')}
               </button>
-              <button type="submit" className="flex-1 px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
-                {t('create_select')}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 flex justify-center items-center"
+              >
+                {isSubmitting ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  t('create_select')
+                )}
               </button>
             </div>
           </form>

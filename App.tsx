@@ -436,7 +436,7 @@ export default function App() {
   }, [hybridEntityIdMap]);
 
   const handleNewBooking = async (apt: Partial<Appointment>) => {
-    const baseFee = 400;
+    const baseFee = apt.billing?.subtotal || 400;
 
     const newApt: Appointment = {
       id: Math.random().toString(36).substr(2, 9),
