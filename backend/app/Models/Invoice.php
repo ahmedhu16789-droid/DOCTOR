@@ -19,6 +19,8 @@ class Invoice extends Model
     public const BILLING_UNPAID = 'UNPAID';
     public const BILLING_PARTIAL = 'PARTIAL';
     public const BILLING_PAID = 'PAID';
+    public const BILLING_REFUNDED = 'REFUNDED';
+    public const BILLING_VOIDED = 'VOIDED';
 
     public const ALLOWED_LIFECYCLE_STATES = [
         self::LIFECYCLE_DRAFT,
@@ -71,6 +73,11 @@ class Invoice extends Model
     }
 
     public function canVoid(): bool
+    {
+        return $this->currentLifecycleState() !== self::LIFECYCLE_VOIDED;
+    }
+
+    public function canRefund(): bool
     {
         return $this->currentLifecycleState() !== self::LIFECYCLE_VOIDED;
     }

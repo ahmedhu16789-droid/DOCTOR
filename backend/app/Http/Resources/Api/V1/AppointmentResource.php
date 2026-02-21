@@ -78,8 +78,9 @@ class AppointmentResource extends JsonResource
                     'method' => $transaction->method,
                     'timestamp' => optional($transaction->paid_at)->toIso8601String(),
                     'recordedBy' => 'system',
-                    'reference' => null,
+                    'reference' => data_get($transaction->metadata, 'original_transaction_reference'),
                     'type' => ((float) $transaction->amount) < 0 ? 'REFUND' : 'PAYMENT',
+                    'metadata' => $transaction->metadata,
                 ])->values() ?? [],
                 'auditHistory' => $canViewAuditHistory
                     ? ($this->invoice?->auditLogs?->map(fn ($log) => [

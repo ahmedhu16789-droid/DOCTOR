@@ -16,12 +16,14 @@ class Transaction extends Model
         'invoice_id',
         'amount',
         'method',
+        'metadata',
         'paid_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'metadata' => 'array',
             'paid_at' => 'datetime',
         ];
     }
