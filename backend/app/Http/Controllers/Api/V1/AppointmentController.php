@@ -126,6 +126,13 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
+        $allowedRoles = ['ADMIN', 'DOCTOR', 'RECEPTIONIST'];
+        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+
+        if ($request->user()->role === 'DOCTOR') {
+            abort_if((int) $request->user()->id !== (int) $validated['doctorId'], 403, 'Doctors can only shift their own appointments.');
+        }
+
         $clinicId = $request->user()->clinic_id;
 
         $doctor = User::query()

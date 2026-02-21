@@ -2,6 +2,7 @@ import React from 'react';
 import { Dashboard } from '../../pages/Dashboard';
 import { CalendarView } from '../CalendarView';
 import { AppointmentBooking } from '../../pages/AppointmentBooking';
+import { BulkShiftPanel } from '../appointments/BulkShiftPanel';
 import { ReceptionQueue } from '../ReceptionQueue';
 import { AdminDashboard } from '../../pages/AdminDashboard';
 import { EmployeeManagement } from '../../pages/EmployeeManagement';
@@ -80,7 +81,12 @@ export function AppMainContent({
           <div className="lg:col-span-3 h-full transition-all duration-300">
             <CalendarView appointments={visibleAppointments} />
           </div>
-          <div className="lg:col-span-2 h-full transition-all duration-300">
+          <div className="lg:col-span-2 h-full transition-all duration-300 space-y-4">
+            <BulkShiftPanel
+              activeBranchId={activeBranchId}
+              currentUser={user}
+              onShiftApplied={onRefresh}
+            />
             <AppointmentBooking
               onBook={onBook}
               patients={patients}

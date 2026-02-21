@@ -56,6 +56,38 @@ class AppointmentRescheduleAndShiftTest extends TestCase
         $this->assertSame('11:00', $appointmentTwo->fresh()->time_slot);
     }
 
+
+    public function test_bulk_shift_is_forbidden_for_non_supported_roles(): void
+    {
+        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+
+        Appointment::query()->create([
+            'clinic_id' => $clinic->id,
+            'branch_id' => $branch->id,
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+            'date' => '2026-03-10',
+            'time_slot' => '09:00',
+            'status' => 'SCHEDULED',
+        ]);
+
+        $nurse = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'NURSE',
+            'password' => 'password123',
+        ]);
+
+        Sanctum::actingAs($nurse);
+
+        $this->postJson('/api/v1/appointments/shift', [
+            'doctorId' => $doctor->id,
+            'branchId' => $branch->id,
+            'date' => '2026-03-10',
+            'fromTime' => '09:00',
+            'shiftMinutes' => 60,
+        ])->assertForbidden();
+    }
+
     public function test_reschedule_updates_target_slot_when_available(): void
     {
         [$doctor, $branch, $patient, $clinic] = $this->seedContext();
