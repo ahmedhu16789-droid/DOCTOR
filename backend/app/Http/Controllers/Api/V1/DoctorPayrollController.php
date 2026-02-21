@@ -11,25 +11,99 @@ use App\Models\FinancialAuditLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DoctorPayrollController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $periodMonth = $request->query('period_month') ?: now()->format('Y-m');
-        $doctorId = $request->query('doctor_id');
-        $branchId = $request->query('branch_id');
-        $status = $request->query('status');
+        $filters = $this->resolveFilters($request);
+        $data = $this->buildReportRows($request, $filters);
 
-        $this->ensureMonthlyFixedSalaryAccruals((int) $request->user()->clinic_id, $periodMonth, $doctorId ?: null);
+        return response()->json(['data' => $data]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $format = strtolower((string) $request->query('format', 'csv'));
+        if ($format !== 'csv') {
+            abort(422, 'Unsupported export format.');
+        }
+
+        $filters = $this->resolveFilters($request);
+        $rows = $this->buildReportRows($request, $filters);
+        $filename = $this->buildExportFilename($filters, 'csv');
+
+        return response()->streamDownload(function () use ($rows): void {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, ['Doctor Payroll Export']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                'Doctor ID',
+                'Doctor Name',
+                'Period Month',
+                'Total Earned',
+                'Total Adjustments',
+                'Total Settled',
+                'Status',
+                'Closed At',
+                'Consultation Basis',
+                'Consultation Amount',
+                'Consultation Rate',
+                'Services Basis',
+                'Services Amount',
+                'Services Rate',
+            ]);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['doctorId'],
+                    $row['doctorName'],
+                    $row['periodMonth'],
+                    $row['totalEarned'],
+                    $row['totalAdjustments'],
+                    $row['totalSettled'],
+                    $row['status'],
+                    $row['closedAt'],
+                    data_get($row, 'commissionDetails.consultationBasis', 0),
+                    data_get($row, 'commissionDetails.consultationAmount', 0),
+                    data_get($row, 'commissionDetails.consultationRate'),
+                    data_get($row, 'commissionDetails.servicesBasis', 0),
+                    data_get($row, 'commissionDetails.servicesAmount', 0),
+                    data_get($row, 'commissionDetails.servicesRate'),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function resolveFilters(Request $request): array
+    {
+        return [
+            'periodMonth' => $request->query('period_month') ?: now()->format('Y-m'),
+            'doctorId' => $request->query('doctor_id'),
+            'branchId' => $request->query('branch_id'),
+            'status' => $request->query('status'),
+        ];
+    }
+
+    private function buildReportRows(Request $request, array $filters): Collection
+    {
+        $this->ensureMonthlyFixedSalaryAccruals((int) $request->user()->clinic_id, (string) $filters['periodMonth'], $filters['doctorId'] ?: null);
 
         $rows = DoctorEarningsLedger::query()
             ->with('doctor:id,name')
-            ->when($periodMonth, fn ($query) => $query->where('period_month', $periodMonth))
-            ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
-            ->when($branchId, function ($query) use ($branchId): void {
-                $query->whereHas('doctor.branches', fn ($doctorQuery) => $doctorQuery->where('branches.id', (int) $branchId));
+            ->when($filters['periodMonth'], fn ($query) => $query->where('period_month', $filters['periodMonth']))
+            ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
+            ->when($filters['branchId'], function ($query) use ($filters): void {
+                $query->whereHas('doctor.branches', fn ($doctorQuery) => $doctorQuery->where('branches.id', (int) $filters['branchId']));
             })
             ->orderByDesc('period_month')
             ->orderBy('doctor_id')
@@ -139,11 +213,19 @@ class DoctorPayrollController extends Controller
             ];
         })->values();
 
-        if ($status) {
-            $data = $data->filter(fn (array $row) => $row['status'] === $status)->values();
+        if ($filters['status']) {
+            $data = $data->filter(fn (array $row) => $row['status'] === $filters['status'])->values();
         }
 
-        return response()->json(['data' => $data]);
+        return $data;
+    }
+
+    private function buildExportFilename(array $filters, string $extension): string
+    {
+        $branchSegment = $filters['branchId'] ? 'branch-'.$filters['branchId'] : 'all-branches';
+        $monthSegment = $filters['periodMonth'] ?: 'all-months';
+
+        return "doctor-payroll_{$branchSegment}_{$monthSegment}.{$extension}";
     }
 
     private function ensureMonthlyFixedSalaryAccruals(int $clinicId, string $periodMonth, ?string $doctorId = null): void
@@ -300,7 +382,6 @@ class DoctorPayrollController extends Controller
             ],
         ], 201);
     }
-
 
     private function writePayrollAuditLog(
         int $clinicId,

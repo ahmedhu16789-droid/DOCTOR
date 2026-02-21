@@ -1,7 +1,7 @@
 import { Appointment, AppointmentStatus, Branch, BranchOperationalSettings, BranchSettingsEnvelope, Department, Medication, Patient, PaymentEntry, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
 import { MOCK_USERS } from '../constants';
 import { apiFetch } from './core/httpClient';
-import { clearAuthSession, getStoredUser, setStoredUser, setToken } from './core/authSession';
+import { clearAuthSession, getStoredUser, getToken, setStoredUser, setToken } from './core/authSession';
 
 const patientLookupCache = new Map<string, { ts: number; data: Patient[] }>();
 const doctorsCache = new Map<string, { ts: number; data: User[] }>();
@@ -254,6 +254,50 @@ export interface FinancialReportPayload {
   recentTransactions: FinancialTransaction[];
 }
 
+
+
+export interface ReportExportPayload {
+  blob: Blob;
+  filename: string;
+}
+
+const parseDownloadFilename = (contentDisposition: string | null, fallbackFilename: string): string => {
+  if (!contentDisposition) {
+    return fallbackFilename;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match && utf8Match[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (asciiMatch && asciiMatch[1]) {
+    return asciiMatch[1];
+  }
+
+  return fallbackFilename;
+};
+
+const downloadReportFile = async (path: string, fallbackFilename: string): Promise<ReportExportPayload> => {
+  const token = getToken();
+  const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL as string | undefined ?? 'http://localhost:8000/api/v1').replace(/\/$/, '')}${path}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'text/csv',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to export report');
+  }
+
+  const blob = await response.blob();
+  const filename = parseDownloadFilename(response.headers.get('content-disposition'), fallbackFilename);
+
+  return { blob, filename };
+};
 
 export interface ReconciliationSummaryRecord {
   id: string;
@@ -937,6 +981,17 @@ export const getFinancialReportFromApi = async (params?: { from?: string; to?: s
 };
 
 
+
+export const exportFinancialReportCsvFromApi = async (params?: { from?: string; to?: string; branchId?: string }): Promise<ReportExportPayload> => {
+  const query = new URLSearchParams();
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+  if (params?.branchId) query.set('branch_id', params.branchId);
+  query.set('format', 'csv');
+
+  return downloadReportFile(`/reports/financial/export?${query.toString()}`, 'financial-report.csv');
+};
+
 export const getReconciliationReportFromApi = async (params?: { branchId?: string; date?: string }): Promise<ReconciliationSummaryRecord[]> => {
   const query = new URLSearchParams();
   if (params?.branchId) query.set('branch_id', params.branchId);
@@ -955,6 +1010,18 @@ export const getDoctorPayrollReportFromApi = async (params?: DoctorPayrollReport
 
   const payload = await apiFetch<{ data: DoctorPayrollReportRecord[] }>(`/reports/doctor-payroll${query.toString() ? `?${query.toString()}` : ''}`);
   return payload.data ?? [];
+};
+
+
+export const exportDoctorPayrollReportCsvFromApi = async (params?: DoctorPayrollReportFilters): Promise<ReportExportPayload> => {
+  const query = new URLSearchParams();
+  if (params?.doctorId) query.set('doctor_id', params.doctorId);
+  if (params?.branchId) query.set('branch_id', params.branchId);
+  if (params?.periodMonth) query.set('period_month', params.periodMonth);
+  if (params?.status) query.set('status', params.status);
+  query.set('format', 'csv');
+
+  return downloadReportFile(`/reports/doctor-payroll/export?${query.toString()}`, 'doctor-payroll.csv');
 };
 
 export const closeDoctorPayrollPeriod = async (periodId: string): Promise<void> => {

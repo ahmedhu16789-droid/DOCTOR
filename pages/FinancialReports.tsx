@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DollarSign, TrendingUp, PieChart, Download, Building2 } from 'lucide-react';
-import { FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
+import { exportFinancialReportCsvFromApi, FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { Branch } from '../types';
 
@@ -12,7 +12,10 @@ export const FinancialReports: React.FC = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranchId, setSelectedBranchId] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
+    const [selectedFromDate, setSelectedFromDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
+    const [selectedToDate, setSelectedToDate] = useState<string>(new Date().toISOString().slice(0, 10));
     const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
@@ -34,6 +37,8 @@ export const FinancialReports: React.FC = () => {
                 setIsLoading(true);
                 const payload = await getFinancialReportFromApi({
                     branchId: selectedBranchId || undefined,
+                    from: selectedFromDate || undefined,
+                    to: selectedToDate || undefined,
                 });
                 setReport(payload);
                 setErrorMessage('');
@@ -46,7 +51,7 @@ export const FinancialReports: React.FC = () => {
         };
 
         loadReport();
-    }, [selectedBranchId]);
+    }, [selectedBranchId, selectedFromDate, selectedToDate]);
 
     useEffect(() => {
         const loadReconciliation = async () => {
@@ -85,6 +90,43 @@ export const FinancialReports: React.FC = () => {
         };
     }, [report]);
 
+
+
+    const handleExportCsv = async () => {
+        try {
+            setIsExporting(true);
+            setErrorMessage('');
+
+            const { blob, filename } = await exportFinancialReportCsvFromApi({
+                branchId: selectedBranchId || undefined,
+                from: selectedFromDate || undefined,
+                to: selectedToDate || undefined,
+            });
+
+            const branchContext = selectedBranchId ? `branch-${selectedBranchId}` : 'all-branches';
+            const dateContext = `${selectedFromDate || 'start'}_to_${selectedToDate || 'today'}`;
+            const expectedFilename = `financial-report_${branchContext}_${dateContext}.csv`;
+
+            if (filename !== expectedFilename) {
+                throw new Error(`Unexpected export filename: ${filename}`);
+            }
+
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+            console.error('Failed to export financial report', error);
+            setErrorMessage(error instanceof Error ? error.message : 'Failed to export financial report');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const selectedBranchName = useMemo(() => {
         if (!selectedBranchId) {
             return 'All branches';
@@ -102,7 +144,7 @@ export const FinancialReports: React.FC = () => {
                     <p className="text-sm text-gray-500">{t('financial_desc')}</p>
                     <p className="text-xs text-gray-500 mt-1">Scope: {selectedBranchName}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <select
                         value={selectedBranchId}
                         onChange={(event) => setSelectedBranchId(event.target.value)}
@@ -113,8 +155,26 @@ export const FinancialReports: React.FC = () => {
                             <option key={branch.id} value={branch.id}>{branch.name}</option>
                         ))}
                     </select>
-                    <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors">
-                        <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" /> {t('export_csv')}
+                    <input
+                        type="date"
+                        value={selectedFromDate}
+                        onChange={(event) => setSelectedFromDate(event.target.value)}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
+                        aria-label="Financial report start date"
+                    />
+                    <input
+                        type="date"
+                        value={selectedToDate}
+                        onChange={(event) => setSelectedToDate(event.target.value)}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
+                        aria-label="Financial report end date"
+                    />
+                    <button
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" /> {isExporting ? `${t('export_csv')}...` : t('export_csv')}
                     </button>
                 </div>
             </div>
