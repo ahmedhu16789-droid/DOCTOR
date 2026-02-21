@@ -53,6 +53,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
         Route::post('appointments', [AppointmentController::class, 'store']);
+        Route::post('appointments/shift', [AppointmentController::class, 'bulkShift']);
+        Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
 
         Route::get('medications', [MedicationController::class, 'index']);

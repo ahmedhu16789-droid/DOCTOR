@@ -50,6 +50,16 @@ interface ApiAppointment {
   };
 }
 
+
+interface ApiBulkShiftResponse {
+  shiftedAppointments: number;
+  doctorId: string;
+  branchId: string;
+  date: string;
+  fromTime: string;
+  shiftMinutes: number;
+}
+
 interface ApiMedicalEncounter {
   id: string;
   appointmentId: string;
@@ -592,6 +602,30 @@ export const getAppointmentsFromApi = async (patients: Patient[] = [], params?: 
   if (params?.date) query.set('date', params.date);
   const payload = await apiFetch<{ data: ApiAppointment[] }>(`/appointments${query.toString() ? `?${query.toString()}` : ''}`);
   return (payload.data ?? []).map((apt) => normalizeAppointment(apt, patients));
+};
+
+
+export const shiftAppointmentsViaApi = async (params: {
+  doctorId: string;
+  branchId: string;
+  date: string;
+  fromTime: string;
+  shiftMinutes: number;
+}): Promise<ApiBulkShiftResponse> => {
+  const payload = await apiFetch<{ data: ApiBulkShiftResponse }>('/appointments/shift', {
+    method: 'POST',
+    body: JSON.stringify({
+      doctorId: Number(params.doctorId),
+      branchId: Number(params.branchId),
+      date: params.date,
+      fromTime: params.fromTime,
+      shiftMinutes: params.shiftMinutes,
+    }),
+  });
+
+  slotsBulkCache.clear();
+
+  return payload.data;
 };
 
 const toNumericEntityId = (

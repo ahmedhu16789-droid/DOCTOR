@@ -11,6 +11,7 @@ use App\Models\InvoiceItem;
 use App\Models\User;
 use App\Services\Booking\DoctorScheduleService;
 use App\Support\ApiCache;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -115,6 +116,125 @@ class AppointmentController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function bulkShift(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'doctorId' => ['required', 'integer', 'exists:users,id'],
+            'branchId' => ['required', 'integer', 'exists:branches,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'fromTime' => ['required', 'date_format:H:i'],
+            'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
+        ]);
+
+        $allowedRoles = ['ADMIN', 'DOCTOR', 'RECEPTIONIST'];
+        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+
+        if ($request->user()->role === 'DOCTOR') {
+            abort_if((int) $request->user()->id !== (int) $validated['doctorId'], 403, 'Doctors can only shift their own appointments.');
+        }
+
+        $clinicId = $request->user()->clinic_id;
+
+        $doctor = User::query()
+            ->select(['id'])
+            ->whereKey($validated['doctorId'])
+            ->where('clinic_id', $clinicId)
+            ->where('role', 'DOCTOR')
+            ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
+            ->first();
+
+        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+
+        $shiftedCount = DB::transaction(function () use ($clinicId, $validated): int {
+            $appointments = Appointment::query()
+                ->where('clinic_id', $clinicId)
+                ->where('doctor_id', $validated['doctorId'])
+                ->where('branch_id', $validated['branchId'])
+                ->whereDate('date', $validated['date'])
+                ->where('time_slot', '>=', $validated['fromTime'])
+                ->whereNotIn('status', ['CANCELLED', 'NO_SHOW'])
+                ->orderBy('time_slot')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($appointments as $appointment) {
+                $appointment->update([
+                    'time_slot' => Carbon::createFromFormat('H:i', $appointment->time_slot)
+                        ->addMinutes($validated['shiftMinutes'])
+                        ->format('H:i'),
+                ]);
+            }
+
+            return $appointments->count();
+        });
+
+        ApiCache::bump('appointments.index', $request->user()->clinic_id);
+
+        return response()->json([
+            'data' => [
+                'shiftedAppointments' => $shiftedCount,
+                'doctorId' => (string) $validated['doctorId'],
+                'branchId' => (string) $validated['branchId'],
+                'date' => $validated['date'],
+                'fromTime' => $validated['fromTime'],
+                'shiftMinutes' => $validated['shiftMinutes'],
+            ],
+        ]);
+    }
+
+    public function reschedule(Request $request, Appointment $appointment): JsonResponse
+    {
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+
+        $validated = $request->validate([
+            'doctorId' => ['nullable', 'integer', 'exists:users,id'],
+            'branchId' => ['nullable', 'integer', 'exists:branches,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'timeSlot' => ['required', 'date_format:H:i'],
+        ]);
+
+        $doctorId = (int) ($validated['doctorId'] ?? $appointment->doctor_id);
+        $branchId = (int) ($validated['branchId'] ?? $appointment->branch_id);
+
+        $doctor = User::query()
+            ->select(['id', 'schedule'])
+            ->whereKey($doctorId)
+            ->where('clinic_id', $request->user()->clinic_id)
+            ->where('role', 'DOCTOR')
+            ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
+            ->first();
+
+        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+
+        $validSlot = $this->scheduleService->generateSlotsForDoctor($doctor, $branchId, $validated['date'])->contains($validated['timeSlot']);
+        abort_if(! $validSlot, 422, 'The selected slot is outside the doctor schedule.');
+
+        $alreadyBooked = Appointment::query()
+            ->where('clinic_id', $request->user()->clinic_id)
+            ->where('doctor_id', $doctorId)
+            ->where('branch_id', $branchId)
+            ->whereDate('date', $validated['date'])
+            ->where('time_slot', $validated['timeSlot'])
+            ->whereNotIn('status', ['CANCELLED', 'NO_SHOW'])
+            ->whereKeyNot($appointment->id)
+            ->exists();
+
+        abort_if($alreadyBooked, 422, 'The selected slot is no longer available.');
+
+        $appointment->update([
+            'doctor_id' => $doctorId,
+            'branch_id' => $branchId,
+            'date' => $validated['date'],
+            'time_slot' => $validated['timeSlot'],
+            'status' => 'SCHEDULED',
+        ]);
+
+        $appointment->load(['doctor:id,name,specialty', 'invoice.items', 'encounter:id,appointment_id,status']);
+
+        ApiCache::bump('appointments.index', $request->user()->clinic_id);
+
+        return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
 
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
@@ -222,5 +342,4 @@ class AppointmentController extends Controller
 
         return response()->json(new AppointmentResource($appointment), 201);
     }
-
 }
