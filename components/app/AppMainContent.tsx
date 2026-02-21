@@ -13,7 +13,7 @@ import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
 import { DoctorPayrollReports } from '../../pages/DoctorPayrollReports';
 import { AppointmentMigration } from '../../pages/AppointmentMigration';
-import { Appointment, AppointmentStatus, Branch, Patient, PaymentMethod, User, UserRole } from '../../types';
+import { Appointment, AppointmentStatus, Branch, Patient, PaymentEntry, User, UserRole } from '../../types';
 import { DataSourceMode } from '../../services/api';
 
 interface AppMainContentProps {
@@ -30,7 +30,7 @@ interface AppMainContentProps {
   onBook: (apt: Partial<Appointment>) => Promise<void>;
   onPatientCreated: (patient: Patient) => void;
   onOpenEncounter: (apt: Appointment) => void;
-  onProcessPayment: (aptId: string, amount: number, method: PaymentMethod) => Promise<void>;
+  onProcessPayment: (aptId: string, payments: PaymentEntry[]) => Promise<void>;
   onRefresh: () => Promise<void>;
   onSelectPatient: (patientId: string | null) => void;
   patientQueueLabel: string;

@@ -3,7 +3,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Login } from './pages/Login';
 import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
-import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentMethod, Branch } from './types';
+import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentEntry, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
 import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
 import { setStoredUser } from './services/core/authSession';
@@ -547,9 +547,9 @@ export default function App() {
     }
   };
 
-  const handleProcessPayment = async (aptId: string, amount: number, method: PaymentMethod) => {
+  const handleProcessPayment = async (aptId: string, payments: PaymentEntry[]) => {
     try {
-      const updated = await processAppointmentPaymentViaApi(aptId, { amount, method });
+      const updated = await processAppointmentPaymentViaApi(aptId, { payments });
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
@@ -559,6 +559,7 @@ export default function App() {
           subtotal: updated.billing.total,
           total: updated.billing.total,
           items: updated.billing.items?.map((item) => ({ ...item, addedBy: user?.id || 'system', timestamp: new Date().toISOString() })) ?? apt.billing.items,
+          transactions: updated.billing.transactions ?? apt.billing.transactions,
         },
       } : apt)));
     } catch {

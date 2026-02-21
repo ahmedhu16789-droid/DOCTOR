@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus, Branch, Department, Medication, Patient, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
+import { Appointment, AppointmentStatus, Branch, Department, Medication, Patient, PaymentEntry, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
 import { MOCK_USERS } from '../constants';
 import { apiFetch } from './core/httpClient';
 import { clearAuthSession, getStoredUser, setStoredUser, setToken } from './core/authSession';
@@ -46,6 +46,15 @@ interface ApiAppointment {
       quantity: number;
       unitPrice: number;
       total: number;
+    }[];
+    transactions?: {
+      id: string;
+      amount: number;
+      method: PaymentMethod;
+      timestamp: string;
+      recordedBy: string;
+      reference?: string;
+      type: 'PAYMENT' | 'REFUND';
     }[];
   };
 }
@@ -374,14 +383,14 @@ const normalizeAppointment = (appointment: ApiAppointment, patients: Patient[] =
       total: appointment.billing.total,
       paidAmount: appointment.billing.paidAmount,
       status: appointment.billing.status,
-      transactions: appointment.billing.paidAmount > 0 ? [{
+      transactions: appointment.billing.transactions ?? (appointment.billing.paidAmount > 0 ? [{
         id: `tx-${appointment.id}`,
         amount: appointment.billing.paidAmount,
         method: PaymentMethod.CASH,
         timestamp: new Date().toISOString(),
         recordedBy: 'system',
         type: 'PAYMENT'
-      }] : [],
+      }] : []),
     },
   };
 };
@@ -751,7 +760,7 @@ export const addBillingItemViaApi = async (appointmentId: string, service: { ser
 };
 
 
-export const processAppointmentPaymentViaApi = async (appointmentId: string, payload: { amount: number; method: PaymentMethod }): Promise<ApiAppointment> => {
+export const processAppointmentPaymentViaApi = async (appointmentId: string, payload: { amount?: number; method?: PaymentMethod; payments?: PaymentEntry[] }): Promise<ApiAppointment> => {
   const response = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/billing/payments`, {
     method: 'POST',
     body: JSON.stringify(payload),

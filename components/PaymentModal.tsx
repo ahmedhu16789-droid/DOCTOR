@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Appointment, BillingDetails, PaymentMethod, PaymentStatus, Transaction } from '../types';
+import { Appointment, PaymentEntry, PaymentMethod, Transaction } from '../types';
 import { X, Printer, CreditCard, Banknote, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface PaymentModalProps {
   appointment: Appointment;
   onClose: () => void;
-  onProcessPayment: (aptId: string, amount: number, method: PaymentMethod) => void;
+  onProcessPayment: (aptId: string, payments: PaymentEntry[]) => void;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose, onProcessPayment }) => {
@@ -15,23 +15,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
   const clinicName = t('clinic_name');
   const dueAmount = billing.total - billing.paidAmount;
   
-  const [paymentAmount, setPaymentAmount] = useState(dueAmount.toString());
-  const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [cashAmount, setCashAmount] = useState('0');
+  const [cardAmount, setCardAmount] = useState(dueAmount.toString());
+  const method = parseFloat(cashAmount) > 0 && parseFloat(cardAmount) > 0
+    ? 'mixed'
+    : parseFloat(cashAmount) > 0
+      ? PaymentMethod.CASH
+      : PaymentMethod.CARD;
   const [step, setStep] = useState<'INPUT' | 'RECEIPT'>('INPUT');
   const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(paymentAmount);
+    const cash = parseFloat(cashAmount) || 0;
+    const card = parseFloat(cardAmount) || 0;
+    const amount = cash + card;
     if (amount <= 0 || amount > dueAmount) return;
 
-    onProcessPayment(appointment.id, amount, method);
+    const payments: PaymentEntry[] = [];
+    if (cash > 0) payments.push({ amount: cash, method: PaymentMethod.CASH });
+    if (card > 0) payments.push({ amount: card, method: PaymentMethod.CARD });
+    if (!payments.length) return;
+
+    onProcessPayment(appointment.id, payments);
     
     // Create temp tx object for display
     setReceiptTx({
         id: Math.random().toString(),
         amount: amount,
-        method: method,
+        method: cash > 0 ? PaymentMethod.CASH : PaymentMethod.CARD,
         timestamp: new Date().toISOString(),
         recordedBy: 'Current User',
         reference: `REC-${Math.floor(Math.random() * 10000)}`,
@@ -83,45 +95,38 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('payment_method')}</label>
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { id: PaymentMethod.CASH, label: t('payment_method_cash'), icon: Banknote },
-                                { id: PaymentMethod.CARD, label: t('payment_method_card'), icon: CreditCard },
-                                { id: PaymentMethod.INSURANCE, label: t('payment_method_insurance'), icon: ShieldCheck },
-                            ].map(m => (
-                                <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => setMethod(m.id)}
-                                    className={`flex flex-col items-center justify-center p-3 border rounded-xl transition-all ${
-                                        method === m.id 
-                                        ? 'bg-primary-50 border-primary-500 text-primary-700 ring-1 ring-primary-500' 
-                                        : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'
-                                    }`}
-                                >
-                                    <m.icon className="w-6 h-6 mb-1" />
-                                    <span className="text-xs font-bold">{m.label}</span>
-                                </button>
-                            ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="border rounded-xl p-3">
+                                <div className="flex items-center gap-2 text-sm font-semibold mb-2"><Banknote className="w-4 h-4" /> {t('payment_method_cash')}</div>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={dueAmount}
+                                  step="0.01"
+                                  value={cashAmount}
+                                  onChange={(e) => setCashAmount(e.target.value)}
+                                  className="block w-full text-xl font-bold p-2 border border-gray-300 rounded-lg text-right"
+                                />
+                            </div>
+                            <div className="border rounded-xl p-3">
+                                <div className="flex items-center gap-2 text-sm font-semibold mb-2"><CreditCard className="w-4 h-4" /> {t('payment_method_card')}</div>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={dueAmount}
+                                  step="0.01"
+                                  value={cardAmount}
+                                  onChange={(e) => setCardAmount(e.target.value)}
+                                  className="block w-full text-xl font-bold p-2 border border-gray-300 rounded-lg text-right"
+                                />
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('amount_tendered_egp')}</label>
-                        <input 
-                            type="number"
-                            min="1"
-                            max={dueAmount}
-                            step="0.01"
-                            value={paymentAmount}
-                            onChange={(e) => setPaymentAmount(e.target.value)}
-                            className="block w-full text-3xl font-bold p-3 border border-gray-300 rounded-xl focus:ring-primary-500 focus:border-primary-500 text-right"
-                        />
+                        <p className="mt-2 text-sm text-gray-500">{t('paid_total')}: {(Number(cashAmount || 0) + Number(cardAmount || 0)).toFixed(2)} {t('currency_egp')}</p>
                     </div>
 
                     <button 
                         type="submit" 
-                        disabled={parseFloat(paymentAmount) <= 0}
+                        disabled={(parseFloat(cashAmount) || 0) + (parseFloat(cardAmount) || 0) <= 0}
                         className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-200 transition-all disabled:opacity-50"
                     >
                         {t('process_payment')}
@@ -165,7 +170,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ appointment, onClose
                           <span>{billing.total.toFixed(2)}</span>
                       </div>
                        <div className="flex justify-between text-gray-600">
-                          <span>{t('receipt_paid', { method: t(`payment_method_${method.toLowerCase()}`) })}</span>
+                          <span>{t('receipt_paid', { method: method === 'mixed' ? `${t('payment_method_cash')} + ${t('payment_method_card')}` : t(`payment_method_${String(method).toLowerCase()}`) })}</span>
                           <span>{receiptTx.amount.toFixed(2)}</span>
                       </div>
                        <div className="flex justify-between text-gray-600">
