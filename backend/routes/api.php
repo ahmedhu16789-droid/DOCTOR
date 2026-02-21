@@ -56,6 +56,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/shift', [AppointmentController::class, 'bulkShift']);
         Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
+        Route::post('appointments/{appointment}/start-now', [AppointmentController::class, 'startNow']);
 
         Route::get('medications', [MedicationController::class, 'index']);
         Route::get('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'show']);

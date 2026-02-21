@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AppointmentRequest;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\AppointmentStatusAudit;
 use App\Models\AppointmentSlotShift;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
@@ -285,6 +286,67 @@ class AppointmentController extends Controller
         }
 
         $appointment->save();
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
+
+        ApiCache::bump('appointments.index', $request->user()->clinic_id);
+
+        return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
+    public function startNow(Request $request, Appointment $appointment): JsonResponse
+    {
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+
+        $actorRole = (string) $request->user()->role;
+        $doctorAdvancedModeEnabled = (bool) data_get($request->user()->clinic?->settings, 'doctor_advanced_mode_enabled', false);
+
+        $canStartNow = $actorRole === 'RECEPTIONIST'
+            || in_array($actorRole, ['ADMIN', 'BRANCH_MANAGER'], true)
+            || ($actorRole === 'DOCTOR' && $doctorAdvancedModeEnabled);
+
+        abort_unless($canStartNow, 403, 'You are not allowed to start a visit from the queue.');
+
+        $allowedStatuses = ['SCHEDULED', 'WAITING'];
+        abort_unless(in_array($appointment->status, $allowedStatuses, true), 422, 'Only scheduled or waiting appointments can be started now.');
+
+        $hasAnotherInProgress = Appointment::query()
+            ->where('clinic_id', $appointment->clinic_id)
+            ->where('doctor_id', $appointment->doctor_id)
+            ->whereDate('date', $appointment->date)
+            ->where('status', 'IN_PROGRESS')
+            ->whereKeyNot($appointment->id)
+            ->exists();
+
+        abort_if($hasAnotherInProgress, 409, 'Doctor already has an in-progress visit. Please end it first.');
+
+        DB::transaction(function () use ($appointment, $request): void {
+            $fromStatus = $appointment->status;
+            $now = now();
+
+            $appointment->status = 'IN_PROGRESS';
+            $appointment->started_at = $appointment->started_at ?? $now;
+            $appointment->check_in_at = $appointment->check_in_at ?? $now;
+            $appointment->called_at = $appointment->called_at ?? $appointment->check_in_at;
+            $appointment->save();
+
+            AppointmentStatusAudit::query()->withoutGlobalScopes()->create([
+                'clinic_id' => $appointment->clinic_id,
+                'appointment_id' => $appointment->id,
+                'from_status' => $fromStatus,
+                'to_status' => 'IN_PROGRESS',
+                'actor_type' => 'USER',
+                'actor_id' => $request->user()->id,
+                'action' => 'START_VISIT_NOW',
+                'reason' => 'Operator started visit early from queue.',
+                'metadata' => [
+                    'scheduled_date' => $appointment->date?->toDateString(),
+                    'scheduled_time_slot' => $appointment->time_slot,
+                    'started_at' => optional($appointment->started_at)->toIso8601String(),
+                ],
+                'created_at' => $now,
+            ]);
+        });
+
         $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);

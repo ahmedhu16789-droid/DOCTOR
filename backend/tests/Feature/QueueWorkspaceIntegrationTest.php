@@ -56,6 +56,111 @@ class QueueWorkspaceIntegrationTest extends TestCase
         Carbon::setTestNow();
     }
 
+
+    public function test_reception_can_start_scheduled_visit_now_and_keeps_scheduled_slot(): void
+    {
+        Carbon::setTestNow('2026-03-01 08:10:00');
+
+        [$clinic, $doctor, $appointment] = $this->seedEncounterContext();
+
+        $appointment->update([
+            'status' => 'SCHEDULED',
+            'time_slot' => '10:30',
+            'check_in_at' => null,
+            'called_at' => null,
+            'started_at' => null,
+        ]);
+
+        $reception = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'RECEPTIONIST',
+        ]);
+
+        Sanctum::actingAs($reception);
+
+        $this->postJson("/api/v1/appointments/{$appointment->id}/start-now")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'IN_PROGRESS')
+            ->assertJsonPath('data.timeSlot', '10:30')
+            ->assertJsonPath('data.startedAt', '2026-03-01T08:10:00+00:00');
+
+        $appointment->refresh();
+        $this->assertSame('IN_PROGRESS', $appointment->status);
+        $this->assertSame('10:30', $appointment->time_slot);
+        $this->assertNotNull($appointment->started_at);
+
+        $this->assertDatabaseHas('appointment_status_audits', [
+            'clinic_id' => $clinic->id,
+            'appointment_id' => $appointment->id,
+            'from_status' => 'SCHEDULED',
+            'to_status' => 'IN_PROGRESS',
+            'action' => 'START_VISIT_NOW',
+            'actor_id' => $reception->id,
+        ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_start_visit_now_blocks_when_doctor_has_another_in_progress_appointment(): void
+    {
+        [$clinic, $doctor, $appointment] = $this->seedEncounterContext();
+
+        $appointment->update(['status' => 'SCHEDULED']);
+
+        Appointment::query()->create([
+            'clinic_id' => $clinic->id,
+            'branch_id' => $appointment->branch_id,
+            'patient_id' => $appointment->patient_id,
+            'doctor_id' => $doctor->id,
+            'date' => $appointment->date,
+            'time_slot' => '09:30',
+            'status' => 'IN_PROGRESS',
+            'started_at' => now(),
+        ]);
+
+        $reception = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'RECEPTIONIST',
+        ]);
+
+        Sanctum::actingAs($reception);
+
+        $this->postJson("/api/v1/appointments/{$appointment->id}/start-now")
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Doctor already has an in-progress visit. Please end it first.');
+
+        $this->assertDatabaseMissing('appointment_status_audits', [
+            'appointment_id' => $appointment->id,
+            'action' => 'START_VISIT_NOW',
+        ]);
+    }
+
+    public function test_doctor_needs_advanced_mode_to_start_visit_now(): void
+    {
+        [$clinic, $doctor, $appointment] = $this->seedEncounterContext();
+
+        $appointment->update(['status' => 'SCHEDULED']);
+
+        Sanctum::actingAs($doctor);
+
+        $this->postJson("/api/v1/appointments/{$appointment->id}/start-now")
+            ->assertForbidden();
+
+        $clinic->update([
+            'settings' => [
+                ...($clinic->settings ?? []),
+                'doctor_advanced_mode_enabled' => true,
+            ],
+        ]);
+
+        $doctor->refresh();
+        Sanctum::actingAs($doctor);
+
+        $this->postJson("/api/v1/appointments/{$appointment->id}/start-now")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'IN_PROGRESS');
+    }
+
     public function test_encounter_show_returns_history_and_payment_is_persisted(): void
     {
         [$clinic, $doctor, $appointment] = $this->seedEncounterContext();
