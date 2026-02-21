@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DoctorAdvancedModeController;
 use App\Http\Controllers\Api\V1\DoctorProfileController;
 use App\Http\Controllers\Api\V1\DoctorPayrollController;
 use App\Http\Controllers\Api\V1\EmployeeController;
@@ -71,6 +72,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
         Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
         Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
+        Route::get('doctor/advanced-mode/capabilities', [DoctorAdvancedModeController::class, 'capabilities']);
+        Route::put('doctor/advanced-mode', [DoctorAdvancedModeController::class, 'toggle']);
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
