@@ -238,11 +238,8 @@ class DoctorPayrollController extends Controller
 
             $targetAmount = (float) $period->total_earned + (float) $period->total_adjustments;
 
-            if ($period->total_settled >= $targetAmount && $targetAmount > 0) {
+            if ($period->status === 'CLOSED' && $period->total_settled >= $targetAmount && $targetAmount > 0) {
                 $period->status = 'SETTLED';
-            } elseif ($period->status === 'OPEN') {
-                $period->status = 'CLOSED';
-                $period->closed_at = $period->closed_at ?? now();
             }
 
             $period->save();

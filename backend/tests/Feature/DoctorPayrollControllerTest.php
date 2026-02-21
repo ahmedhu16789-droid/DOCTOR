@@ -209,7 +209,7 @@ class DoctorPayrollControllerTest extends TestCase
             'method' => 'cash',
             'reference' => 'PARTIAL-1',
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'CLOSED')
+            ->assertJsonPath('data.status', 'OPEN')
             ->assertJsonPath('data.totalSettled', 100.0);
     }
 
@@ -237,7 +237,7 @@ class DoctorPayrollControllerTest extends TestCase
             'method' => 'cash',
             'reference' => 'PARTIAL-2',
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'CLOSED')
+            ->assertJsonPath('data.status', 'OPEN')
             ->assertJsonPath('data.totalSettled', 200.0);
     }
 
