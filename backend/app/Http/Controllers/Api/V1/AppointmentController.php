@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AppointmentRequest;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\AppointmentSlotShift;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\User;
@@ -61,7 +62,7 @@ class AppointmentController extends Controller
         ]);
 
         $doctor = User::query()
-            ->select(['id', 'schedule'])
+            ->select(['id', 'clinic_id', 'schedule'])
             ->where('role', 'DOCTOR')
             ->whereKey($validated['doctorId'])
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
@@ -94,7 +95,7 @@ class AppointmentController extends Controller
         $doctorIds = collect($validated['doctorIds'])->map(fn ($id) => (int) $id)->values();
 
         $doctors = User::query()
-            ->select(['id', 'schedule'])
+            ->select(['id', 'clinic_id', 'schedule'])
             ->where('role', 'DOCTOR')
             ->whereIn('id', $doctorIds)
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
@@ -165,6 +166,15 @@ class AppointmentController extends Controller
                 ]);
             }
 
+            AppointmentSlotShift::query()->create([
+                'clinic_id' => $clinicId,
+                'doctor_id' => $validated['doctorId'],
+                'branch_id' => $validated['branchId'],
+                'date' => $validated['date'],
+                'from_time' => $validated['fromTime'],
+                'shift_minutes' => $validated['shiftMinutes'],
+            ]);
+
             return $appointments->count();
         });
 
@@ -197,7 +207,7 @@ class AppointmentController extends Controller
         $branchId = (int) ($validated['branchId'] ?? $appointment->branch_id);
 
         $doctor = User::query()
-            ->select(['id', 'schedule'])
+            ->select(['id', 'clinic_id', 'schedule'])
             ->whereKey($doctorId)
             ->where('clinic_id', $request->user()->clinic_id)
             ->where('role', 'DOCTOR')
@@ -283,7 +293,7 @@ class AppointmentController extends Controller
         $timeSlot = $request->string('timeSlot')->value();
 
         $doctor = User::query()
-            ->select(['id', 'schedule'])
+            ->select(['id', 'clinic_id', 'schedule'])
             ->whereKey($doctorId)
             ->where('role', 'DOCTOR')
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))

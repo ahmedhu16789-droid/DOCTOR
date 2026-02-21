@@ -40,6 +40,16 @@ export const common = {
     "workspace": "Workspace",
     "management": "Management",
     "finance": "Finance",
+    "appointment_migration": "Appointment Migration",
+    "date": "Date",
+    "migration_from_time": "From Time",
+    "migration_duration": "Shift Duration",
+    "migration_minutes": "{{count}} min",
+    "migration_submit": "Apply Shift",
+    "migration_loading": "Shifting...",
+    "migration_success": "{{count}} appointments shifted successfully.",
+    "migration_validation": "Please select doctor and branch first.",
+    "migration_error": "Unable to complete migration right now.",
 
     // Roles
     "ADMIN": "Admin",
