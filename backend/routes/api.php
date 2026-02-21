@@ -14,8 +14,10 @@ use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\Auth\AccessLinkController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Auth\PatientAuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
 use App\Http\Controllers\Api\V1\PatientController;
+use App\Http\Controllers\Api\V1\PatientPortalController;
 use App\Http\Controllers\Api\V1\PublicBookingController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -25,10 +27,29 @@ Route::prefix('v1')->group(function (): void {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::post('auth/access-links/consume', [AccessLinkController::class, 'consume']);
 
+    Route::prefix('patient-portal/auth')->group(function (): void {
+        Route::post('login', [PatientAuthController::class, 'login']);
+    });
+
     Route::prefix('public/booking')->middleware('throttle:public-booking')->group(function (): void {
         Route::get('clinic-context', [PublicBookingController::class, 'clinicContext']);
         Route::get('available-slots', [PublicBookingController::class, 'availableSlots']);
         Route::post('', [PublicBookingController::class, 'store']);
+    });
+
+
+    Route::prefix('patient-portal')->middleware(['auth:sanctum', 'patient.auth'])->group(function (): void {
+        Route::get('auth/me', [PatientAuthController::class, 'me']);
+        Route::post('auth/logout', [PatientAuthController::class, 'logout']);
+
+        Route::get('appointments/upcoming', [PatientPortalController::class, 'upcomingAppointments']);
+        Route::post('appointments/{appointment}/reschedule', [PatientPortalController::class, 'reschedule']);
+        Route::post('appointments/{appointment}/cancel', [PatientPortalController::class, 'cancel']);
+
+        Route::get('visits', [PatientPortalController::class, 'visitHistory']);
+        Route::get('visits/{encounter}/summary', [PatientPortalController::class, 'summary']);
+        Route::get('visits/{encounter}/prescriptions', [PatientPortalController::class, 'prescriptions']);
+        Route::get('prescriptions/{prescription}/download', [PatientPortalController::class, 'downloadPrescription']);
     });
 
     Route::middleware('auth:sanctum')->group(function (): void {
