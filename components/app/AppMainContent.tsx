@@ -27,6 +27,7 @@ interface AppMainContentProps {
   allAppointments: Appointment[];
   selectedPatientId: string | null;
   onStatusChange: (id: string, newStatus: AppointmentStatus) => void;
+  onStartVisitNow: (id: string) => Promise<void>;
   onBook: (apt: Partial<Appointment>) => Promise<void>;
   onPatientCreated: (patient: Patient) => void;
   onOpenEncounter: (apt: Appointment) => void;
@@ -49,6 +50,7 @@ export function AppMainContent({
   allAppointments,
   selectedPatientId,
   onStatusChange,
+  onStartVisitNow,
   onBook,
   onPatientCreated,
   onOpenEncounter,
@@ -109,6 +111,7 @@ export function AppMainContent({
           <ReceptionQueue
             appointments={visibleAppointments}
             onUpdateStatus={onStatusChange}
+            onStartVisitNow={onStartVisitNow}
             onOpenEncounter={onOpenEncounter}
             onProcessPayment={onProcessPayment}
             onRefresh={onRefresh}

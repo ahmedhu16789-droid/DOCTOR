@@ -734,6 +734,15 @@ export const getMedicalEncounterFromApi = async (appointmentId: string): Promise
   };
 };
 
+export const startVisitNowViaApi = async (appointmentId: string): Promise<ApiAppointment> => {
+  const payload = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/start-now`, {
+    method: 'POST',
+  });
+
+  return payload.data;
+};
+
+
 export const updateAppointmentStatusViaApi = async (appointmentId: string, status: AppointmentStatus): Promise<ApiAppointment> => {
   const payload = await apiFetch<{ data: ApiAppointment }>(`/appointments/${appointmentId}/status`, {
     method: 'PATCH',

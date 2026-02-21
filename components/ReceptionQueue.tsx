@@ -9,19 +9,22 @@ import { getClinicSettingsFromApi } from '../services/api';
 interface ReceptionQueueProps {
   appointments: Appointment[];
   onUpdateStatus: (id: string, status: AppointmentStatus) => void;
+  onStartVisitNow: (id: string) => Promise<void>;
   onOpenEncounter?: (appointment: Appointment) => void;
   onProcessPayment: (aptId: string, payments: PaymentEntry[]) => void;
   onRefresh?: () => Promise<void>;
   userRole: UserRole;
 }
 
-export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, onUpdateStatus, onOpenEncounter, onProcessPayment, onRefresh, userRole }) => {
+export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, onUpdateStatus, onStartVisitNow, onOpenEncounter, onProcessPayment, onRefresh, userRole }) => {
   const { t } = useTranslation();
   const [tvMode, setTvMode] = useState(false);
   const [filterDoc, setFilterDoc] = useState('ALL');
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tvQueueDisplayMode, setTvQueueDisplayMode] = useState<'FULL_NAME' | 'MASKED_NAME'>('MASKED_NAME');
+  const [startNowLoadingId, setStartNowLoadingId] = useState<string | null>(null);
+  const [startNowError, setStartNowError] = useState<string | null>(null);
 
   // Filter Logic
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -108,6 +111,22 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
     if (action === 'complete') next = AppointmentStatus.COMPLETED;
     if (action === 'noshow') next = AppointmentStatus.NO_SHOW;
     onUpdateStatus(id, next);
+  };
+
+  const handleStartNow = async (appointment: Appointment) => {
+    const confirmed = window.confirm(`Start ${appointment.patientName}'s visit now? Scheduled time will remain ${formatTimeTo12Hour(appointment.timeSlot)} for reporting.`);
+    if (!confirmed) return;
+
+    setStartNowError(null);
+    setStartNowLoadingId(appointment.id);
+
+    try {
+      await onStartVisitNow(appointment.id);
+    } catch (error) {
+      setStartNowError(error instanceof Error ? error.message : 'Failed to start visit now.');
+    } finally {
+      setStartNowLoadingId(null);
+    }
   };
 
   const getPaymentStatusBadge = (billing: any) => {
@@ -219,6 +238,10 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
         </div>
       </div>
 
+      {startNowError && (
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{startNowError}</div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -272,6 +295,9 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
                     {/* Reception Actions */}
                     {apt.status === AppointmentStatus.SCHEDULED && (
                       <>
+                        <button onClick={() => handleStartNow(apt)} disabled={startNowLoadingId === apt.id} className="flex items-center gap-1 text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded disabled:opacity-60">
+                          <Play className="w-3 h-3" /> {startNowLoadingId === apt.id ? 'Starting…' : 'Start Visit Now'}
+                        </button>
                         <button onClick={() => handleAction(apt.id, apt.status, 'checkin')} className="text-primary-600 hover:text-primary-900 bg-primary-50 px-3 py-1 rounded">{t('check_in')}</button>
                         <button onClick={() => handleAction(apt.id, apt.status, 'noshow')} className="text-red-600 hover:text-red-900 px-3 py-1">{t('no_show')}</button>
                       </>
@@ -279,6 +305,9 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
 
                     {apt.status === AppointmentStatus.WAITING && (
                       <>
+                        <button onClick={() => handleStartNow(apt)} disabled={startNowLoadingId === apt.id} className="flex items-center gap-1 text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded disabled:opacity-60">
+                          <Play className="w-3 h-3" /> {startNowLoadingId === apt.id ? 'Starting…' : 'Start Visit Now'}
+                        </button>
                         <button onClick={() => handleAction(apt.id, apt.status, 'call')} className="flex items-center gap-1 text-amber-600 hover:text-amber-900 bg-amber-50 px-3 py-1 rounded">
                           <Megaphone className="w-3 h-3" /> {t('call_patient')}
                         </button>

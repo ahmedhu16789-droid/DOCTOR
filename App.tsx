@@ -5,7 +5,7 @@ import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentEntry, Branch } from './types';
 import { getAppointments, getPatients } from './services/mockData';
-import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, updateAppointmentStatusViaApi } from './services/api';
+import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, startVisitNowViaApi, updateAppointmentStatusViaApi } from './services/api';
 import { setStoredUser } from './services/core/authSession';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
@@ -407,6 +407,29 @@ export default function App() {
     setAppointments([]);
   };
 
+  const handleStartVisitNow = async (id: string) => {
+    const previous = appointments.find((appointment) => appointment.id === id);
+
+    setAppointments((prev) => prev.map((a) =>
+      a.id === id ? { ...a, status: AppointmentStatus.IN_PROGRESS, startedAt: a.startedAt ?? new Date().toISOString() } : a
+    ));
+
+    try {
+      const updated = await startVisitNowViaApi(id);
+      setAppointments((prev) => prev.map((a) =>
+        a.id === id
+          ? { ...a, status: updated.status, checkInAt: updated.checkInAt ?? a.checkInAt, calledAt: updated.calledAt ?? a.calledAt, startedAt: updated.startedAt ?? a.startedAt }
+          : a
+      ));
+    } catch (error) {
+      setToast({ type: 'error', message: error instanceof Error ? error.message : t('appointment_status_update_failed') });
+      if (previous) {
+        setAppointments((prev) => prev.map((a) => a.id === id ? previous : a));
+      }
+      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+    }
+  };
+
   const handleStatusChange = (id: string, newStatus: AppointmentStatus) => {
     setAppointments((prev) => prev.map((a) =>
       a.id === id ? { ...a, status: newStatus } : a
@@ -639,6 +662,7 @@ export default function App() {
           allAppointments={appointments}
           selectedPatientId={selectedPatientId}
           onStatusChange={handleStatusChange}
+          onStartVisitNow={handleStartVisitNow}
           onBook={handleNewBooking}
           onPatientCreated={(patient) => setPatients((prev) => [patient, ...prev])}
           onOpenEncounter={handleOpenEncounter}
