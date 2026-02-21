@@ -164,6 +164,11 @@ export const admin = {
     "currency_egp": "الجنيه المصري (EGP)",
     "currency_usd": "الدولار الأمريكي ($)",
     "currency_sar": "الريال السعودي (SAR)",
+    "patient_privacy": "خصوصية المرضى",
+    "tv_queue_display_mode_label": "طريقة عرض اسم المريض في شاشة الانتظار",
+    "tv_queue_display_mode_full_name": "عرض الاسم الكامل للمريض",
+    "tv_queue_display_mode_masked_name": "عرض اسم مخفي + رقم الدور",
+    "tv_queue_display_mode_helper": "يتحكم في كيفية إظهار هوية المريض في وضع الشاشة (TV) لقائمة الاستقبال.",
 
     // Doctor Payroll Reports
     "doctor_payroll.title": "Payroll الأطباء",

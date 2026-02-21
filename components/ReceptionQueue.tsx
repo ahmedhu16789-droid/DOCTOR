@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Appointment, AppointmentStatus, PaymentEntry, UserRole, PaymentStatus } from '../types';
 import { Clock, User, CheckCircle, XCircle, Megaphone, Play, Monitor, List, CreditCard, RotateCw } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { formatTimeTo12Hour } from '../utils/time';
 import { useTranslation } from 'react-i18next';
+import { getClinicSettingsFromApi } from '../services/api';
 
 interface ReceptionQueueProps {
   appointments: Appointment[];
@@ -20,6 +21,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
   const [filterDoc, setFilterDoc] = useState('ALL');
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tvQueueDisplayMode, setTvQueueDisplayMode] = useState<'FULL_NAME' | 'MASKED_NAME'>('MASKED_NAME');
 
   // Filter Logic
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -48,6 +50,49 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
     }
 
     return null;
+  };
+
+
+  useEffect(() => {
+    const loadTvQueueDisplayMode = async () => {
+      try {
+        const settings = await getClinicSettingsFromApi();
+        setTvQueueDisplayMode(settings.tv_queue_display_mode ?? 'MASKED_NAME');
+      } catch (error) {
+        console.error('Failed to load clinic settings for TV queue display mode', error);
+      }
+    };
+
+    loadTvQueueDisplayMode();
+  }, []);
+
+  const maskPatientName = (name: string): string => {
+    const normalized = name.trim().replace(/\s+/g, ' ');
+    if (!normalized) return '••';
+
+    const parts = normalized.split(' ');
+    const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
+    const lastPart = parts[parts.length - 1];
+    const suffix = lastPart.slice(-2).toUpperCase();
+
+    return `${initials || normalized.charAt(0).toUpperCase()}••${suffix}`;
+  };
+
+  const getQueueToken = (appointment: Appointment): string => {
+    const digits = appointment.id.replace(/\D/g, '');
+    if (digits.length >= 4) {
+      return `#${digits.slice(-4)}`;
+    }
+
+    return `#${appointment.id.slice(-4).toUpperCase()}`;
+  };
+
+  const getTvPatientDisplay = (appointment: Appointment): string => {
+    if (tvQueueDisplayMode === 'FULL_NAME') {
+      return appointment.patientName;
+    }
+
+    return `${maskPatientName(appointment.patientName)} ${getQueueToken(appointment)}`;
   };
 
   const waiting = filtered.filter(a => a.status === AppointmentStatus.WAITING);
@@ -96,7 +141,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
             <h2 className="text-3xl font-medium mb-4 uppercase tracking-widest opacity-80">{t('now_calling')}</h2>
             {called.length > 0 ? (
               <>
-                <div className="text-6xl font-black text-center mb-4">{called[0].patientName}</div>
+                <div className="text-6xl font-black text-center mb-4">{getTvPatientDisplay(called[0])}</div>
                 <div className="text-2xl bg-white text-primary-600 px-6 py-2 rounded-full font-bold">
                   {called[0].doctorName}
                 </div>
@@ -113,7 +158,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
             <div className="space-y-4">
               {waiting.slice(0, 5).map(apt => (
                 <div key={apt.id} className="flex justify-between items-center p-4 bg-gray-700 rounded-xl">
-                  <span className="text-2xl font-medium">{apt.patientName}</span>
+                  <span className="text-2xl font-medium">{getTvPatientDisplay(apt)}</span>
                   <span className="text-gray-400">{apt.doctorName}</span>
                 </div>
               ))}

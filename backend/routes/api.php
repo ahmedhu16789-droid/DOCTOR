@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
-        Route::get('appointments', [AppointmentController::class, 'index']);
+        Route::get('appointments', [AppointmentController::class, 'index'])->middleware('branch.access:branchId');
         Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
         Route::post('appointments', [AppointmentController::class, 'store']);
