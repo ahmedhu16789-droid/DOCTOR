@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -44,6 +45,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
   String _statusMessage = 'Initializing...';
   StreamSubscription<LoadingState>? _loadingSubscription;
   bool _isWhatsAppBootstrapped = false;
+  final _random = Random();
 
   @override
   void initState() {
@@ -416,16 +418,22 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       ''');
       debugPrint('WA Send: $sendResult');
 
-      // Wait for message to be sent and move to next
-      await Future.delayed(const Duration(seconds: 4));
+      // Wait between messages with a human-like random delay (4s..25s)
+      final waitSeconds = 4 + _random.nextInt(22);
+      if (mounted) {
+        setState(() {
+          _statusMessage = '✓ Sent to ${msg.phone}. Waiting ${waitSeconds}s before next message...';
+        });
+      }
+      await Future.delayed(Duration(seconds: waitSeconds));
 
       if (mounted) {
         setState(() {
-          _statusMessage = '✓ Sent to ${msg.phone}';
           _currentIndex++;
+          _statusMessage =
+              'Processing next message (${_currentIndex + 1}/${widget.messages.length})...';
         });
       }
-      await Future.delayed(const Duration(seconds: 1));
       _isProcessing = false;
       _processNextMessage();
     } catch (e) {
