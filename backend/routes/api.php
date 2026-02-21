@@ -69,9 +69,12 @@ Route::prefix('v1')->group(function (): void {
         Route::put('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'upsert']);
         Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
         Route::patch('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'updateItem']);
-        Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
-        Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
-        Route::post('appointments/{appointment}/billing/refunds', [AppointmentBillingController::class, 'refund']);
+        Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem'])
+            ->middleware('permission.access:finance.remove_item,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment'])
+            ->middleware('permission.access:finance.collect_payment,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER|RECEPTIONIST');
+        Route::post('appointments/{appointment}/billing/refunds', [AppointmentBillingController::class, 'refund'])
+            ->middleware('permission.access:finance.refund,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::post('appointments/{appointment}/billing/finalize', [AppointmentBillingController::class, 'finalize']);
         Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
         Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
@@ -80,10 +83,14 @@ Route::prefix('v1')->group(function (): void {
         Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id');
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
         Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id');
-        Route::get('reports/financial', [FinancialReportController::class, 'index']);
-        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
-        Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
-        Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle']);
+        Route::get('reports/financial', [FinancialReportController::class, 'index'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
+            ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])
+            ->middleware('permission.access:payroll.settle,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
         Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
     });

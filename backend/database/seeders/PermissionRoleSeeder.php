@@ -29,6 +29,12 @@ class PermissionRoleSeeder extends Seeder
             'manage_roles',
             'view_financials',
             'create_transaction',
+            'finance.view_reports',
+            'finance.collect_payment',
+            'finance.refund',
+            'finance.remove_item',
+            'payroll.close',
+            'payroll.settle',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -42,10 +48,11 @@ class PermissionRoleSeeder extends Seeder
 
         $roles = [
             'ADMIN' => $permissions,
-            'BRANCH_MANAGER' => ['view_appointment', 'update_appointment', 'view_patient', 'manage_staff', 'view_branch'],
+            'BRANCH_MANAGER' => ['view_appointment', 'update_appointment', 'view_patient', 'manage_staff', 'view_branch', 'finance.collect_payment', 'finance.remove_item', 'finance.refund', 'finance.view_reports', 'payroll.close', 'payroll.settle'],
             'DOCTOR' => ['view_appointment', 'update_appointment', 'view_patient', 'create_patient'],
             'NURSE' => ['view_appointment', 'view_patient', 'update_patient'],
-            'RECEPTIONIST' => ['create_appointment', 'view_appointment', 'cancel_appointment', 'create_patient', 'view_patient', 'create_transaction'],
+            'RECEPTIONIST' => ['create_appointment', 'view_appointment', 'cancel_appointment', 'create_patient', 'view_patient', 'create_transaction', 'finance.collect_payment'],
+            'FINANCE_ADMIN' => ['view_financials', 'create_transaction', 'finance.view_reports', 'finance.collect_payment', 'finance.refund', 'finance.remove_item', 'payroll.close', 'payroll.settle'],
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {

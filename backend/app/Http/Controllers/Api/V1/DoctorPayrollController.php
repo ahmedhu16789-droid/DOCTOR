@@ -191,6 +191,8 @@ class DoctorPayrollController extends Controller
 
     public function close(Request $request, int $id): JsonResponse
     {
+        $this->assertPermission($request, 'payroll.close', ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER']);
+
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -229,6 +231,8 @@ class DoctorPayrollController extends Controller
 
     public function settle(Request $request, int $id): JsonResponse
     {
+        $this->assertPermission($request, 'payroll.settle', ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER']);
+
         $validated = $request->validate([
             'settlement_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'gt:0'],
@@ -328,5 +332,22 @@ class DoctorPayrollController extends Controller
             ->endOfDay();
 
         return now()->greaterThanOrEqualTo($monthEnd);
+    }
+
+    private function assertPermission(Request $request, string $permission, array $fallbackRoles): void
+    {
+        $user = $request->user();
+
+        $hasPermission = $user->hasPermissionTo($permission, 'web')
+            || DB::table('roles')
+                ->join('role_has_permissions', 'role_has_permissions.role_id', '=', 'roles.id')
+                ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+                ->where('roles.clinic_id', (int) $user->clinic_id)
+                ->where('roles.name', (string) $user->role)
+                ->where('permissions.name', $permission)
+                ->exists()
+            || in_array((string) $user->role, $fallbackRoles, true);
+
+        abort_unless($hasPermission, 403, 'You are not allowed to perform this payroll action.');
     }
 }

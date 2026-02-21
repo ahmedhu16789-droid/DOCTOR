@@ -107,6 +107,7 @@ class AppointmentBillingController extends Controller
     public function processPayment(Request $request, Appointment $appointment): JsonResponse
     {
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->assertPermission($request, 'finance.collect_payment', ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
 
         $validated = $request->validate([
             'amount' => ['nullable', 'numeric', 'gt:0'],
@@ -177,7 +178,7 @@ class AppointmentBillingController extends Controller
     public function refund(Request $request, Appointment $appointment): JsonResponse
     {
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
-        $this->assertCanManageBilling($request);
+        $this->assertPermission($request, 'finance.refund', self::BILLING_ACTION_ROLES);
 
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'gt:0'],
@@ -235,6 +236,7 @@ class AppointmentBillingController extends Controller
     {
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
         abort_unless($appointment->invoice && $item->invoice_id === $appointment->invoice->id, 404);
+        $this->assertPermission($request, 'finance.remove_item', self::BILLING_ACTION_ROLES);
 
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:1000'],
@@ -331,7 +333,7 @@ class AppointmentBillingController extends Controller
 
     private function voidInvoiceInternal(Request $request, ?Invoice $invoice, string $reason, Appointment $appointment): JsonResponse
     {
-        $this->assertCanManageBilling($request);
+        $this->assertPermission($request, 'finance.refund', self::BILLING_ACTION_ROLES);
 
         DB::transaction(function () use ($request, $invoice, $reason): void {
             abort_if(! $invoice, 422, 'Appointment invoice was not initialized.');
@@ -349,9 +351,21 @@ class AppointmentBillingController extends Controller
         return response()->json(['data' => new AppointmentResource($appointment)]);
     }
 
-    private function assertCanManageBilling(Request $request): void
+    private function assertPermission(Request $request, string $permission, array $fallbackRoles): void
     {
-        abort_unless(in_array((string) $request->user()->role, self::BILLING_ACTION_ROLES, true), 403, 'You are not allowed to perform this billing action.');
+        $user = $request->user();
+
+        $hasPermission = $user->hasPermissionTo($permission, 'web')
+            || DB::table('roles')
+                ->join('role_has_permissions', 'role_has_permissions.role_id', '=', 'roles.id')
+                ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+                ->where('roles.clinic_id', (int) $user->clinic_id)
+                ->where('roles.name', (string) $user->role)
+                ->where('permissions.name', $permission)
+                ->exists()
+            || in_array((string) $user->role, $fallbackRoles, true);
+
+        abort_unless($hasPermission, 403, 'You are not allowed to perform this billing action.');
     }
 
     private function assertInvoiceMutable(Invoice $invoice): void
