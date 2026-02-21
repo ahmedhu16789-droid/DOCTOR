@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\MedicalEncounter;
+use App\Models\SensitiveAuditLog;
 use Illuminate\Http\JsonResponse;
 use App\Support\Authorization\ClinicBranchAuthorization;
 use Illuminate\Http\Request;
@@ -32,11 +33,15 @@ class MedicalEncounterController extends Controller
             ->values();
 
         if (! $encounter) {
+            $this->logSensitiveAction($request, $appointment, 'PATIENT_RECORD_VIEWED', 'patient', (int) $appointment->patient_id);
+
             return response()->json([
                 'data' => null,
                 'history' => $history,
             ]);
         }
+
+        $this->logSensitiveAction($request, $appointment, 'PATIENT_RECORD_VIEWED', 'patient', (int) $appointment->patient_id);
 
         return response()->json([
             'data' => $this->serializeEncounter($encounter),
@@ -66,7 +71,9 @@ class MedicalEncounterController extends Controller
             'prescription.*.instructions' => ['nullable', 'string'],
         ]);
 
-        $encounter = DB::transaction(function () use ($request, $appointment, $validated): MedicalEncounter {
+        $prescriptionWasChanged = false;
+
+        $encounter = DB::transaction(function () use ($request, $appointment, $validated, &$prescriptionWasChanged): MedicalEncounter {
             $encounter = MedicalEncounter::query()->updateOrCreate(
                 ['appointment_id' => $appointment->id],
                 [
@@ -85,6 +92,33 @@ class MedicalEncounterController extends Controller
                 ]
             );
 
+            $existingPrescription = $encounter->prescriptions()
+                ->get(['medication_name', 'active_ingredient', 'dosage', 'frequency', 'duration', 'instructions'])
+                ->map(fn ($item) => [
+                    'name' => (string) $item->medication_name,
+                    'activeIngredient' => (string) ($item->active_ingredient ?? ''),
+                    'dosage' => (string) ($item->dosage ?? ''),
+                    'frequency' => (string) ($item->frequency ?? ''),
+                    'duration' => (string) ($item->duration ?? ''),
+                    'instructions' => (string) ($item->instructions ?? ''),
+                ])
+                ->values()
+                ->all();
+
+            $incomingPrescription = collect($validated['prescription'] ?? [])
+                ->map(fn ($item) => [
+                    'name' => (string) ($item['name'] ?? ''),
+                    'activeIngredient' => (string) ($item['activeIngredient'] ?? ''),
+                    'dosage' => (string) ($item['dosage'] ?? ''),
+                    'frequency' => (string) ($item['frequency'] ?? ''),
+                    'duration' => (string) ($item['duration'] ?? ''),
+                    'instructions' => (string) ($item['instructions'] ?? ''),
+                ])
+                ->values()
+                ->all();
+
+            $prescriptionWasChanged = $existingPrescription !== $incomingPrescription;
+
             $encounter->prescriptions()->delete();
 
             foreach ($validated['prescription'] ?? [] as $medication) {
@@ -101,6 +135,11 @@ class MedicalEncounterController extends Controller
 
             return $encounter->load('prescriptions');
         });
+
+        $this->logSensitiveAction($request, $appointment, 'ENCOUNTER_UPDATED', 'medical_encounter', (int) $encounter->id);
+        if ($prescriptionWasChanged) {
+            $this->logSensitiveAction($request, $appointment, 'PRESCRIPTION_CHANGED', 'medical_encounter', (int) $encounter->id);
+        }
 
         return response()->json(['data' => $this->serializeEncounter($encounter)]);
     }
@@ -135,5 +174,17 @@ class MedicalEncounterController extends Controller
                 'instructions' => $medication->instructions,
             ])->values()->all(),
         ];
+    }
+
+    private function logSensitiveAction(Request $request, Appointment $appointment, string $actionType, string $targetRecordType, int $targetRecordId): void
+    {
+        SensitiveAuditLog::query()->create([
+            'clinic_id' => $request->user()->clinic_id,
+            'patient_id' => $appointment->patient_id,
+            'actor_user_id' => $request->user()->id,
+            'action_type' => $actionType,
+            'target_record_type' => $targetRecordType,
+            'target_record_id' => $targetRecordId,
+        ]);
     }
 }

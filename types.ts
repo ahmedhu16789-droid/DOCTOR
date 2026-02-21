@@ -132,6 +132,11 @@ export interface Patient {
     nameSimilarity: number;
     phoneExact: boolean;
   };
+  consents?: {
+    treatment: boolean;
+    privacy: boolean;
+    communication: boolean;
+  };
 }
 
 export interface TimeSlot {

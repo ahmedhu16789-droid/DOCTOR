@@ -25,6 +25,11 @@ class PatientResource extends JsonResource
             'gender' => $this->gender,
             'age' => $this->age,
             'medicalHistorySummary' => $this->medical_history_summary,
+            'consents' => [
+                'treatment' => (bool) optional($this->consents?->firstWhere('consent_type', 'treatment'))->granted,
+                'privacy' => (bool) optional($this->consents?->firstWhere('consent_type', 'privacy'))->granted,
+                'communication' => (bool) optional($this->consents?->firstWhere('consent_type', 'communication'))->granted,
+            ],
             'lastVisit' => $lastVisit,
             'duplicateHint' => $this->when(isset($this->duplicate_hint), $this->duplicate_hint),
         ];

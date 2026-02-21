@@ -58,6 +58,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/access-links', [AccessLinkController::class, 'create']);
         Route::get('patients', [PatientController::class, 'index']);
         Route::post('patients', [PatientController::class, 'store']);
+        Route::get('patients/{patient}/audit-timeline', [PatientController::class, 'auditTimeline']);
         Route::get('branches', [BranchController::class, 'index']);
         Route::post('branches', [BranchController::class, 'store']);
         Route::put('branches/{branch}', [BranchController::class, 'update']);
