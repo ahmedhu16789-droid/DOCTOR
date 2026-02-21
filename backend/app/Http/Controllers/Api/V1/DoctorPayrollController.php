@@ -122,6 +122,19 @@ class DoctorPayrollController extends Controller
                     'servicesAmount' => round($commissionDetails['servicesAmount'], 2),
                     'servicesRate' => $commissionDetails['servicesRate'],
                 ],
+                'settlements' => $period->settlements()
+                    ->orderByDesc('settlement_date')
+                    ->orderByDesc('id')
+                    ->get()
+                    ->map(fn (DoctorPayrollSettlement $settlement): array => [
+                        'id' => (string) $settlement->id,
+                        'settlementDate' => optional($settlement->settlement_date)?->format('Y-m-d'),
+                        'amount' => (float) $settlement->amount,
+                        'settlementKind' => $settlement->settlement_kind,
+                        'method' => $settlement->method,
+                        'reference' => $settlement->reference,
+                    ])
+                    ->values(),
             ];
         })->values();
 

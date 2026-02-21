@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Clinic;
 use App\Models\DoctorEarningsLedger;
 use App\Models\DoctorPayrollPeriod;
+use App\Models\DoctorPayrollSettlement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -152,6 +153,52 @@ class DoctorPayrollControllerTest extends TestCase
         $response->assertJsonPath('data.0.commissionDetails.consultationBasis', 700.0);
         $response->assertJsonPath('data.0.commissionDetails.servicesBasis', 0.0);
         $response->assertJsonPath('data.0.commissionDetails.servicesAmount', 0.0);
+    }
+
+
+    public function test_it_includes_settlement_history_in_period_report(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        $period = DoctorPayrollPeriod::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => '2026-06',
+            'total_earned' => 600,
+            'total_adjustments' => 0,
+            'total_settled' => 250,
+            'status' => 'OPEN',
+        ]);
+
+        DoctorPayrollSettlement::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'period_id' => $period->id,
+            'settlement_date' => '2026-06-25',
+            'amount' => 150,
+            'settlement_kind' => 'PARTIAL',
+            'method' => 'CASH',
+            'reference' => 'PAY-1',
+            'created_by' => $actor->id,
+        ]);
+
+        DoctorPayrollSettlement::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'period_id' => $period->id,
+            'settlement_date' => '2026-06-27',
+            'amount' => 100,
+            'settlement_kind' => 'PARTIAL',
+            'method' => 'BANK_TRANSFER',
+            'reference' => 'PAY-2',
+            'created_by' => $actor->id,
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->getJson('/api/v1/reports/doctor-payroll?period_month=2026-06')->assertOk();
+
+        $response->assertJsonPath('data.0.settlements.0.reference', 'PAY-2');
+        $response->assertJsonPath('data.0.settlements.0.amount', 100.0);
+        $response->assertJsonPath('data.0.settlements.1.reference', 'PAY-1');
     }
 
     public function test_it_closes_and_settles_period(): void
