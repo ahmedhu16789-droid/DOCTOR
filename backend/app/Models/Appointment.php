@@ -20,6 +20,7 @@ class Appointment extends Model
         'date',
         'time_slot',
         'status',
+        'check_in_at',
         'called_at',
         'started_at',
         'completed_at',
@@ -29,6 +30,7 @@ class Appointment extends Model
     protected function casts(): array
     {
         return [
+            'check_in_at' => 'datetime',
             'called_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',

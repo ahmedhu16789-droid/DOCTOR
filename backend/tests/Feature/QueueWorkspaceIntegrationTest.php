@@ -8,6 +8,7 @@ use App\Models\Clinic;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -18,9 +19,19 @@ class QueueWorkspaceIntegrationTest extends TestCase
 
     public function test_reception_can_update_appointment_status_and_track_timestamps(): void
     {
+        Carbon::setTestNow('2026-03-01 09:30:00');
+
         [$clinic, $doctor, $appointment] = $this->seedEncounterContext();
 
         Sanctum::actingAs($doctor);
+
+        $this->patchJson("/api/v1/appointments/{$appointment->id}/status", ['status' => 'WAITING'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'WAITING')
+            ->assertJsonPath('data.checkInAt', '2026-03-01T09:30:00+00:00')
+            ->assertJsonPath('data.queueMetrics.waitingMinutes', 0);
+
+        Carbon::setTestNow('2026-03-01 09:35:00');
 
         $this->patchJson("/api/v1/appointments/{$appointment->id}/status", ['status' => 'CALLED'])
             ->assertOk()
@@ -36,10 +47,13 @@ class QueueWorkspaceIntegrationTest extends TestCase
 
         $appointment->refresh();
 
+        $this->assertNotNull($appointment->check_in_at);
         $this->assertNotNull($appointment->called_at);
         $this->assertNotNull($appointment->started_at);
         $this->assertNotNull($appointment->completed_at);
         $this->assertSame('COMPLETED', $appointment->status);
+
+        Carbon::setTestNow();
     }
 
     public function test_encounter_show_returns_history_and_payment_is_persisted(): void

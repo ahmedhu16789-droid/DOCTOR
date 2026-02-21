@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,6 +10,34 @@ class AppointmentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $timezone = data_get($this->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
+        $now = now()->timezone($timezone);
+
+        $scheduledStart = null;
+        if ($this->date && $this->time_slot) {
+            $scheduledStart = Carbon::createFromFormat('Y-m-d H:i', "{$this->date} {$this->time_slot}", $timezone);
+        }
+
+        $checkInAt = $this->check_in_at?->timezone($timezone);
+        $startedAt = $this->started_at?->timezone($timezone);
+        $completedAt = $this->completed_at?->timezone($timezone);
+
+        $waitingFrom = $checkInAt ?? $scheduledStart;
+        $waitingTo = $startedAt ?? $now;
+
+        $waitingMinutes = $waitingFrom && $waitingTo && $waitingFrom->lte($waitingTo)
+            ? $waitingFrom->diffInMinutes($waitingTo)
+            : null;
+
+        $serviceTo = $completedAt ?? $now;
+        $serviceMinutes = $startedAt && $startedAt->lte($serviceTo)
+            ? $startedAt->diffInMinutes($serviceTo)
+            : null;
+
+        $delayMinutes = $scheduledStart && $scheduledStart->lte($now) && ! in_array($this->status, ['COMPLETED', 'CANCELLED', 'NO_SHOW'], true)
+            ? $scheduledStart->diffInMinutes($now)
+            : null;
+
         return [
             'id' => (string) $this->id,
             'patientId' => (string) $this->patient_id,
@@ -18,6 +47,17 @@ class AppointmentResource extends JsonResource
             'date' => $this->date,
             'timeSlot' => $this->time_slot,
             'status' => $this->status,
+            'scheduledStartAt' => $scheduledStart?->toIso8601String(),
+            'checkInAt' => $checkInAt?->toIso8601String(),
+            'calledAt' => $this->called_at?->timezone($timezone)?->toIso8601String(),
+            'startedAt' => $startedAt?->toIso8601String(),
+            'completedAt' => $completedAt?->toIso8601String(),
+            'noShowAt' => $this->no_show_at?->timezone($timezone)?->toIso8601String(),
+            'queueMetrics' => [
+                'waitingMinutes' => $waitingMinutes,
+                'serviceMinutes' => $serviceMinutes,
+                'delayMinutes' => $delayMinutes,
+            ],
             'billing' => [
                 'total' => (float) ($this->invoice?->total ?? 0),
                 'paidAmount' => (float) ($this->invoice?->paid_amount ?? 0),

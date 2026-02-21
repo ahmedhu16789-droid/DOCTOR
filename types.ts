@@ -170,6 +170,17 @@ export interface Appointment {
   status: AppointmentStatus;
   notes?: string;
   type: 'Consultation' | 'Follow-up' | 'Procedure';
+  checkInAt?: string | null;
+  calledAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  noShowAt?: string | null;
+  scheduledStartAt?: string | null;
+  queueMetrics?: {
+    waitingMinutes?: number | null;
+    serviceMinutes?: number | null;
+    delayMinutes?: number | null;
+  };
   billing: BillingDetails; // Financial State
   createdAt: string;
 }

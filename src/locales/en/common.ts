@@ -92,6 +92,9 @@ export const common = {
     "pay_now": "Pay Now",
     "billing": "Billing",
     "refresh_data": "Refresh Data",
+    "waiting": "Waiting",
+    "service": "Service",
+    "delay": "Delay",
 
     // Payments
     "process_payment": "Process Payment",

@@ -92,6 +92,9 @@ export const common = {
     "pay_now": "دفع الآن",
     "billing": "الفواتير",
     "refresh_data": "تحديث البيانات",
+    "waiting": "الانتظار",
+    "service": "الخدمة",
+    "delay": "التأخير",
 
     // Payments
     "process_payment": "معالجة الدفع",

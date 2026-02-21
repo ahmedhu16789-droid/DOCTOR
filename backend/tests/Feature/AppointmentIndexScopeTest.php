@@ -89,6 +89,12 @@ class AppointmentIndexScopeTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', (string) $doctorOneAppointment->id)
+            ->assertJsonPath('data.0.checkInAt', null)
+            ->assertJsonPath('data.0.calledAt', null)
+            ->assertJsonPath('data.0.startedAt', null)
+            ->assertJsonPath('data.0.completedAt', null)
+            ->assertJsonPath('data.0.noShowAt', null)
+            ->assertJsonPath('data.0.queueMetrics.serviceMinutes', null)
             ->assertJsonMissingPath('data.1.id');
 
         $this->assertNotSame((string) $doctorTwoAppointment->id, data_get($response->json(), 'data.0.id'));
