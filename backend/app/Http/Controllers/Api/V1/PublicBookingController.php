@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Events\AppointmentNotificationRequested;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Branch;
@@ -15,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use App\Services\Notifications\NotificationEvent;
 use Illuminate\Support\Facades\Log;
 
 class PublicBookingController extends Controller
@@ -186,6 +188,8 @@ class PublicBookingController extends Controller
 
             return $appointment;
         });
+
+        AppointmentNotificationRequested::dispatch($appointment->fresh(), NotificationEvent::APPOINTMENT_CREATED);
 
         return response()->json([
             'message' => 'Appointment booked successfully.',

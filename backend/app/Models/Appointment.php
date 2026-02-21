@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
@@ -63,4 +64,10 @@ class Appointment extends Model
     {
         return $this->hasOne(MedicalEncounter::class);
     }
+
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(AppointmentNotificationLog::class)->latest();
+    }
 }
+
