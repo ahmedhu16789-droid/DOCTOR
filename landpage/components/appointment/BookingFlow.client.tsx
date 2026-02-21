@@ -201,7 +201,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     setIsLoadingSlots(true);
 
     getAvailableSlots({
-      clinicId: clinicContext.clinic.id,
+      clinicPublicId: clinicContext.clinic.id,
       doctorId: Number(doctorId),
       branchId: Number(branchId),
       date: selectedDate,
@@ -239,7 +239,7 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
 
     try {
       await createPublicAppointment({
-        clinicId: clinicContext.clinic.id,
+        clinicPublicId: clinicContext.clinic.id,
         doctorId: Number(doctorId),
         branchId: Number(branchId),
         date: selectedDate,

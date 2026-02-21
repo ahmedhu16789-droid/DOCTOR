@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Clinic extends Model
 {
@@ -14,6 +15,7 @@ class Clinic extends Model
         'name',
         'subscription_status',
         'settings',
+        'public_uuid',
     ];
 
     protected function casts(): array
@@ -41,5 +43,14 @@ class Clinic extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Clinic $clinic): void {
+            if (! $clinic->public_uuid) {
+                $clinic->public_uuid = (string) Str::uuid();
+            }
+        });
     }
 }

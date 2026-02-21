@@ -13,7 +13,9 @@ use App\Models\User;
 use App\Services\Booking\DoctorScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PublicBookingController extends Controller
 {
@@ -24,38 +26,38 @@ class PublicBookingController extends Controller
     public function clinicContext(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'clinicId' => ['required', 'integer', 'exists:clinics,id'],
+            'clinicPublicId' => ['required', 'uuid'],
         ]);
 
-        $clinic = Clinic::query()->findOrFail($validated['clinicId']);
+        $clinic = $this->resolveClinic($validated['clinicPublicId'], $request->ip());
+
         $branches = Branch::query()
             ->where('clinic_id', $clinic->id)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'location', 'contact_phone']);
+            ->get(['id', 'name']);
 
         $doctors = User::query()
             ->where('clinic_id', $clinic->id)
             ->where('role', 'DOCTOR')
             ->with(['branches:id'])
             ->orderBy('name')
-            ->get(['id', 'name', 'specialty', 'consultation_fee'])
+            ->get(['id', 'name', 'specialty'])
             ->map(fn (User $doctor) => [
                 'id' => $doctor->id,
                 'name' => $doctor->name,
                 'specialty' => $doctor->specialty,
-                'consultationFee' => (float) ($doctor->consultation_fee ?? 0),
                 'branchIds' => $doctor->branches->pluck('id')->values(),
             ]);
 
         return response()->json([
             'data' => [
                 'clinic' => [
-                    'id' => $clinic->id,
+                    'id' => $clinic->public_uuid,
                     'name' => $clinic->settings['name'] ?? $clinic->name,
-                    'phone' => $clinic->settings['phone'] ?? ($branches->first()->contact_phone ?? ''),
+                    'phone' => $clinic->settings['phone'] ?? '',
                     'hours' => $clinic->settings['workingHours'] ?? '',
-                    'address' => $branches->first()->location ?? '',
+                    'address' => $clinic->settings['address'] ?? '',
                 ],
                 'branches' => $branches,
                 'doctors' => $doctors,
@@ -66,14 +68,16 @@ class PublicBookingController extends Controller
     public function availableSlots(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'clinicId' => ['required', 'integer', 'exists:clinics,id'],
+            'clinicPublicId' => ['required', 'uuid'],
             'doctorId' => ['required', 'integer', 'exists:users,id'],
             'branchId' => ['required', 'integer', 'exists:branches,id'],
             'date' => ['required', 'date_format:Y-m-d'],
         ]);
 
+        $clinic = $this->resolveClinic($validated['clinicPublicId'], $request->ip());
+
         $doctor = User::query()
-            ->where('clinic_id', $validated['clinicId'])
+            ->where('clinic_id', $clinic->id)
             ->where('role', 'DOCTOR')
             ->whereKey($validated['doctorId'])
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
@@ -84,7 +88,7 @@ class PublicBookingController extends Controller
         }
 
         $slots = $this->scheduleService->generateSlotsForDoctor($doctor, $validated['branchId'], $validated['date']);
-        $bookedSlots = $this->scheduleService->loadBookedSlots([$doctor->id], $validated['branchId'], $validated['date'], $validated['clinicId']);
+        $bookedSlots = $this->scheduleService->loadBookedSlots([$doctor->id], $validated['branchId'], $validated['date'], $clinic->id);
 
         return response()->json([
             'data' => $slots->map(fn (string $time) => [
@@ -97,7 +101,7 @@ class PublicBookingController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'clinicId' => ['required', 'integer', 'exists:clinics,id'],
+            'clinicPublicId' => ['required', 'uuid'],
             'doctorId' => ['required', 'integer', 'exists:users,id'],
             'branchId' => ['required', 'integer', 'exists:branches,id'],
             'date' => ['required', 'date_format:Y-m-d'],
@@ -108,8 +112,10 @@ class PublicBookingController extends Controller
             'patient.gender' => ['nullable', 'in:Male,Female'],
         ]);
 
+        $clinic = $this->resolveClinic($validated['clinicPublicId'], $request->ip());
+
         $doctor = User::query()
-            ->where('clinic_id', $validated['clinicId'])
+            ->where('clinic_id', $clinic->id)
             ->where('role', 'DOCTOR')
             ->whereKey($validated['doctorId'])
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
@@ -123,13 +129,13 @@ class PublicBookingController extends Controller
 
         abort_if(! $validSlot, 422, 'The selected slot is outside doctor schedule.');
 
-        $bookedSlots = $this->scheduleService->loadBookedSlots([$doctor->id], $validated['branchId'], $validated['date'], $validated['clinicId']);
+        $bookedSlots = $this->scheduleService->loadBookedSlots([$doctor->id], $validated['branchId'], $validated['date'], $clinic->id);
         abort_if(in_array($validated['timeSlot'], $bookedSlots[$doctor->id] ?? [], true), 422, 'The selected slot is no longer available.');
 
-        $appointment = DB::transaction(function () use ($validated, $doctor): Appointment {
+        $appointment = DB::transaction(function () use ($validated, $doctor, $clinic): Appointment {
             $patient = Patient::query()->firstOrCreate(
                 [
-                    'clinic_id' => $validated['clinicId'],
+                    'clinic_id' => $clinic->id,
                     'phone' => $validated['patient']['phone'],
                 ],
                 [
@@ -148,8 +154,8 @@ class PublicBookingController extends Controller
                 ])->save();
             }
 
-            $appointment = Appointment::create([
-                'clinic_id' => $validated['clinicId'],
+            $appointment = Appointment::query()->create([
+                'clinic_id' => $clinic->id,
                 'patient_id' => $patient->id,
                 'doctor_id' => $doctor->id,
                 'branch_id' => $validated['branchId'],
@@ -158,8 +164,8 @@ class PublicBookingController extends Controller
                 'status' => 'SCHEDULED',
             ]);
 
-            $invoice = Invoice::create([
-                'clinic_id' => $validated['clinicId'],
+            $invoice = Invoice::query()->create([
+                'clinic_id' => $clinic->id,
                 'appointment_id' => $appointment->id,
                 'total' => (float) ($doctor->consultation_fee ?? 0),
                 'paid_amount' => 0,
@@ -167,7 +173,7 @@ class PublicBookingController extends Controller
             ]);
 
             InvoiceItem::query()->create([
-                'clinic_id' => $validated['clinicId'],
+                'clinic_id' => $clinic->id,
                 'invoice_id' => $invoice->id,
                 'service_id' => 'srv_cns',
                 'name' => 'Consultation Fee',
@@ -186,5 +192,28 @@ class PublicBookingController extends Controller
             'data' => ['appointmentId' => $appointment->id],
         ], 201);
     }
-}
 
+    private function resolveClinic(string $clinicPublicId, ?string $ipAddress): Clinic
+    {
+        $clinic = Clinic::query()->where('public_uuid', $clinicPublicId)->first();
+
+        if ($clinic) {
+            return $clinic;
+        }
+
+        $ip = $ipAddress ?: 'unknown';
+        $attemptsKey = sprintf('public-booking:enumeration:%s', $ip);
+        $attempts = Cache::increment($attemptsKey);
+        Cache::put($attemptsKey, $attempts, now()->addMinutes(15));
+
+        if ($attempts >= 10 && $attempts % 5 === 0) {
+            Log::warning('High public booking clinic enumeration attempts detected.', [
+                'ip' => $ip,
+                'attempts' => $attempts,
+                'clinicPublicId' => $clinicPublicId,
+            ]);
+        }
+
+        abort(404, 'Clinic not found.');
+    }
+}
