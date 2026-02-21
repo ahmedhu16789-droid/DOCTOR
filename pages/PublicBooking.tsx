@@ -57,6 +57,18 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
       return;
     }
 
+    if (bookingRepository.getSlotsBulk) {
+      bookingRepository
+        .getSlotsBulk({
+          doctorIds: doctors.map((doctor) => doctor.id),
+          branchId: selectedBranch,
+          date: selectedDate,
+        })
+        .then((payload) => setSlotsByDoctor(payload))
+        .catch(() => setSlotsByDoctor({}));
+      return;
+    }
+
     Promise.all(
       doctors.map(async (doctor) => {
         const slots = await bookingRepository.getSlots({
