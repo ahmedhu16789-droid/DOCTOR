@@ -164,6 +164,11 @@ export const admin = {
     "currency_egp": "Egyptian Pound (EGP)",
     "currency_usd": "US Dollar ($)",
     "currency_sar": "Saudi Riyal (SAR)",
+    "patient_privacy": "Patient Privacy",
+    "tv_queue_display_mode_label": "TV queue patient name display",
+    "tv_queue_display_mode_full_name": "Show full patient names",
+    "tv_queue_display_mode_masked_name": "Show masked names + queue token",
+    "tv_queue_display_mode_helper": "Controls how patient identity is shown in TV mode for reception queues.",
 
     // Doctor Payroll Reports
     "doctor_payroll.title": "Doctor Payroll",

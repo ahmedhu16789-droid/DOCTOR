@@ -27,6 +27,7 @@ class ClinicSettingsController extends Controller
                 'include_tax' => $settings['include_tax'] ?? true,
                 'clawback_on_refund' => $settings['clawback_on_refund'] ?? true,
                 'accrual_day_of_month' => $settings['accrual_day_of_month'] ?? 1,
+                'tv_queue_display_mode' => $settings['tv_queue_display_mode'] ?? 'MASKED_NAME',
             ],
         ]);
     }
@@ -46,6 +47,7 @@ class ClinicSettingsController extends Controller
             'include_tax' => ['required', 'boolean'],
             'clawback_on_refund' => ['required', 'boolean'],
             'accrual_day_of_month' => ['required', 'integer', 'min:1', 'max:28'],
+            'tv_queue_display_mode' => ['required', 'string', 'in:FULL_NAME,MASKED_NAME'],
         ]);
 
         $clinic = $request->user()->clinic;

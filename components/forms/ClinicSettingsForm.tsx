@@ -24,6 +24,7 @@ export const ClinicSettingsForm: React.FC = () => {
             include_tax: true,
             clawback_on_refund: true,
             accrual_day_of_month: 1,
+            tv_queue_display_mode: 'MASKED_NAME',
         }
     });
 
@@ -166,6 +167,20 @@ export const ClinicSettingsForm: React.FC = () => {
                                 <input type="checkbox" {...register('clawback_on_refund')} className="rounded border-gray-300" />
                                 Apply clawback on refund transactions
                             </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">
+                            {t('patient_privacy')}
+                        </h3>
+                        <div className="grid grid-cols-1 gap-3">
+                            <label className="block text-sm font-medium text-gray-700">{t('tv_queue_display_mode_label')}</label>
+                            <select {...register('tv_queue_display_mode')} className="mt-1 block w-full rounded-md border-gray-300 border p-2 bg-white">
+                                <option value="FULL_NAME">{t('tv_queue_display_mode_full_name')}</option>
+                                <option value="MASKED_NAME">{t('tv_queue_display_mode_masked_name')}</option>
+                            </select>
+                            <p className="text-xs text-gray-500">{t('tv_queue_display_mode_helper')}</p>
                         </div>
                     </div>
 
