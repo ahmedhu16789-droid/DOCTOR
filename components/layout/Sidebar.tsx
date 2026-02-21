@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, Calendar, Users, Activity, Settings, 
-  LogOut, Building2, Stethoscope, Briefcase, Wallet, 
+  LogOut, Building2, Stethoscope, Briefcase, Wallet, Clock3, 
   ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { UserRole } from '../../types';
@@ -33,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'dashboard', label: 'dashboard', icon: LayoutDashboard },
         { id: 'appointments', label: 'appointments', icon: Calendar },
         { id: 'queue', label: 'queue_board', icon: Activity },
+        { id: 'appointment-migration', label: 'appointment_migration', icon: Clock3, roles: [UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.DOCTOR] },
       ]
     },
     {
