@@ -208,10 +208,28 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
     })
       .then((slots) => {
         if (!active) return;
-        setAvailableSlots(slots);
-        const hasCurrentSlot = slots.some((item) => item.time === slot && item.available);
+
+        const now = new Date();
+        const isToday = selectedDate === now.toISOString().slice(0, 10);
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+
+        const validSlots = slots.filter((time) => {
+          if (!time.available) return false;
+
+          if (isToday) {
+            const [hours, minutes] = time.time.split(":").map(Number);
+            if (hours < currentHours || (hours === currentHours && minutes <= currentMinutes)) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        setAvailableSlots(validSlots);
+        const hasCurrentSlot = validSlots.some((item) => item.time === slot);
         if (!hasCurrentSlot) {
-          const firstAvailable = slots.find((item) => item.available)?.time ?? "";
+          const firstAvailable = validSlots[0]?.time ?? "";
           setSlot(firstAvailable);
         }
       })
@@ -380,22 +398,30 @@ export function BookingFlow({ data, clinicContext }: { data: AppointmentPageData
           <div className="flex flex-col gap-4">
             <h3 className="text-base font-bold text-slate-900">{data.booking.timeSlotsTitle}</h3>
             {isLoadingSlots ? <p className="text-sm text-slate-500">{data.ui.loadingSlots}</p> : null}
-            <div className="grid grid-cols-3 gap-3">
-              {availableSlots.map((time) => {
-                const isDisabled = !time.available;
-                const isActive = slot === time.time && time.available;
-                return (
-                  <button
-                    key={time.time}
-                    disabled={isDisabled}
-                    onClick={() => setSlot(time.time)}
-                    className={`rounded-lg border px-3 py-2 text-sm ${isActive ? "border-blue-600 bg-blue-600 font-bold text-white" : "border-slate-200 text-slate-600"} ${isDisabled ? "cursor-not-allowed text-slate-400 line-through" : "hover:border-blue-600 hover:text-blue-600"}`}
-                  >
-                    {time.time}
-                  </button>
-                );
-              })}
-            </div>
+            {availableSlots.length > 0 ? (
+              <div className="grid grid-cols-3 gap-3">
+                {availableSlots.map((time) => {
+                  const isActive = slot === time.time;
+                  return (
+                    <button
+                      key={time.time}
+                      onClick={() => setSlot(time.time)}
+                      className={`rounded-lg border px-3 py-2 text-sm ${isActive ? "border-blue-600 bg-blue-600 font-bold text-white" : "border-slate-200 text-slate-600 hover:border-blue-600 hover:text-blue-600"}`}
+                    >
+                      {time.time}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              !isLoadingSlots && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+                  <p className="text-sm font-semibold text-slate-600">
+                    {locale === "ar" ? "عذراً، لا توجد مواعيد متاحة في هذا اليوم" : "Sorry, no slots available on this day"}
+                  </p>
+                </div>
+              )
+            )}
           </div>
         </div>
 
