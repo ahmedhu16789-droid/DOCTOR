@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 class DoctorEarningsLedger extends Model
@@ -47,14 +48,28 @@ class DoctorEarningsLedger extends Model
                 return;
             }
 
-            $isClosed = DoctorPayrollPeriod::query()
+            $closedPeriod = DoctorPayrollPeriod::query()
                 ->when($ledger->clinic_id, fn (Builder $query) => $query->where('clinic_id', $ledger->clinic_id))
                 ->where('doctor_id', $ledger->doctor_id)
                 ->where('period_month', $ledger->period_month)
                 ->whereIn('status', ['CLOSED', 'SETTLED'])
-                ->exists();
+                ->first();
 
-            if ($isClosed) {
+            if (! $closedPeriod) {
+                return;
+            }
+
+            if ($closedPeriod->status === 'CLOSED') {
+                $periodMonthEnd = Carbon::createFromFormat('Y-m-d', $closedPeriod->period_month.'-01')
+                    ->endOfMonth()
+                    ->endOfDay();
+
+                if (now()->lessThanOrEqualTo($periodMonthEnd)) {
+                    return;
+                }
+            }
+
+            if (in_array($closedPeriod->status, ['CLOSED', 'SETTLED'], true)) {
                 throw new RuntimeException('Payroll period is closed. New ledger entries are allowed only as ADJUSTMENT.');
             }
         });
