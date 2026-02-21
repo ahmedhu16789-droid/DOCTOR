@@ -4,15 +4,41 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?
 const inFlightRequests = new Map<string, Promise<unknown>>();
 const getCache = new Map<string, { expiresAt: number; data: unknown }>();
 const GET_CACHE_TTL_MS = Number(import.meta.env.VITE_API_GET_CACHE_TTL_MS ?? 15000);
+const AUTH_MODE = ((import.meta.env.VITE_AUTH_MODE as string | undefined) ?? 'bearer').toLowerCase();
+const USE_COOKIE_AUTH = AUTH_MODE === 'cookie';
 
 const resolveMethod = (options: RequestInit): string => (options.method ?? 'GET').toUpperCase();
 const normalizePath = (path: string): string => (path.startsWith('/') ? path : `/${path}`);
 const getRequestUrl = (path: string): string => `${API_BASE_URL.replace(/\/$/, '')}${normalizePath(path)}`;
+const isMutationMethod = (method: string): boolean => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
 const createRequestKey = (path: string, options: RequestInit, withAuth: boolean, token: string | null): string => {
   const method = resolveMethod(options);
   const body = typeof options.body === 'string' ? options.body : '';
-  return [method, path, withAuth ? token ?? '' : '', body].join('|');
+  return [method, path, withAuth ? token ?? '' : '', body, USE_COOKIE_AUTH ? 'cookie' : 'bearer'].join('|');
+};
+
+const readCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const getCsrfToken = (): string | null => {
+  return readCookie('XSRF-TOKEN') ?? readCookie('csrf_token');
+};
+
+const buildAuthHeaders = (withAuth: boolean, token: string | null, method: string): Record<string, string> => {
+  if (!withAuth) return {};
+
+  if (USE_COOKIE_AUTH) {
+    const csrfToken = isMutationMethod(method) ? getCsrfToken() : null;
+    return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
+  }
+
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth = true): Promise<T> {
@@ -44,10 +70,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
   const requestPromise = (async () => {
     const response = await fetch(getRequestUrl(normalizedPath), {
       ...options,
+      credentials: USE_COOKIE_AUTH ? 'include' : (options.credentials ?? 'same-origin'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(withAuth && token ? { Authorization: `Bearer ${token}` } : {}),
+        ...buildAuthHeaders(withAuth, token, method),
         ...(options.headers ?? {}),
       },
     });
