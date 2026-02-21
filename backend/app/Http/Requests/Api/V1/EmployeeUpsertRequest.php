@@ -14,6 +14,8 @@ class EmployeeUpsertRequest extends FormRequest
 
     public function rules(): array
     {
+        $clinicId = auth()->user()?->clinic_id;
+
         return [
             'name' => ['required', 'string', 'min:3', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
@@ -21,7 +23,7 @@ class EmployeeUpsertRequest extends FormRequest
             'jobTitle' => ['required', 'string', 'min:2', 'max:255'],
             'role' => ['required', Rule::in(['BRANCH_MANAGER', 'NURSE', 'RECEPTIONIST', 'PHARMACY_MANAGER'])],
             'assignedBranches' => ['required', 'array', 'min:1'],
-            'assignedBranches.*' => ['integer', 'exists:branches,id'],
+            'assignedBranches.*' => ['integer', Rule::exists('branches', 'id')->where('clinic_id', $clinicId)],
             'payroll' => ['required', 'array'],
             'payroll.model' => ['required', Rule::in(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'])],
             'payroll.baseSalary' => ['required', 'numeric', 'min:0'],
@@ -31,7 +33,7 @@ class EmployeeUpsertRequest extends FormRequest
             'schedule.*.startTime' => ['required', 'date_format:H:i'],
             'schedule.*.endTime' => ['required', 'date_format:H:i'],
             'schedule.*.slotDuration' => ['nullable', 'integer', 'min:5', 'max:120'],
-            'schedule.*.branchId' => ['nullable', 'integer', 'exists:branches,id'],
+            'schedule.*.branchId' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('clinic_id', $clinicId)],
         ];
     }
 }

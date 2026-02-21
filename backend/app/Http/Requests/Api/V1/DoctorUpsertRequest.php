@@ -14,6 +14,8 @@ class DoctorUpsertRequest extends FormRequest
 
     public function rules(): array
     {
+        $clinicId = auth()->user()?->clinic_id;
+
         return [
             'name' => ['required', 'string', 'min:3', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -21,7 +23,7 @@ class DoctorUpsertRequest extends FormRequest
             'specialty' => ['required', Rule::in(['Orthopedics', 'Cardiology', 'Dentistry', 'Internal Medicine', 'Pediatrics', 'Dermatology'])],
             'consultationFee' => ['required', 'numeric', 'min:0'],
             'assignedBranches' => ['required', 'array', 'min:1'],
-            'assignedBranches.*' => ['nullable', 'exists:branches,id'],
+            'assignedBranches.*' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('clinic_id', $clinicId)],
             'payroll' => ['required', 'array'],
             'payroll.model' => ['required', Rule::in(['FIXED_SALARY', 'PERCENTAGE', 'HYBRID'])],
             'payroll.baseSalary' => ['required', 'numeric', 'min:0'],
@@ -33,7 +35,7 @@ class DoctorUpsertRequest extends FormRequest
             'schedule.*.startTime' => ['required', 'date_format:H:i'],
             'schedule.*.endTime' => ['required', 'date_format:H:i'],
             'schedule.*.slotDuration' => ['required', 'integer', 'min:5', 'max:120'],
-            'schedule.*.branchId' => ['nullable', 'integer', 'exists:branches,id'],
+            'schedule.*.branchId' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('clinic_id', $clinicId)],
             'examFindingTemplates' => ['nullable', 'array', 'max:30'],
             'examFindingTemplates.*' => ['string', 'min:2', 'max:180'],
             'diagnosisTemplates' => ['nullable', 'array', 'max:30'],
