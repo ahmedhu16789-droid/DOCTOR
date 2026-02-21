@@ -14,10 +14,12 @@ class FinancialReportController extends Controller
     {
         $from = $request->query('from');
         $to = $request->query('to');
+        $branchId = $request->query('branch_id');
 
         $appointmentsQuery = Appointment::query()
             ->with(['doctor:id,name', 'branch:id,name', 'patient:id,name', 'invoice:id,appointment_id,total,paid_amount,status'])
             ->whereHas('invoice')
+            ->when($branchId, fn ($query) => $query->where('branch_id', (int) $branchId))
             ->when($from, fn ($query) => $query->whereDate('date', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('date', '<=', $to));
 
@@ -53,6 +55,7 @@ class FinancialReportController extends Controller
         $transactions = Transaction::query()
             ->select(['id', 'invoice_id', 'amount', 'method', 'paid_at'])
             ->with(['invoice.appointment.patient:id,name'])
+            ->when($branchId, fn ($query) => $query->whereHas('invoice.appointment', fn ($appointmentQuery) => $appointmentQuery->where('branch_id', (int) $branchId)))
             ->when($from, fn ($query) => $query->whereDate('paid_at', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('paid_at', '<=', $to))
             ->latest('paid_at')
@@ -68,6 +71,7 @@ class FinancialReportController extends Controller
             ]);
 
         $cashCollected = (float) Transaction::query()
+            ->when($branchId, fn ($query) => $query->whereHas('invoice.appointment', fn ($appointmentQuery) => $appointmentQuery->where('branch_id', (int) $branchId)))
             ->when($from, fn ($query) => $query->whereDate('paid_at', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('paid_at', '<=', $to))
             ->whereRaw('UPPER(COALESCE(method, ?)) = ?', ['CASH', 'CASH'])

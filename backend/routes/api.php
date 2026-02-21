@@ -80,7 +80,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id');
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
         Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id');
-        Route::get('reports/financial', [FinancialReportController::class, 'index']);
+        Route::get('reports/financial', [FinancialReportController::class, 'index'])->middleware('branch.access:branch_id');
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close']);
         Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle']);
