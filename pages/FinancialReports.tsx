@@ -16,15 +16,27 @@ export const FinancialReports: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
+        const loadBranches = async () => {
+            try {
+                const branchRows = await getBranchesFromApi();
+                setBranches(branchRows);
+            } catch (error) {
+                console.error('Failed to load branches', error);
+            }
+        };
+
+        loadBranches();
+    }, []);
+
+    useEffect(() => {
         const loadReport = async () => {
             try {
                 setIsLoading(true);
-                const [payload, branchRows] = await Promise.all([
-                    getFinancialReportFromApi(),
-                    getBranchesFromApi(),
-                ]);
+                const payload = await getFinancialReportFromApi({
+                    branchId: selectedBranchId || undefined,
+                });
                 setReport(payload);
-                setBranches(branchRows);
+                setErrorMessage('');
             } catch (error) {
                 console.error('Failed to load financial report', error);
                 setErrorMessage('Failed to load financial report');
@@ -34,7 +46,7 @@ export const FinancialReports: React.FC = () => {
         };
 
         loadReport();
-    }, []);
+    }, [selectedBranchId]);
 
     useEffect(() => {
         const loadReconciliation = async () => {
@@ -73,16 +85,38 @@ export const FinancialReports: React.FC = () => {
         };
     }, [report]);
 
+    const selectedBranchName = useMemo(() => {
+        if (!selectedBranchId) {
+            return 'All branches';
+        }
+
+        const branch = branches.find((row) => row.id === selectedBranchId);
+        return branch ? `${branch.name} (${branch.id})` : `Branch ${selectedBranchId}`;
+    }, [branches, selectedBranchId]);
+
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">{t('financial_reports')}</h1>
                     <p className="text-sm text-gray-500">{t('financial_desc')}</p>
+                    <p className="text-xs text-gray-500 mt-1">Scope: {selectedBranchName}</p>
                 </div>
-                <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors">
-                    <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" /> {t('export_csv')}
-                </button>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={selectedBranchId}
+                        onChange={(event) => setSelectedBranchId(event.target.value)}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white"
+                    >
+                        <option value="">All branches</option>
+                        {branches.map((branch) => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))}
+                    </select>
+                    <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors">
+                        <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" /> {t('export_csv')}
+                    </button>
+                </div>
             </div>
 
             {isLoading && <div className="text-sm text-gray-500">{t('financial_loading')}</div>}

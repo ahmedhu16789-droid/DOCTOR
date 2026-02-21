@@ -60,6 +60,7 @@ class BranchAccessGuardTest extends TestCase
         $this->getJson("/api/v1/appointments?branchId={$branchA->id}")->assertOk();
         $this->getJson("/api/v1/reports/dashboard?branchId={$branchA->id}")->assertOk();
         $this->getJson("/api/v1/reports/doctor-payroll?branch_id={$branchA->id}")->assertOk();
+        $this->getJson("/api/v1/reports/financial?branch_id={$branchA->id}")->assertOk();
     }
 
     public function test_unassigned_branch_is_denied_for_branch_scoped_filters(): void
@@ -81,6 +82,7 @@ class BranchAccessGuardTest extends TestCase
         $this->getJson("/api/v1/appointments?branchId={$branchB->id}")->assertForbidden();
         $this->getJson("/api/v1/reports/dashboard?branchId={$branchB->id}")->assertForbidden();
         $this->getJson("/api/v1/reports/doctor-payroll?branch_id={$branchB->id}")->assertForbidden();
+        $this->getJson("/api/v1/reports/financial?branch_id={$branchB->id}")->assertForbidden();
     }
 
     public function test_admin_role_bypasses_branch_access_guard(): void
@@ -101,6 +103,7 @@ class BranchAccessGuardTest extends TestCase
         $this->getJson("/api/v1/appointments?branchId={$branchB->id}")->assertOk();
         $this->getJson("/api/v1/reports/dashboard?branchId={$branchB->id}")->assertOk();
         $this->getJson("/api/v1/reports/doctor-payroll?branch_id={$branchB->id}")->assertOk();
+        $this->getJson("/api/v1/reports/financial?branch_id={$branchB->id}")->assertOk();
     }
 
     private function createClinicAndBranch(string $suffix = ''): array
