@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Events\AppointmentNotificationRequested;
 use App\Http\Requests\Api\V1\AppointmentRequest;
 use App\Http\Resources\Api\V1\AppointmentResource;
 use App\Models\Appointment;
@@ -12,7 +13,9 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\User;
 use App\Services\Booking\DoctorScheduleService;
+use App\Services\Notifications\NotificationEvent;
 use App\Support\ApiCache;
+use App\Support\Authorization\ClinicBranchAuthorization;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +24,10 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly DoctorScheduleService $scheduleService)
-    {
+    public function __construct(
+        private readonly DoctorScheduleService $scheduleService,
+        private readonly ClinicBranchAuthorization $authorization,
+    ) {
     }
 
     public function index(Request $request)
@@ -44,7 +49,7 @@ class AppointmentController extends Controller
         //     fn () => Appointment::query()
         $appointments = Appointment::query()
                 ->select(['id', 'clinic_id', 'patient_id', 'doctor_id', 'branch_id', 'date', 'time_slot', 'status', 'check_in_at', 'called_at', 'started_at', 'completed_at', 'no_show_at'])
-                ->with(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status,lifecycle_state', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status'])
+                ->with(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice:id,appointment_id,total,paid_amount,status,lifecycle_state', 'invoice.items:id,invoice_id,service_id,name,quantity,unit_price,total', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status', 'notificationLogs'])
                 ->when($request->filled('branchId'), fn ($query) => $query->where('branch_id', $request->integer('branchId')))
                 ->when($filters['doctorId'], fn ($query) => $query->where('doctor_id', $filters['doctorId']))
                 ->when($request->filled('date'), fn ($query) => $query->whereDate('date', $request->string('date')->value()))
@@ -129,8 +134,8 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('applyShiftSuggestion', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
 
@@ -142,7 +147,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $shiftedCount = DB::transaction(function () use ($clinicId, $validated, $request): int {
             $appointments = Appointment::query()
@@ -218,8 +223,8 @@ class AppointmentController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('viewTimeline', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
         $date = (string) ($validated['date'] ?? now()->toDateString());
@@ -232,7 +237,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $appointments = Appointment::query()
             ->where('clinic_id', $clinicId)
@@ -340,8 +345,8 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
-        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+        $this->authorization->assertRole($request->user(), ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
+        $this->authorize('applyShiftSuggestion', [Appointment::class, (int) $validated['doctorId'], (int) $validated['branchId']]);
 
         $clinicId = $request->user()->clinic_id;
         $timezone = data_get($request->user()->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
@@ -384,7 +389,9 @@ class AppointmentController extends Controller
 
     public function reschedule(Request $request, Appointment $appointment): JsonResponse
     {
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorize('reschedule', $appointment);
 
         $validated = $request->validate([
             'doctorId' => ['nullable', 'integer', 'exists:users,id'],
@@ -396,6 +403,12 @@ class AppointmentController extends Controller
         $doctorId = (int) ($validated['doctorId'] ?? $appointment->doctor_id);
         $branchId = (int) ($validated['branchId'] ?? $appointment->branch_id);
 
+        if ($request->user()->role === 'DOCTOR') {
+            abort_if($doctorId !== (int) $appointment->doctor_id, 403, 'Doctors can only reschedule their own appointments.');
+            abort_if($branchId !== (int) $appointment->branch_id, 403, 'Doctors can only reschedule inside the same branch.');
+            abort_if($validated['date'] !== $appointment->date?->toDateString(), 403, 'Doctors can only reschedule same-day appointments.');
+        }
+
         $doctor = User::query()
             ->select(['id', 'clinic_id', 'schedule'])
             ->whereKey($doctorId)
@@ -404,7 +417,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $validSlot = $this->scheduleService->generateSlotsForDoctor($doctor, $branchId, $validated['date'])->contains($validated['timeSlot']);
         abort_if(! $validSlot, 422, 'The selected slot is outside the doctor schedule.');
@@ -429,7 +442,9 @@ class AppointmentController extends Controller
             'status' => 'SCHEDULED',
         ]);
 
-        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
+        AppointmentNotificationRequested::dispatch($appointment->fresh(), NotificationEvent::APPOINTMENT_RESCHEDULED);
+
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status', 'notificationLogs']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -438,13 +453,17 @@ class AppointmentController extends Controller
 
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
-            'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,NO_SHOW'],
+            'status' => ['required', 'in:SCHEDULED,WAITING,CALLED,IN_PROGRESS,COMPLETED,CANCELLED,NO_SHOW'],
         ]);
 
         $status = $validated['status'];
+
+        if ($status === 'CANCELLED') {
+            $this->authorize('cancel', $appointment);
+        }
 
         $appointment->status = $status;
 
@@ -472,10 +491,20 @@ class AppointmentController extends Controller
 
         if ($status === 'NO_SHOW') {
             $appointment->no_show_at = now();
+        } elseif ($status !== 'NO_SHOW') {
+            $appointment->no_show_at = null;
         }
 
         $appointment->save();
-        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
+
+        if ($status === 'CANCELLED') {
+            AppointmentNotificationRequested::dispatch($appointment->fresh(), NotificationEvent::APPOINTMENT_CANCELLED);
+        }
+
+        if ($status === 'NO_SHOW') {
+            AppointmentNotificationRequested::dispatch($appointment->fresh(), NotificationEvent::APPOINTMENT_NO_SHOW);
+        }
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status', 'notificationLogs']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -484,16 +513,9 @@ class AppointmentController extends Controller
 
     public function startNow(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
-        $actorRole = (string) $request->user()->role;
-        $doctorAdvancedModeEnabled = (bool) data_get($request->user()->clinic?->settings, 'doctor_advanced_mode_enabled', false);
-
-        $canStartNow = $actorRole === 'RECEPTIONIST'
-            || in_array($actorRole, ['ADMIN', 'BRANCH_MANAGER'], true)
-            || ($actorRole === 'DOCTOR' && $doctorAdvancedModeEnabled);
-
-        abort_unless($canStartNow, 403, 'You are not allowed to start a visit from the queue.');
+        $this->authorize('startNow', $appointment);
 
         $allowedStatuses = ['SCHEDULED', 'WAITING'];
         abort_unless(in_array($appointment->status, $allowedStatuses, true), 422, 'Only scheduled or waiting appointments can be started now.');
@@ -536,7 +558,7 @@ class AppointmentController extends Controller
             ]);
         });
 
-        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status']);
+        $appointment->load(['clinic:id,settings', 'doctor:id,name,specialty', 'invoice.items', 'invoice.auditLogs.actor:id,name', 'encounter:id,appointment_id,status', 'notificationLogs']);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
@@ -587,7 +609,7 @@ class AppointmentController extends Controller
             ->whereHas('branches', fn ($query) => $query->where('branches.id', $branchId))
             ->first();
 
-        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+        $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
         $validSlot = $this->scheduleService->generateSlotsForDoctor($doctor, $branchId, $date)->contains($timeSlot);
         abort_if(! $validSlot, 422, 'The selected slot is outside the doctor schedule.');
@@ -635,6 +657,8 @@ class AppointmentController extends Controller
 
             return $appointment->load('invoice.items', 'invoice.auditLogs.actor:id,name');
         });
+
+        AppointmentNotificationRequested::dispatch($appointment->fresh(), NotificationEvent::APPOINTMENT_CREATED);
 
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 

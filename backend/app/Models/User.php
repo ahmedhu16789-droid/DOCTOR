@@ -36,6 +36,7 @@ class User extends Authenticatable
         'exam_finding_templates',
         'diagnosis_templates',
         'plan_templates',
+        'doctor_advanced_mode_enabled',
     ];
 
     protected $hidden = [
@@ -54,6 +55,7 @@ class User extends Authenticatable
             'exam_finding_templates' => 'array',
             'diagnosis_templates' => 'array',
             'plan_templates' => 'array',
+            'doctor_advanced_mode_enabled' => 'boolean',
         ];
     }
 

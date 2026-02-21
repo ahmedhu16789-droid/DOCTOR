@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\DirectoryController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DoctorAdvancedModeController;
 use App\Http\Controllers\Api\V1\DoctorProfileController;
 use App\Http\Controllers\Api\V1\DoctorPayrollController;
 use App\Http\Controllers\Api\V1\EmployeeController;
@@ -71,6 +72,8 @@ Route::prefix('v1')->group(function (): void {
         Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
         Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
         Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
+        Route::get('doctor/advanced-mode/capabilities', [DoctorAdvancedModeController::class, 'capabilities']);
+        Route::put('doctor/advanced-mode', [DoctorAdvancedModeController::class, 'toggle']);
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::put('employees/{employee}', [EmployeeController::class, 'update']);
@@ -101,9 +104,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
         Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
-        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id');
+        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
-        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id');
+        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
         Route::get('reports/financial', [FinancialReportController::class, 'index'])
             ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::get('reports/financial/export', [FinancialReportController::class, 'export'])
@@ -112,6 +115,9 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
             ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
+        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
+            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
         Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
             ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])

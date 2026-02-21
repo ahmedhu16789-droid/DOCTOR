@@ -18,6 +18,8 @@ interface ApiUser {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  doctorAdvancedModeEnabled?: boolean;
+  doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
 }
 
 interface ApiLoginResponse {
@@ -159,6 +161,8 @@ interface ApiDoctor {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  doctorAdvancedModeEnabled?: boolean;
+  doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
 }
 
 
@@ -411,6 +415,8 @@ const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
     examFindingTemplates: apiUser.examFindingTemplates ?? fallbackUser?.examFindingTemplates ?? [],
     diagnosisTemplates: apiUser.diagnosisTemplates ?? fallbackUser?.diagnosisTemplates ?? [],
     planTemplates: apiUser.planTemplates ?? fallbackUser?.planTemplates ?? [],
+    doctorAdvancedModeEnabled: apiUser.doctorAdvancedModeEnabled ?? fallbackUser?.doctorAdvancedModeEnabled ?? false,
+    doctorAdvancedCapabilities: apiUser.doctorAdvancedCapabilities ?? fallbackUser?.doctorAdvancedCapabilities,
   };
 };
 
@@ -1038,10 +1044,21 @@ export const settleDoctorPayrollPeriod = async (periodId: string, payload: Docto
 };
 
 
+export interface DoctorAdvancedCapabilities {
+  advancedModeEnabled: boolean;
+  branchId?: string | null;
+  canRescheduleOwnSameDayAppointments: boolean;
+  canCancelOwnSameDayAppointments: boolean;
+  canViewDayTimelineAndDelays: boolean;
+  canApplyShiftSuggestions: boolean;
+}
+
 export interface DoctorProfilePayload {
   examFindingTemplates: string[];
   diagnosisTemplates: string[];
   planTemplates: string[];
+  doctorAdvancedModeEnabled?: boolean;
+  doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
 }
 
 export const getDoctorProfileFromApi = async (): Promise<DoctorProfilePayload> => {
@@ -1054,6 +1071,25 @@ export const updateDoctorProfileFromApi = async (payload: DoctorProfilePayload):
     body: JSON.stringify(payload),
   });
 };
+
+export const getDoctorAdvancedModeCapabilitiesFromApi = async (branchId?: string): Promise<DoctorAdvancedCapabilities> => {
+  const query = new URLSearchParams();
+  if (branchId) query.set('branchId', branchId);
+
+  const payload = await apiFetch<{ data: DoctorAdvancedCapabilities }>(`/doctor/advanced-mode/capabilities${query.toString() ? `?${query.toString()}` : ''}`);
+
+  return payload.data;
+};
+
+export const updateDoctorAdvancedModeFromApi = async (enabled: boolean, branchId?: string): Promise<DoctorAdvancedCapabilities> => {
+  const payload = await apiFetch<{ data: DoctorAdvancedCapabilities }>('/doctor/advanced-mode', {
+    method: 'PUT',
+    body: JSON.stringify({ enabled, ...(branchId ? { branchId: Number(branchId) } : {}) }),
+  });
+
+  return payload.data;
+};
+
 export const getClinicSettingsFromApi = async (): Promise<ClinicSettingsPayload> => {
   const payload = await apiFetch<{ data: ClinicSettingsPayload }>('/clinic/settings');
   return payload.data;

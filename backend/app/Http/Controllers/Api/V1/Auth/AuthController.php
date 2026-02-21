@@ -106,6 +106,7 @@ class AuthController extends Controller
                 'examFindingTemplates' => $user->exam_finding_templates ?? [],
                 'diagnosisTemplates' => $user->diagnosis_templates ?? [],
                 'planTemplates' => $user->plan_templates ?? [],
+                'doctorAdvancedModeEnabled' => (bool) $user->doctor_advanced_mode_enabled,
             ],
             'clinicId' => (string) $user->clinic_id,
         ]);
@@ -136,6 +137,7 @@ class AuthController extends Controller
                     'examFindingTemplates' => $user->exam_finding_templates ?? [],
                     'diagnosisTemplates' => $user->diagnosis_templates ?? [],
                     'planTemplates' => $user->plan_templates ?? [],
+                'doctorAdvancedModeEnabled' => (bool) $user->doctor_advanced_mode_enabled,
                 ],
                 'clinicId' => (string) $user->clinic_id,
             ]

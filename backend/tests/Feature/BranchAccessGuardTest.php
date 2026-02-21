@@ -106,6 +106,35 @@ class BranchAccessGuardTest extends TestCase
         $this->getJson("/api/v1/reports/financial?branch_id={$branchB->id}")->assertOk();
     }
 
+
+    public function test_role_privilege_matrix_blocks_doctor_from_finance_reports_even_with_branch_membership(): void
+    {
+        [$clinic, $branchA] = $this->createClinicAndBranch();
+        $doctor = User::factory()->create(['clinic_id' => $clinic->id, 'role' => 'DOCTOR']);
+        $doctor->branches()->attach($branchA->id, ['clinic_id' => $clinic->id]);
+
+        Sanctum::actingAs($doctor);
+
+        $this->getJson("/api/v1/reports/doctor-payroll?branch_id={$branchA->id}")->assertForbidden();
+        $this->getJson("/api/v1/reports/financial?branch_id={$branchA->id}")->assertForbidden();
+    }
+
+    public function test_receptionist_can_access_cash_session_routes_for_assigned_branch(): void
+    {
+        [$clinic, $branchA] = $this->createClinicAndBranch();
+        $actor = User::factory()->create(['clinic_id' => $clinic->id, 'role' => 'RECEPTIONIST']);
+        $actor->branches()->attach($branchA->id, ['clinic_id' => $clinic->id]);
+
+        Sanctum::actingAs($actor);
+
+        $this->postJson('/api/v1/cash-sessions/open', [
+            'branch_id' => $branchA->id,
+            'opening_balance' => 100,
+        ])->assertCreated();
+
+        $this->getJson("/api/v1/reports/reconciliation?branch_id={$branchA->id}")->assertOk();
+    }
+
     private function createClinicAndBranch(string $suffix = ''): array
     {
         $clinic = Clinic::query()->create([
