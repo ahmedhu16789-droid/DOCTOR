@@ -180,6 +180,7 @@ export interface ClinicSettingsPayload {
   include_tax: boolean;
   clawback_on_refund: boolean;
   accrual_day_of_month: number;
+  tv_queue_display_mode: 'FULL_NAME' | 'MASKED_NAME';
 }
 
 export interface FinancialSummary {
