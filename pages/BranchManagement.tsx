@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Branch } from '../types';
 import { BRANCHES } from '../constants';
 import { BranchForm } from '../components/forms/BranchForm';
+import { BranchSettingsForm } from '../components/forms/BranchSettingsForm';
 import { Building2, Plus, MapPin, Phone, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createBranchViaApi, deleteBranchViaApi, getBranchesFromApi, updateBranchViaApi } from '../services/api';
+import { createBranchViaApi, deleteBranchViaApi, getBranchSettingsFromApi, getBranchesFromApi, resetBranchSettingsViaApi, updateBranchSettingsViaApi, updateBranchViaApi } from '../services/api';
+import { Branch, BranchOperationalSettings } from '../types';
 
 export const BranchManagement: React.FC = () => {
   const { t } = useTranslation();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [settingsBranch, setSettingsBranch] = useState<Branch | null>(null);
+  const [branchSettings, setBranchSettings] = useState<BranchOperationalSettings | null>(null);
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
 
   useEffect(() => {
@@ -21,6 +24,14 @@ export const BranchManagement: React.FC = () => {
   const closeModal = () => {
     setIsCreatingBranch(false);
     setEditingBranch(null);
+    setSettingsBranch(null);
+    setBranchSettings(null);
+  };
+
+  const openSettings = async (branch: Branch) => {
+    setSettingsBranch(branch);
+    const response = await getBranchSettingsFromApi(branch.id);
+    setBranchSettings(response.effective);
   };
 
   const handleSaveBranch = async (formData: Omit<Branch, 'id'>) => {
@@ -106,6 +117,12 @@ export const BranchManagement: React.FC = () => {
                 >
                   {t('delete')}
                 </button>
+                <button
+                  onClick={() => openSettings(branch)}
+                  className="text-sm font-medium text-indigo-500 hover:text-indigo-700"
+                >
+                  Settings
+                </button>
               </div>
             </div>
           </div>
@@ -130,6 +147,33 @@ export const BranchManagement: React.FC = () => {
                 onCancel={closeModal}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {settingsBranch && branchSettings && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl h-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 shadow-2xl">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-900">Branch settings · {settingsBranch.name}</h2>
+              <button onClick={closeModal} className="p-2 hover:bg-gray-200 rounded-full">
+                <XCircle className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+            <BranchSettingsForm
+              initialData={branchSettings}
+              onCancel={closeModal}
+              onSave={async (settings) => {
+                const updated = await updateBranchSettingsViaApi(settingsBranch.id, settings);
+                setBranches((prev) => prev.map((item) => item.id === settingsBranch.id ? { ...item, settings: updated } : item));
+                closeModal();
+              }}
+              onReset={async () => {
+                const updated = await resetBranchSettingsViaApi(settingsBranch.id);
+                setBranches((prev) => prev.map((item) => item.id === settingsBranch.id ? { ...item, settings: updated } : item));
+                closeModal();
+              }}
+            />
           </div>
         </div>
       )}

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\BranchSettingsUpsertRequest;
 use App\Http\Requests\Api\V1\BranchUpsertRequest;
 use App\Http\Resources\Api\V1\BranchResource;
 use App\Models\Branch;
 use App\Support\ApiCache;
+use App\Support\BranchSettingsResolver;
 use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
@@ -25,7 +27,8 @@ class BranchController extends Controller
                 return Branch::query()
                     ->withoutGlobalScopes()
                     ->where('clinic_id', $clinicId)
-                    ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active'])
+                    ->with('clinic:id,settings')
+                    ->select(['id', 'clinic_id', 'name', 'location', 'contact_phone', 'is_active', 'settings'])
                     ->orderBy('id')
                     ->get();
             }
@@ -37,7 +40,11 @@ class BranchController extends Controller
             'name' => $b->name,
             'location' => $b->location,
             'contactPhone' => $b->contact_phone,
-            'isActive' => (bool) (is_array($b) ? $b['is_active'] : $b->is_active), // Handle both array (if cached as array) and object
+            'isActive' => (bool) (is_array($b) ? $b['is_active'] : $b->is_active),
+            'settings' => BranchSettingsResolver::resolve(
+                is_array($b) ? ($b['clinic']['settings'] ?? []) : ($b->clinic?->settings ?? []),
+                is_array($b) ? ($b['settings'] ?? null) : $b->settings,
+            ),
         ]);
 
         return response()->json(['data' => $data]);
@@ -51,7 +58,10 @@ class BranchController extends Controller
             'location' => $request->string('location')->value(),
             'contact_phone' => $request->string('contactPhone')->value(),
             'is_active' => $request->boolean('isActive'),
+            'settings' => null,
         ]);
+
+        $branch->load('clinic:id,settings');
 
         ApiCache::bump('branches.index', $request->user()->clinic_id);
 
@@ -66,6 +76,8 @@ class BranchController extends Controller
             'contact_phone' => $request->string('contactPhone')->value(),
             'is_active' => $request->boolean('isActive'),
         ]);
+
+        $branch->load('clinic:id,settings');
 
         ApiCache::bump('branches.index', $request->user()->clinic_id);
 
@@ -82,5 +94,42 @@ class BranchController extends Controller
         ApiCache::bump('branches.index', auth()->user()?->clinic_id);
 
         return response()->noContent();
+    }
+
+    public function showSettings(Branch $branch)
+    {
+        $branch->load('clinic:id,settings');
+
+        return response()->json([
+            'data' => BranchSettingsResolver::resolve($branch->clinic?->settings, $branch->settings),
+        ]);
+    }
+
+    public function updateSettings(BranchSettingsUpsertRequest $request, Branch $branch)
+    {
+        $branch->update([
+            'settings' => $request->validated(),
+        ]);
+
+        ApiCache::bump('branches.index', $request->user()->clinic_id);
+        $branch->load('clinic:id,settings');
+
+        return response()->json([
+            'message' => 'Branch settings saved successfully',
+            'data' => BranchSettingsResolver::resolve($branch->clinic?->settings, $branch->settings),
+        ]);
+    }
+
+    public function resetSettings(Branch $branch)
+    {
+        $branch->update(['settings' => null]);
+
+        ApiCache::bump('branches.index', auth()->user()?->clinic_id);
+        $branch->load('clinic:id,settings');
+
+        return response()->json([
+            'message' => 'Branch settings reset to clinic defaults',
+            'data' => BranchSettingsResolver::resolve($branch->clinic?->settings, $branch->settings),
+        ]);
     }
 }
