@@ -100,6 +100,15 @@ export interface User {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  doctorAdvancedModeEnabled?: boolean;
+  doctorAdvancedCapabilities?: {
+    advancedModeEnabled: boolean;
+    branchId?: string | null;
+    canRescheduleOwnSameDayAppointments: boolean;
+    canCancelOwnSameDayAppointments: boolean;
+    canViewDayTimelineAndDelays: boolean;
+    canApplyShiftSuggestions: boolean;
+  };
 }
 
 export interface Employee extends User {

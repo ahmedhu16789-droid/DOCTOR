@@ -146,11 +146,8 @@ class QueueWorkspaceIntegrationTest extends TestCase
         $this->postJson("/api/v1/appointments/{$appointment->id}/start-now")
             ->assertForbidden();
 
-        $clinic->update([
-            'settings' => [
-                ...($clinic->settings ?? []),
-                'doctor_advanced_mode_enabled' => true,
-            ],
+        $doctor->update([
+            'doctor_advanced_mode_enabled' => true,
         ]);
 
         $doctor->refresh();

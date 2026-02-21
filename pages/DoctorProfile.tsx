@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorProfileFromApi } from '../services/api';
+import { DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorAdvancedModeFromApi, updateDoctorProfileFromApi } from '../services/api';
 
 const unique = (items: string[]) => [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 
@@ -85,6 +85,7 @@ export const DoctorProfile: React.FC = () => {
   const [examTemplates, setExamTemplates] = useState<string[]>([]);
   const [diagnosisTemplates, setDiagnosisTemplates] = useState<string[]>([]);
   const [planTemplates, setPlanTemplates] = useState<string[]>([]);
+  const [doctorAdvancedModeEnabled, setDoctorAdvancedModeEnabled] = useState(false);
 
   const [newExamTemplate, setNewExamTemplate] = useState('');
   const [newDiagnosisTemplate, setNewDiagnosisTemplate] = useState('');
@@ -107,12 +108,14 @@ export const DoctorProfile: React.FC = () => {
     examFindingTemplates: defaultExamTemplates,
     diagnosisTemplates: defaultDiagnosisTemplates,
     planTemplates: defaultPlanTemplates,
+    doctorAdvancedModeEnabled: false,
   };
 
   const normalizeProfile = (payload?: Partial<DoctorProfilePayload>): DoctorProfilePayload => ({
     examFindingTemplates: unique(payload?.examFindingTemplates?.length ? payload.examFindingTemplates : fallbackProfile.examFindingTemplates),
     diagnosisTemplates: unique(payload?.diagnosisTemplates?.length ? payload.diagnosisTemplates : fallbackProfile.diagnosisTemplates),
     planTemplates: unique(payload?.planTemplates?.length ? payload.planTemplates : fallbackProfile.planTemplates),
+    doctorAdvancedModeEnabled: Boolean(payload?.doctorAdvancedModeEnabled),
   });
 
   const syncProfile = async (next: DoctorProfilePayload) => {
@@ -124,6 +127,7 @@ export const DoctorProfile: React.FC = () => {
       setExamTemplates(normalized.examFindingTemplates);
       setDiagnosisTemplates(normalized.diagnosisTemplates);
       setPlanTemplates(normalized.planTemplates);
+      setDoctorAdvancedModeEnabled(Boolean(normalized.doctorAdvancedModeEnabled));
       setMessage(t('doctor_profile_auto_saved'));
     } catch {
       setMessage(t('doctor_profile_save_failed'));
@@ -140,10 +144,12 @@ export const DoctorProfile: React.FC = () => {
         setExamTemplates(normalized.examFindingTemplates);
         setDiagnosisTemplates(normalized.diagnosisTemplates);
         setPlanTemplates(normalized.planTemplates);
+        setDoctorAdvancedModeEnabled(Boolean(normalized.doctorAdvancedModeEnabled));
       } catch {
         setExamTemplates(fallbackProfile.examFindingTemplates);
         setDiagnosisTemplates(fallbackProfile.diagnosisTemplates);
         setPlanTemplates(fallbackProfile.planTemplates);
+        setDoctorAdvancedModeEnabled(Boolean(fallbackProfile.doctorAdvancedModeEnabled));
       } finally {
         setLoading(false);
       }
@@ -151,6 +157,23 @@ export const DoctorProfile: React.FC = () => {
 
     load();
   }, []);
+
+
+  const handleAdvancedModeToggle = async () => {
+    const next = !doctorAdvancedModeEnabled;
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const capabilities = await updateDoctorAdvancedModeFromApi(next);
+      setDoctorAdvancedModeEnabled(capabilities.advancedModeEnabled);
+      setMessage(capabilities.advancedModeEnabled ? 'Doctor Advanced Mode is ON.' : 'Doctor Advanced Mode is OFF.');
+    } catch {
+      setMessage('Could not update Doctor Advanced Mode.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return <div className="bg-white p-6 rounded-xl border border-gray-200 text-sm text-gray-500">{t('doctor_profile_loading')}</div>;
@@ -161,6 +184,27 @@ export const DoctorProfile: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('doctor_profile_title')}</h1>
         <p className="text-sm text-gray-500">{t('doctor_profile_templates_desc')}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Doctor Advanced Mode</h2>
+            <p className="text-sm text-gray-500">Unlock timeline, delay visibility, and same-day controls for your own appointments only.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleAdvancedModeToggle}
+            disabled={saving}
+            aria-pressed={doctorAdvancedModeEnabled}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${doctorAdvancedModeEnabled ? 'bg-primary-600' : 'bg-gray-300'} disabled:opacity-50`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${doctorAdvancedModeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+        <p className={`mt-2 text-xs font-medium ${doctorAdvancedModeEnabled ? 'text-emerald-700' : 'text-gray-500'}` }>
+          {doctorAdvancedModeEnabled ? 'Advanced controls enabled' : 'Default minimal workflow enabled'}
+        </p>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
@@ -176,10 +220,10 @@ export const DoctorProfile: React.FC = () => {
             const value = newExamTemplate.trim();
             if (!value || examTemplates.includes(value)) return;
             setNewExamTemplate('');
-            syncProfile({ examFindingTemplates: unique([...examTemplates, value]), diagnosisTemplates, planTemplates });
+            syncProfile({ examFindingTemplates: unique([...examTemplates, value]), diagnosisTemplates, planTemplates, doctorAdvancedModeEnabled });
           }}
           onRemove={(value) => {
-            syncProfile({ examFindingTemplates: examTemplates.filter((item) => item !== value), diagnosisTemplates, planTemplates });
+            syncProfile({ examFindingTemplates: examTemplates.filter((item) => item !== value), diagnosisTemplates, planTemplates, doctorAdvancedModeEnabled });
           }}
         />
 
@@ -195,10 +239,10 @@ export const DoctorProfile: React.FC = () => {
             const value = newDiagnosisTemplate.trim();
             if (!value || diagnosisTemplates.includes(value)) return;
             setNewDiagnosisTemplate('');
-            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates: unique([...diagnosisTemplates, value]), planTemplates });
+            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates: unique([...diagnosisTemplates, value]), planTemplates, doctorAdvancedModeEnabled });
           }}
           onRemove={(value) => {
-            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates: diagnosisTemplates.filter((item) => item !== value), planTemplates });
+            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates: diagnosisTemplates.filter((item) => item !== value), planTemplates, doctorAdvancedModeEnabled });
           }}
         />
 
@@ -214,10 +258,10 @@ export const DoctorProfile: React.FC = () => {
             const value = newPlanTemplate.trim();
             if (!value || planTemplates.includes(value)) return;
             setNewPlanTemplate('');
-            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates, planTemplates: unique([...planTemplates, value]) });
+            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates, planTemplates: unique([...planTemplates, value]), doctorAdvancedModeEnabled });
           }}
           onRemove={(value) => {
-            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates, planTemplates: planTemplates.filter((item) => item !== value) });
+            syncProfile({ examFindingTemplates: examTemplates, diagnosisTemplates, planTemplates: planTemplates.filter((item) => item !== value), doctorAdvancedModeEnabled });
           }}
         />
 
