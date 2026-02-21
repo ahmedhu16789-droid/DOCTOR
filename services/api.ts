@@ -211,6 +211,14 @@ export interface DoctorPayrollReportRecord {
     servicesAmount: number;
     servicesRate: number | null;
   };
+  settlements?: {
+    id: string;
+    settlementDate: string;
+    amount: number;
+    settlementKind: 'PARTIAL' | 'FINAL';
+    method: string;
+    reference?: string | null;
+  }[];
 }
 
 export interface DoctorPayrollSettlementPayload {

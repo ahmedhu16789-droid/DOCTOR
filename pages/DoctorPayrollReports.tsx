@@ -27,6 +27,7 @@ export const DoctorPayrollReports: React.FC = () => {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [settlementRow, setSettlementRow] = useState<DoctorPayrollReportRecord | null>(null);
+  const [detailsRow, setDetailsRow] = useState<DoctorPayrollReportRecord | null>(null);
   const [settlementAmount, setSettlementAmount] = useState('');
 
   const loadReport = async (nextFilters?: DoctorPayrollReportFilters) => {
@@ -94,6 +95,7 @@ export const DoctorPayrollReports: React.FC = () => {
     if (remainingAmount <= 0 || !row.canSettle) return;
 
     setErrorMessage('');
+    setDetailsRow(null);
     setSettlementRow(row);
     setSettlementAmount(String(remainingAmount));
   };
@@ -137,6 +139,21 @@ export const DoctorPayrollReports: React.FC = () => {
   const closeSettlementModal = () => {
     setSettlementRow(null);
     setSettlementAmount('');
+  };
+
+
+  const onOpenDetailsModal = (row: DoctorPayrollReportRecord) => {
+    setErrorMessage('');
+    setDetailsRow(row);
+  };
+
+  const closeDetailsModal = () => {
+    setDetailsRow(null);
+  };
+
+  const onSettleFromDetails = (row: DoctorPayrollReportRecord) => {
+    setDetailsRow(null);
+    onOpenSettlementModal(row);
   };
 
   const settlementRemaining = settlementRow
@@ -229,7 +246,15 @@ export const DoctorPayrollReports: React.FC = () => {
 
                 return (
                   <tr key={row.periodId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{row.doctorName || '-'}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => onOpenDetailsModal(row)}
+                        className="font-semibold text-primary-700 hover:text-primary-800 hover:underline"
+                      >
+                        {row.doctorName || '-'}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{row.periodMonth}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {(row.commissionDetails?.consultationAmount ?? 0).toLocaleString()} EGP
@@ -277,6 +302,81 @@ export const DoctorPayrollReports: React.FC = () => {
           </table>
         </div>
       </div>
+
+
+      {detailsRow && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">تفاصيل تسويات الطبيب داخل الشهر</h3>
+              <button onClick={closeDetailsModal} className="p-1 rounded hover:bg-gray-100">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="text-sm text-gray-600 grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div>الطبيب: <span className="font-semibold text-gray-900">{detailsRow.doctorName}</span></div>
+                <div>الشهر: <span className="font-semibold text-gray-900">{detailsRow.periodMonth}</span></div>
+                <div>
+                  المتبقي الحالي:{' '}
+                  <span className="font-semibold text-gray-900">
+                    {Math.max(detailsRow.totalEarned + detailsRow.totalAdjustments - detailsRow.totalSettled, 0).toLocaleString()} EGP
+                  </span>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">التاريخ</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">النوع</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">الطريقة</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">المبلغ</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">المرجع</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {(detailsRow.settlements ?? []).map((settlement) => (
+                      <tr key={settlement.id}>
+                        <td className="px-3 py-2 text-sm text-gray-600">{settlement.settlementDate}</td>
+                        <td className="px-3 py-2 text-sm text-gray-600">{settlement.settlementKind === 'FINAL' ? 'نهائية' : 'جزئية'}</td>
+                        <td className="px-3 py-2 text-sm text-gray-600">{settlement.method}</td>
+                        <td className="px-3 py-2 text-sm font-semibold text-gray-900">{settlement.amount.toLocaleString()} EGP</td>
+                        <td className="px-3 py-2 text-sm text-gray-500">{settlement.reference || '-'}</td>
+                      </tr>
+                    ))}
+                    {(detailsRow.settlements ?? []).length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-500">لا توجد تسويات مسجلة لهذا الشهر.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+              <button
+                type="button"
+                onClick={closeDetailsModal}
+                className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-700"
+              >
+                إغلاق
+              </button>
+              <button
+                type="button"
+                onClick={() => onSettleFromDetails(detailsRow)}
+                disabled={actionLoadingId === detailsRow.periodId || Math.max(detailsRow.totalEarned + detailsRow.totalAdjustments - detailsRow.totalSettled, 0) <= 0 || !detailsRow.canSettle}
+                className="flex-1 h-10 rounded-lg bg-primary-600 text-white disabled:opacity-50"
+              >
+                تسوية جديدة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {settlementRow && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
