@@ -16,7 +16,9 @@ class AppointmentResource extends JsonResource
 
         $scheduledStart = null;
         if ($this->date && $this->time_slot) {
-            $scheduledStart = Carbon::createFromFormat('Y-m-d H:i', "{$this->date} {$this->time_slot}", $timezone);
+            $formattedDate = \Carbon\Carbon::parse($this->date)->format('Y-m-d');
+            $formattedTime = \Carbon\Carbon::parse($this->time_slot)->format('H:i');
+            $scheduledStart = \Carbon\Carbon::parse("{$formattedDate} {$formattedTime}", $timezone);
         }
 
         $checkInAt = $this->check_in_at?->timezone($timezone);

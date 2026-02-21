@@ -114,7 +114,6 @@ Route::prefix('v1')->group(function (): void {
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
             ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
             ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
             ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);

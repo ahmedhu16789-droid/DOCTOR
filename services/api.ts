@@ -81,6 +81,14 @@ interface ApiBulkShiftResponse {
   fromTime: string;
   shiftMinutes: number;
   appliedByUserId?: string | null;
+  shiftedData?: Array<{
+    appointmentId: string;
+    patientId: string;
+    patientName?: string | null;
+    patientPhone?: string | null;
+    beforeTime: string;
+    afterTime: string;
+  }>;
 }
 
 interface ApiMedicalEncounter {

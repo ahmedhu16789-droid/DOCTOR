@@ -149,7 +149,8 @@ class AppointmentController extends Controller
 
         $this->authorization->assertDoctorAssignedToBranch((bool) $doctor);
 
-        $shiftedCount = DB::transaction(function () use ($clinicId, $validated, $request): int {
+        $shiftedData = [];
+        $shiftedCount = DB::transaction(function () use ($clinicId, $validated, $request, &$shiftedData): int {
             $appointments = Appointment::query()
                 ->where('clinic_id', $clinicId)
                 ->where('doctor_id', $validated['doctorId'])
@@ -158,15 +159,28 @@ class AppointmentController extends Controller
                 ->where('time_slot', '>=', $validated['fromTime'])
                 ->whereNotIn('status', ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'])
                 ->orderBy('time_slot')
+                ->with('patient:id,name,phone')
                 ->lockForUpdate()
                 ->get();
 
             foreach ($appointments as $appointment) {
-                $appointment->update([
-                    'time_slot' => Carbon::createFromFormat('H:i', $appointment->time_slot)
+                $beforeTime = $appointment->time_slot;
+                $afterTime = Carbon::createFromFormat('H:i', $appointment->time_slot)
                         ->addMinutes($validated['shiftMinutes'])
-                        ->format('H:i'),
+                        ->format('H:i');
+
+                $appointment->update([
+                    'time_slot' => $afterTime,
                 ]);
+
+                $shiftedData[] = [
+                    'appointmentId' => (string) $appointment->id,
+                    'patientId' => (string) $appointment->patient_id,
+                    'patientName' => $appointment->patient?->name,
+                    'patientPhone' => $appointment->patient?->phone,
+                    'beforeTime' => $beforeTime,
+                    'afterTime' => $afterTime,
+                ];
             }
 
             if ($appointments->isEmpty()) {
@@ -211,6 +225,7 @@ class AppointmentController extends Controller
                 'date' => $validated['date'],
                 'fromTime' => $validated['fromTime'],
                 'shiftMinutes' => $validated['shiftMinutes'],
+                'shiftedData' => $shiftedData,
             ],
         ]);
     }

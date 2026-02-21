@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getDoctorsFromApi, shiftAppointmentsViaApi } from '../services/api';
+import { sendWhatsAppQueue, WhatsAppMessage } from '../utils/whatsapp';
 import { Branch, User, UserRole } from '../types';
 
 interface AppointmentMigrationProps {
@@ -124,6 +125,23 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
         fromTime,
         shiftMinutes,
       });
+
+      if (result.shiftedData && result.shiftedData.length > 0) {
+        const doctorName = doctors.find((d) => d.id === doctorId)?.name ?? '';
+        const whatsappQueue: WhatsAppMessage[] = result.shiftedData
+          .filter((d) => d.patientPhone)
+          .map((d) => {
+            const drText = doctorName ? ` مع د. ${doctorName}` : '';
+            return {
+              phone: d.patientPhone!,
+              text: `مرحباً، تم تعديل موعدك${drText} ليكون الساعة ${d.afterTime} بدلاً من ${d.beforeTime}. شكراً لتفهمكم ونتمنى لكم دوام الصحة والعافية.`,
+            };
+          });
+
+        if (whatsappQueue.length > 0) {
+          sendWhatsAppQueue(whatsappQueue);
+        }
+      }
 
       setFeedback(t('migration_success', { count: result.shiftedAppointments }));
       await onShiftApplied?.();
