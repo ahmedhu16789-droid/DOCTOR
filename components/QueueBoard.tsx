@@ -30,6 +30,31 @@ const getMetricLabel = (appointment: Appointment, t: (key: string, options?: Rec
   return null;
 };
 
+const getEstimatedWaitingMinutesByAppointment = (appointments: Appointment[]): Map<string, number> => {
+  const consultDurations = appointments
+    .map(appointment => appointment.queueMetrics?.serviceMinutes)
+    .filter((minutes): minutes is number => minutes != null && minutes > 0);
+
+  if (consultDurations.length === 0) {
+    return new Map();
+  }
+
+  const averageConsultDuration = consultDurations.reduce((sum, minutes) => sum + minutes, 0) / consultDurations.length;
+  const inProgressCount = appointments.filter(appointment => appointment.status === AppointmentStatus.IN_PROGRESS).length;
+  const waitingQueue = appointments.filter(appointment =>
+    appointment.status === AppointmentStatus.WAITING
+    || appointment.status === AppointmentStatus.SCHEDULED
+    || appointment.status === AppointmentStatus.CALLED,
+  );
+
+  return new Map(
+    waitingQueue.map((appointment, index) => [
+      appointment.id,
+      Math.max(0, Math.round((inProgressCount + index) * averageConsultDuration)),
+    ]),
+  );
+};
+
 const StatusColumn = ({
   title,
   items,
@@ -37,7 +62,8 @@ const StatusColumn = ({
   icon: Icon,
   onStatusChange,
   nextStatus,
-  t
+  t,
+  estimatedWaitingMinutesByAppointment
 }: {
   title: string,
   items: Appointment[],
@@ -45,7 +71,8 @@ const StatusColumn = ({
   icon: any,
   onStatusChange: (id: string, status: AppointmentStatus) => void,
   nextStatus?: AppointmentStatus,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
+  estimatedWaitingMinutesByAppointment: Map<string, number>
 }) => (
   <div className="flex-1 min-w-[300px] bg-gray-50 rounded-xl p-4 flex flex-col h-full">
     <div className={`flex items-center space-x-2 mb-4 pb-2 border-b ${color}`}>
@@ -57,7 +84,14 @@ const StatusColumn = ({
         <div className="text-center py-8 text-gray-400 italic text-sm">{t('queue_board.empty')}</div>
       )}
       {items.map(apt => {
-        const metricLabel = getMetricLabel(apt, t);
+        const estimatedWaitingMinutes = estimatedWaitingMinutesByAppointment.get(apt.id);
+        const metricLabel = getMetricLabel(apt, t)
+          ?? (estimatedWaitingMinutes != null
+            ? t('queue_board.waiting_time', {
+              minutes: estimatedWaitingMinutes,
+              estimated: t('queue_board.estimated'),
+            })
+            : null);
 
         return (
         <div key={apt.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all">
@@ -96,6 +130,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({ appointments, onStatusCh
   const waiting = appointments.filter(a => a.status === AppointmentStatus.WAITING || a.status === AppointmentStatus.SCHEDULED);
   const inProgress = appointments.filter(a => a.status === AppointmentStatus.IN_PROGRESS);
   const completed = appointments.filter(a => a.status === AppointmentStatus.COMPLETED);
+  const estimatedWaitingMinutesByAppointment = getEstimatedWaitingMinutesByAppointment(appointments);
 
   return (
     <div className="flex overflow-x-auto pb-4 gap-4 h-[calc(100vh-200px)]">
@@ -107,6 +142,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({ appointments, onStatusCh
         onStatusChange={onStatusChange}
         nextStatus={AppointmentStatus.IN_PROGRESS}
         t={t}
+        estimatedWaitingMinutesByAppointment={estimatedWaitingMinutesByAppointment}
       />
       <StatusColumn
         title={t('queue_board.column.in_progress')}
@@ -116,6 +152,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({ appointments, onStatusCh
         onStatusChange={onStatusChange}
         nextStatus={AppointmentStatus.COMPLETED}
         t={t}
+        estimatedWaitingMinutesByAppointment={estimatedWaitingMinutesByAppointment}
       />
       <StatusColumn
         title={t('queue_board.column.completed')}
@@ -124,6 +161,7 @@ export const QueueBoard: React.FC<QueueBoardProps> = ({ appointments, onStatusCh
         icon={CheckCircle}
         onStatusChange={onStatusChange}
         t={t}
+        estimatedWaitingMinutesByAppointment={estimatedWaitingMinutesByAppointment}
       />
     </div>
   );
