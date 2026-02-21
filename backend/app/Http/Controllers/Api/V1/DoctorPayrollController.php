@@ -7,6 +7,7 @@ use App\Models\DoctorEarningsLedger;
 use App\Models\DoctorPayrollContract;
 use App\Models\DoctorPayrollPeriod;
 use App\Models\DoctorPayrollSettlement;
+use App\Models\FinancialAuditLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -188,8 +189,12 @@ class DoctorPayrollController extends Controller
             });
     }
 
-    public function close(int $id): JsonResponse
+    public function close(Request $request, int $id): JsonResponse
     {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
         /** @var DoctorPayrollPeriod $period */
         $period = DoctorPayrollPeriod::query()->findOrFail($id);
 
@@ -197,9 +202,20 @@ class DoctorPayrollController extends Controller
             return response()->json(['message' => 'Payroll period already settled.'], 422);
         }
 
+        $before = $period->toArray();
         $period->status = 'CLOSED';
         $period->closed_at = now();
         $period->save();
+
+        $this->writePayrollAuditLog(
+            (int) auth()->user()->clinic_id,
+            auth()->id(),
+            'PAYROLL_PERIOD_CLOSED',
+            $period,
+            $before,
+            $period->toArray(),
+            $validated['reason'] ?? null
+        );
 
         return response()->json([
             'message' => 'Payroll period closed successfully.',
@@ -218,6 +234,7 @@ class DoctorPayrollController extends Controller
             'amount' => ['required', 'numeric', 'gt:0'],
             'method' => ['required', 'string', 'max:32'],
             'reference' => ['nullable', 'string', 'max:255'],
+            'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
         /** @var DoctorPayrollPeriod $period */
@@ -234,7 +251,7 @@ class DoctorPayrollController extends Controller
             $targetAmount = (float) $period->total_earned + (float) $period->total_adjustments;
             $remainingAmount = max($targetAmount - (float) $period->total_settled, 0.0);
 
-            DoctorPayrollSettlement::query()->create([
+            $settlement = DoctorPayrollSettlement::query()->create([
                 'period_id' => $period->id,
                 'settlement_date' => $validated['settlement_date'],
                 'amount' => $validated['amount'],
@@ -243,6 +260,16 @@ class DoctorPayrollController extends Controller
                 'reference' => $validated['reference'] ?? null,
                 'created_by' => auth()->id(),
             ]);
+
+            $this->writePayrollAuditLog(
+                (int) $period->clinic_id,
+                auth()->id(),
+                'PAYROLL_SETTLEMENT_CREATED',
+                $settlement,
+                null,
+                $settlement->toArray(),
+                $validated['reason'] ?? null
+            );
 
             $period->refresh();
             $period->total_settled = (float) DoctorPayrollSettlement::query()
@@ -268,6 +295,30 @@ class DoctorPayrollController extends Controller
                 'status' => $period->status,
             ],
         ], 201);
+    }
+
+
+    private function writePayrollAuditLog(
+        int $clinicId,
+        ?int $actorId,
+        string $actionType,
+        object $target,
+        ?array $beforeSnapshot,
+        ?array $afterSnapshot,
+        ?string $reason
+    ): void {
+        FinancialAuditLog::query()->create([
+            'clinic_id' => $clinicId,
+            'invoice_id' => null,
+            'actor_id' => $actorId,
+            'action_type' => $actionType,
+            'target_entity_type' => class_basename($target),
+            'target_entity_id' => (string) ($target->id ?? ''),
+            'before_snapshot' => $beforeSnapshot,
+            'after_snapshot' => $afterSnapshot,
+            'reason' => $reason,
+            'occurred_at' => now(),
+        ]);
     }
 
     private function hasPeriodEnded(string $periodMonth): bool
