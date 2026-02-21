@@ -17,5 +17,6 @@ class AppointmentSlotShift extends Model
         'date',
         'from_time',
         'shift_minutes',
+        'applied_by_user_id',
     ];
 }

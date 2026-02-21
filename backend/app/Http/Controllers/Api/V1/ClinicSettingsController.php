@@ -28,6 +28,7 @@ class ClinicSettingsController extends Controller
                 'clawback_on_refund' => $settings['clawback_on_refund'] ?? true,
                 'accrual_day_of_month' => $settings['accrual_day_of_month'] ?? 1,
                 'tv_queue_display_mode' => $settings['tv_queue_display_mode'] ?? 'MASKED_NAME',
+                'doctor_advanced_mode_enabled' => (bool) ($settings['doctor_advanced_mode_enabled'] ?? false),
             ],
         ]);
     }
@@ -48,6 +49,7 @@ class ClinicSettingsController extends Controller
             'clawback_on_refund' => ['required', 'boolean'],
             'accrual_day_of_month' => ['required', 'integer', 'min:1', 'max:28'],
             'tv_queue_display_mode' => ['required', 'string', 'in:FULL_NAME,MASKED_NAME'],
+            'doctor_advanced_mode_enabled' => ['nullable', 'boolean'],
         ]);
 
         $clinic = $request->user()->clinic;

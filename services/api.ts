@@ -78,6 +78,7 @@ interface ApiBulkShiftResponse {
   date: string;
   fromTime: string;
   shiftMinutes: number;
+  appliedByUserId?: string | null;
 }
 
 interface ApiMedicalEncounter {
@@ -181,7 +182,32 @@ export interface ClinicSettingsPayload {
   clawback_on_refund: boolean;
   accrual_day_of_month: number;
   tv_queue_display_mode: 'FULL_NAME' | 'MASKED_NAME';
+  doctor_advanced_mode_enabled?: boolean;
 }
+
+export interface DelayInsightResponse {
+  showAlert: boolean;
+  reason?: string;
+  delayMinutes: number;
+  impactedCount: number;
+  suggestedShiftMinutes: number;
+  fromTime: string | null;
+  preview: Array<{
+    appointmentId: string;
+    patientId?: string;
+    status: AppointmentStatus | string;
+    beforeTime: string;
+    afterTime: string;
+    preserved?: boolean;
+  }>;
+  config: {
+    graceMinutes: number;
+    thresholdMinutes: number;
+    roundingMinutes: number;
+    mode: string;
+  };
+}
+
 
 export interface FinancialSummary {
   totalRevenue: number;
@@ -635,12 +661,52 @@ export const getAppointmentsFromApi = async (patients: Patient[] = [], params?: 
 };
 
 
+export const getDelayInsightViaApi = async (params: {
+  doctorId: string;
+  branchId: string;
+  date?: string;
+}): Promise<DelayInsightResponse> => {
+  const query = new URLSearchParams({
+    doctorId: String(Number(params.doctorId)),
+    branchId: String(Number(params.branchId)),
+  });
+
+  if (params.date) {
+    query.set('date', params.date);
+  }
+
+  const payload = await apiFetch<{ data: DelayInsightResponse }>(`/appointments/delay-insight?${query.toString()}`);
+  return payload.data;
+};
+
+export const previewShiftAppointmentsViaApi = async (params: {
+  doctorId: string;
+  branchId: string;
+  date: string;
+  fromTime: string;
+  shiftMinutes: number;
+}): Promise<DelayInsightResponse> => {
+  const payload = await apiFetch<{ data: DelayInsightResponse }>('/appointments/shift/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      doctorId: Number(params.doctorId),
+      branchId: Number(params.branchId),
+      date: params.date,
+      fromTime: params.fromTime,
+      shiftMinutes: params.shiftMinutes,
+    }),
+  });
+
+  return payload.data;
+};
+
 export const shiftAppointmentsViaApi = async (params: {
   doctorId: string;
   branchId: string;
   date: string;
   fromTime: string;
   shiftMinutes: number;
+  appliedByUserId?: string | null;
 }): Promise<ApiBulkShiftResponse> => {
   const payload = await apiFetch<{ data: ApiBulkShiftResponse }>('/appointments/shift', {
     method: 'POST',
