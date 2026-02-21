@@ -154,14 +154,10 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
 
             // Internal Background Worker for WhatsApp
             if (_isProcessingWhatsApp)
-              Positioned(
-                left: _isWhatsAppVisible ? 0 : -2000,
-                right: _isWhatsAppVisible ? 0 : null,
-                top: _isWhatsAppVisible ? 0 : 0,
-                bottom: _isWhatsAppVisible ? 0 : null,
+              Positioned.fill(
                 child: Center(
                   child: Container(
-                    decoration: _isWhatsAppVisible ? BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
@@ -171,7 +167,7 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
                         )
                       ],
                       borderRadius: BorderRadius.circular(12),
-                    ) : null,
+                    ),
                     width: 800,
                     height: 600,
                     child: WhatsAppAutomationDialog(
@@ -186,9 +182,10 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
                       },
                       onLoggedIn: () {
                         debugPrint('onLoggedIn called! _isWhatsAppVisible: $_isWhatsAppVisible');
-                        if (_isWhatsAppVisible && mounted) {
+                        // Keep WebView visible while processing to avoid paused/unhydrated DOM in WebView2.
+                        if (!_isWhatsAppVisible && mounted) {
                           setState(() {
-                            _isWhatsAppVisible = false;
+                            _isWhatsAppVisible = true;
                           });
                         }
                       },

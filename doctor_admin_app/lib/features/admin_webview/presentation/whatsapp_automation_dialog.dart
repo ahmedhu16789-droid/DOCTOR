@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -61,6 +62,15 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       _processNextMessage();
     } on PlatformException catch (e) {
       debugPrint('Webview init error: $e');
+      if (e.code == 'environment_already_initialized') {
+        if (!mounted) return;
+        setState(() {
+          _initialized = true;
+          _statusMessage = 'Ready. Loading WhatsApp...';
+        });
+        _processNextMessage();
+        return;
+      }
       widget.onCompleted?.call();
     }
   }
@@ -86,6 +96,49 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     await Future.delayed(const Duration(seconds: 5));
   }
 
+
+  Future<String?> _executeScriptWithRetry(
+    String script, {
+    int retries = 12,
+    Duration delay = const Duration(milliseconds: 700),
+  }) async {
+    for (int i = 0; i < retries; i++) {
+      final result = await _controller.executeScript(script);
+      final value = result?.toString().trim();
+      if (value != null && value.isNotEmpty && value != 'null') {
+        return value;
+      }
+      await Future.delayed(delay);
+    }
+    return null;
+  }
+
+  Future<bool> _waitForComposerReady() async {
+    for (int i = 0; i < 50; i++) {
+      final state = await _executeScriptWithRetry(r'''
+        (function() {
+          if (document.querySelector('[data-ref]')) return 'NEEDS_LOGIN';
+
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+
+          if (!composer) return 'WAITING_CHAT';
+
+          var rect = composer.getBoundingClientRect();
+          var visible = rect.width > 0 && rect.height > 0;
+          return visible ? 'CHAT_READY' : 'CHAT_HIDDEN';
+        })();
+      ''', retries: 1, delay: const Duration(milliseconds: 1));
+
+      if (state == 'CHAT_READY') return true;
+      if (state == 'NEEDS_LOGIN') return false;
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+    return false;
+  }
+
   void _processNextMessage() async {
     if (_isProcessing) return;
     if (_currentIndex >= widget.messages.length) {
@@ -104,8 +157,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     }
 
     try {
-      final encodedText = Uri.encodeComponent(msg.text);
-      final url = 'https://web.whatsapp.com/send?phone=${msg.phone}&text=$encodedText';
+      final url = 'https://web.whatsapp.com/send?phone=${msg.phone}';
 
       // --- Load the page and wait for it to complete ---
       await _controller.loadUrl(url);
@@ -151,6 +203,40 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       } else {
         widget.onLoggedIn?.call();
       }
+
+      final chatReady = await _waitForComposerReady();
+      if (!chatReady) {
+        throw Exception('Chat is not ready for ${msg.phone}.');
+      }
+
+      final messageTextJson = jsonEncode(msg.text);
+      final fillResult = await _controller.executeScript('''
+        (function() {
+          var message = $messageTextJson;
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+          if (!composer) return 'COMPOSER_NOT_FOUND';
+
+          composer.focus();
+          try {
+            composer.click();
+            document.execCommand('insertText', false, message);
+          } catch (e) {
+            composer.textContent = message;
+          }
+
+          composer.dispatchEvent(new InputEvent('input', {
+            bubbles: true,
+            data: message,
+            inputType: 'insertText'
+          }));
+
+          return 'TEXT_READY:' + composer.tagName;
+        })();
+      ''');
+      debugPrint('WA Fill: $fillResult');
 
       // --- Simulate human interaction to trigger React hydration ---
       // WhatsApp detects if window has focus; without it, React may not hydrate
@@ -239,17 +325,23 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
           }
 
           // 3. Try data-testid
-          var testIds = ["compose-btn-send", "send-btn", "msg-compose-send"];
+          var testIds = ["compose-btn-send", "send-btn", "msg-compose-send", "send", "compose-send"];
           for (var id of testIds) {
             var el = document.querySelector("[data-testid=\""+id+"\"]");
             if (el) { el.click(); return "CLICKED_TESTID:"+id; }
           }
 
-          // 4. Simulate Enter on footer or any visible textbox
-          var footer = document.querySelector("footer") || document.querySelector("[data-testid=\"conversation-compose-box\"]");
-          if (footer) {
-            footer.dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
-            return "ENTER_ON_FOOTER";
+          // 4. Simulate Enter on compose textbox.
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+          if (composer) {
+            composer.focus();
+            composer.dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            composer.dispatchEvent(new KeyboardEvent("keypress", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            composer.dispatchEvent(new KeyboardEvent("keyup", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            return "ENTER_ON_COMPOSER";
           }
 
           // 5. Last resort: press Enter on the last focused element
