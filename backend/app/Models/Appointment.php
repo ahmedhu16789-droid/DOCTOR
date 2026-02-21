@@ -30,6 +30,7 @@ class Appointment extends Model
     protected function casts(): array
     {
         return [
+            'date' => 'date',
             'check_in_at' => 'datetime',
             'called_at' => 'datetime',
             'started_at' => 'datetime',
