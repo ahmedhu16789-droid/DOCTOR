@@ -17,18 +17,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use RuntimeException;
+use App\Support\Authorization\ClinicBranchAuthorization;
 
 class AppointmentBillingController extends Controller
 {
     private const BILLING_ACTION_ROLES = ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER'];
 
-    public function __construct(private readonly DoctorEarningsCalculator $doctorEarningsCalculator)
-    {
+    public function __construct(
+        private readonly DoctorEarningsCalculator $doctorEarningsCalculator,
+        private readonly ClinicBranchAuthorization $authorization,
+    ) {
     }
 
     public function addItem(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
             'serviceId' => ['nullable', 'string', 'max:100'],
@@ -70,7 +73,7 @@ class AppointmentBillingController extends Controller
 
     public function updateItem(Request $request, Appointment $appointment, InvoiceItem $item): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
         abort_unless($appointment->invoice && $item->invoice_id === $appointment->invoice->id, 404);
 
         $validated = $request->validate([
@@ -106,7 +109,7 @@ class AppointmentBillingController extends Controller
 
     public function processPayment(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
         $this->assertPermission($request, 'finance.collect_payment', ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST']);
 
         $validated = $request->validate([
@@ -177,7 +180,7 @@ class AppointmentBillingController extends Controller
 
     public function refund(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
         $this->assertPermission($request, 'finance.refund', self::BILLING_ACTION_ROLES);
 
         $validated = $request->validate([
@@ -234,7 +237,7 @@ class AppointmentBillingController extends Controller
 
     public function removeItem(Request $request, Appointment $appointment, InvoiceItem $item): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
         abort_unless($appointment->invoice && $item->invoice_id === $appointment->invoice->id, 404);
         $this->assertPermission($request, 'finance.remove_item', self::BILLING_ACTION_ROLES);
 
@@ -259,7 +262,7 @@ class AppointmentBillingController extends Controller
 
     public function finalize(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:1000'],
@@ -284,7 +287,7 @@ class AppointmentBillingController extends Controller
 
     public function reverseFinalization(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
@@ -309,7 +312,7 @@ class AppointmentBillingController extends Controller
 
     public function void(Request $request, Appointment $appointment): JsonResponse
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
 
         $reason = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
@@ -320,7 +323,7 @@ class AppointmentBillingController extends Controller
 
     public function voidInvoice(Request $request, Invoice $invoice): JsonResponse
     {
-        abort_unless($invoice->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $invoice);
 
         $reason = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],

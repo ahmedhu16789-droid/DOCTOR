@@ -7,9 +7,12 @@ use App\Listeners\QueueAppointmentNotificationListener;
 use App\Services\Notifications\Transports\NotificationTransport;
 use App\Services\Notifications\Transports\SmsLogTransport;
 use Illuminate\Support\Facades\Event;
+use App\Models\Appointment;
+use App\Policies\AppointmentPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(AppointmentNotificationRequested::class, QueueAppointmentNotificationListener::class);
+        Gate::policy(Appointment::class, AppointmentPolicy::class);
 
         RateLimiter::for('public-booking', function (Request $request): Limit {
             $ip = $request->ip() ?: 'unknown';

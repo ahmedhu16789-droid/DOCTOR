@@ -6,11 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\MedicalEncounter;
 use Illuminate\Http\JsonResponse;
+use App\Support\Authorization\ClinicBranchAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MedicalEncounterController extends Controller
 {
+    public function __construct(private readonly ClinicBranchAuthorization $authorization)
+    {
+    }
     public function show(Request $request, Appointment $appointment): JsonResponse
     {
         $this->authorizeAppointment($request, $appointment);
@@ -103,7 +107,7 @@ class MedicalEncounterController extends Controller
 
     private function authorizeAppointment(Request $request, Appointment $appointment): void
     {
-        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->authorization->assertTenantOwnership($request->user(), $appointment);
     }
 
     private function serializeEncounter(MedicalEncounter $encounter): array

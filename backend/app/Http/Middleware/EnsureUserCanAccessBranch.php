@@ -2,12 +2,17 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Authorization\ClinicBranchAuthorization;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureUserCanAccessBranch
 {
+    public function __construct(private readonly ClinicBranchAuthorization $authorization)
+    {
+    }
+
     public function handle(Request $request, Closure $next, string ...$branchKeys): Response
     {
         $user = $request->user();
@@ -16,11 +21,15 @@ class EnsureUserCanAccessBranch
             return $next($request);
         }
 
-        if (in_array((string) $user->role, ['ADMIN', 'HQ'], true)) {
-            return $next($request);
+        $privilege = 'READ';
+        $keys = $branchKeys;
+
+        if (count($branchKeys) > 0 && str_starts_with(end($branchKeys), 'privilege:')) {
+            $privilege = strtoupper(str_replace('privilege:', '', (string) end($branchKeys)));
+            $keys = array_slice($branchKeys, 0, -1);
         }
 
-        $keys = count($branchKeys) > 0 ? $branchKeys : ['branchId', 'branch_id'];
+        $keys = count($keys) > 0 ? $keys : ['branchId', 'branch_id'];
 
         $requestedBranchIds = collect($keys)
             ->map(fn (string $key) => $request->input($key))
@@ -34,13 +43,7 @@ class EnsureUserCanAccessBranch
             return $next($request);
         }
 
-        $allowedBranchIds = $user->branches()->pluck('branches.id')->map(fn ($id) => (int) $id);
-
-        $hasUnauthorizedBranch = $requestedBranchIds
-            ->diff($allowedBranchIds)
-            ->isNotEmpty();
-
-        abort_if($hasUnauthorizedBranch, 403, 'You are not assigned to the requested branch.');
+        $this->authorization->assertBranchAccess($user, $requestedBranchIds->all(), $privilege);
 
         return $next($request);
     }
