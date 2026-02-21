@@ -33,6 +33,33 @@ export interface Branch {
   managerId?: string;
   contactPhone: string;
   isActive: boolean;
+  settings?: BranchSettingsEnvelope;
+}
+
+export interface BranchOperationalSettings {
+  defaultSlotDurationMinutes: number;
+  workingHours: {
+    start: string;
+    end: string;
+    days: number[];
+  };
+  queueRules: {
+    maxWaitingPatients: number;
+    allowOverbooking: boolean;
+    autoCallEnabled: boolean;
+  };
+  operationalFlags: {
+    allowWalkIns: boolean;
+    enableTelehealth: boolean;
+    requirePrepayment: boolean;
+  };
+}
+
+export interface BranchSettingsEnvelope {
+  precedence: string;
+  defaults: BranchOperationalSettings;
+  overrides: Partial<BranchOperationalSettings>;
+  effective: BranchOperationalSettings;
 }
 
 export interface WeeklyShift {

@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus, Branch, Department, Medication, Patient, PaymentEntry, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
+import { Appointment, AppointmentStatus, Branch, BranchOperationalSettings, BranchSettingsEnvelope, Department, Medication, Patient, PaymentEntry, PaymentMethod, PaymentStatus, User, UserRole, VitalSigns } from '../types';
 import { MOCK_USERS } from '../constants';
 import { apiFetch } from './core/httpClient';
 import { clearAuthSession, getStoredUser, setStoredUser, setToken } from './core/authSession';
@@ -131,6 +131,11 @@ interface ApiBranch {
   location: string;
   contactPhone: string;
   isActive: boolean;
+  settings?: BranchSettingsEnvelope;
+}
+
+interface ApiDataEnvelope<T> {
+  data: T;
 }
 
 interface ApiDoctor {
@@ -440,13 +445,13 @@ export const getCurrentUser = async (): Promise<User> => {
 
 export const getBranchesFromApi = async (signal?: AbortSignal): Promise<Branch[]> => {
   const payload = await apiFetch<{ data: ApiBranch[] }>('/branches', { signal });
-  console.log('API /branches payload:', payload);
   return (payload.data ?? []).map((branch) => ({
     id: String(branch.id),
     name: branch.name,
     location: branch.location,
     contactPhone: branch.contactPhone,
     isActive: branch.isActive,
+    settings: branch.settings,
   }));
 };
 
@@ -468,6 +473,7 @@ export const createBranchViaApi = async (branch: Omit<Branch, 'id'>): Promise<Br
     location: payload.location,
     contactPhone: payload.contactPhone,
     isActive: payload.isActive,
+    settings: payload.settings,
   };
 };
 
@@ -483,7 +489,31 @@ export const updateBranchViaApi = async (branch: Branch): Promise<Branch> => {
     location: payload.location,
     contactPhone: payload.contactPhone,
     isActive: payload.isActive,
+    settings: payload.settings,
   };
+};
+
+export const getBranchSettingsFromApi = async (branchId: string): Promise<BranchSettingsEnvelope> => {
+  const payload = await apiFetch<ApiDataEnvelope<BranchSettingsEnvelope>>(`/branches/${branchId}/settings`);
+
+  return payload.data;
+};
+
+export const updateBranchSettingsViaApi = async (branchId: string, settings: BranchOperationalSettings): Promise<BranchSettingsEnvelope> => {
+  const payload = await apiFetch<ApiDataEnvelope<BranchSettingsEnvelope>>(`/branches/${branchId}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+
+  return payload.data;
+};
+
+export const resetBranchSettingsViaApi = async (branchId: string): Promise<BranchSettingsEnvelope> => {
+  const payload = await apiFetch<ApiDataEnvelope<BranchSettingsEnvelope>>(`/branches/${branchId}/settings`, {
+    method: 'DELETE',
+  });
+
+  return payload.data;
 };
 
 export const deleteBranchViaApi = async (branchId: string): Promise<void> => {

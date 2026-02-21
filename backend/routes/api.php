@@ -38,6 +38,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('branches', [BranchController::class, 'index']);
         Route::post('branches', [BranchController::class, 'store']);
         Route::put('branches/{branch}', [BranchController::class, 'update']);
+        Route::get('branches/{branch}/settings', [BranchController::class, 'showSettings']);
+        Route::put('branches/{branch}/settings', [BranchController::class, 'updateSettings']);
+        Route::delete('branches/{branch}/settings', [BranchController::class, 'resetSettings']);
         Route::delete('branches/{branch}', [BranchController::class, 'destroy']);
         Route::get('departments', [DirectoryController::class, 'departments']);
         Route::get('roles', [DirectoryController::class, 'roles']);

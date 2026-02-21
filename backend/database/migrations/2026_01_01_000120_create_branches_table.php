@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->string('location');
             $table->string('contact_phone');
             $table->boolean('is_active')->default(true);
+            $table->json('settings')->nullable();
             $table->timestamps();
         });
     }
