@@ -14,6 +14,7 @@ class PatientController extends Controller
     public function index(Request $request)
     {
         $phone = $request->string('phone')->value();
+        $name = trim($request->string('name')->value());
         $page = max(1, $request->integer('page', 1));
 
         $patients = Patient::query()
@@ -26,7 +27,74 @@ class PatientController extends Controller
                 ->latest('created_at')
                 ->simplePaginate(50, ['*'], 'page', $page);
 
+        if ($request->filled('phone')) {
+            $normalizedInputPhone = $this->normalizePhone($phone);
+
+            $patients->getCollection()->transform(function (Patient $patient) use ($name, $normalizedInputPhone) {
+                $nameSimilarity = $this->nameSimilarity($name, $patient->name);
+                $patient->setAttribute('duplicate_hint', [
+                    'confidence' => $this->confidenceFromSimilarity($nameSimilarity),
+                    'reason' => $this->duplicateReason($nameSimilarity),
+                    'nameSimilarity' => round($nameSimilarity, 2),
+                    'phoneExact' => $this->normalizePhone((string) $patient->phone) === $normalizedInputPhone,
+                ]);
+
+                return $patient;
+            });
+        }
+
         return PatientResource::collection($patients);
+    }
+
+    private function normalizePhone(string $value): string
+    {
+        return preg_replace('/\D+/', '', $value) ?? '';
+    }
+
+    private function nameSimilarity(string $inputName, string $candidateName): float
+    {
+        $normalizedInput = mb_strtolower(trim($inputName));
+        $normalizedCandidate = mb_strtolower(trim($candidateName));
+
+        if ($normalizedInput === '' || $normalizedCandidate === '') {
+            return 0.0;
+        }
+
+        $maxLength = max(mb_strlen($normalizedInput), mb_strlen($normalizedCandidate));
+
+        if ($maxLength === 0) {
+            return 0.0;
+        }
+
+        $distance = levenshtein($normalizedInput, $normalizedCandidate);
+
+        return max(0.0, 1 - ($distance / $maxLength));
+    }
+
+    private function confidenceFromSimilarity(float $similarity): string
+    {
+        if ($similarity >= 0.85) {
+            return 'high';
+        }
+
+        if ($similarity >= 0.65) {
+            return 'medium';
+        }
+
+        return 'low';
+    }
+
+    private function duplicateReason(float $similarity): string
+    {
+        if ($similarity >= 0.85) {
+            return 'Name is very close to an existing patient with matching phone.';
+        }
+
+        if ($similarity >= 0.65) {
+            return 'Name is somewhat similar to an existing patient with matching phone.';
+        }
+
+        return 'Phone matches but name similarity is low.';
     }
 
     public function store(Request $request): JsonResponse

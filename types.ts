@@ -117,6 +117,12 @@ export interface Patient {
   allergies?: string[];
   chronicConditions?: string[];
   balance: number; // Outstanding payments
+  duplicateHint?: {
+    confidence: 'high' | 'medium' | 'low';
+    reason: string;
+    nameSimilarity: number;
+    phoneExact: boolean;
+  };
 }
 
 export interface TimeSlot {
