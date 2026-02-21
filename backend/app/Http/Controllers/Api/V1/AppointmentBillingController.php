@@ -19,6 +19,8 @@ use RuntimeException;
 
 class AppointmentBillingController extends Controller
 {
+    private const BILLING_ACTION_ROLES = ['ADMIN', 'FINANCE_ADMIN', 'BRANCH_MANAGER'];
+
     public function __construct(private readonly DoctorEarningsCalculator $doctorEarningsCalculator)
     {
     }
@@ -141,22 +143,73 @@ class AppointmentBillingController extends Controller
                     'invoice_id' => $invoice->id,
                     'amount' => (float) $payment['amount'],
                     'method' => $payment['method'] ?? null,
+                    'metadata' => [
+                        'kind' => 'PAYMENT',
+                    ],
                     'paid_at' => now(),
                 ]);
 
                 $this->writeAuditLog($request, $invoice, 'PAYMENT_CREATED', $transaction, null, $transaction->toArray(), $validated['reason'] ?? null);
 
-                try {
-                    $this->doctorEarningsCalculator->recordForPayment($appointment, $invoice, $transaction);
-                } catch (RuntimeException $exception) {
-                    Log::warning('Skipping doctor earnings ledger creation during payment processing.', [
-                        'appointment_id' => $appointment->id,
-                        'invoice_id' => $invoice->id,
-                        'transaction_id' => $transaction->id,
-                        'message' => $exception->getMessage(),
-                    ]);
-                }
+                $this->recordDoctorEarningsForTransaction($appointment, $invoice, $transaction);
             });
+        });
+
+        $appointment->load('invoice.items', 'invoice.transactions', 'invoice.auditLogs.actor');
+
+        return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
+    public function refund(Request $request, Appointment $appointment): JsonResponse
+    {
+        abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
+        $this->assertCanManageBilling($request);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'method' => ['nullable', 'string', 'max:100'],
+            'originalTransactionId' => ['nullable', 'integer'],
+            'reference' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($request, $appointment, $validated): void {
+            $invoice = $appointment->invoice;
+            abort_if(! $invoice, 422, 'Appointment invoice was not initialized.');
+            abort_if(! $invoice->canRefund(), 422, 'Invoice is not refundable in its current state.');
+
+            $amount = (float) $validated['amount'];
+            $maxRefundable = max(0.0, (float) $invoice->paid_amount);
+            abort_if($amount > $maxRefundable, 422, 'Refund amount exceeds refundable balance.');
+
+            $originalTransaction = null;
+            if (isset($validated['originalTransactionId'])) {
+                $originalTransaction = Transaction::query()
+                    ->where('invoice_id', $invoice->id)
+                    ->where('id', $validated['originalTransactionId'])
+                    ->first();
+                abort_if(! $originalTransaction, 422, 'Original transaction reference is invalid for this invoice.');
+            }
+
+            $transaction = Transaction::query()->create([
+                'clinic_id' => $request->user()->clinic_id,
+                'invoice_id' => $invoice->id,
+                'amount' => -$amount,
+                'method' => $validated['method'] ?? null,
+                'metadata' => [
+                    'kind' => 'REFUND',
+                    'reason' => $validated['reason'],
+                    'original_transaction_id' => $originalTransaction?->id,
+                    'original_transaction_reference' => $validated['reference'] ?? (string) ($originalTransaction?->id ?? ''),
+                ],
+                'paid_at' => now(),
+            ]);
+
+            $invoice->paid_amount = max(0.0, (float) $invoice->paid_amount - $amount);
+            $this->recalculateInvoice($invoice);
+
+            $this->writeAuditLog($request, $invoice, 'PAYMENT_REFUNDED', $transaction, null, $transaction->toArray(), $validated['reason']);
+            $this->recordDoctorEarningsForTransaction($appointment, $invoice, $transaction);
         });
 
         $appointment->load('invoice.items', 'invoice.transactions', 'invoice.auditLogs.actor');
@@ -242,25 +295,49 @@ class AppointmentBillingController extends Controller
     {
         abort_unless($appointment->clinic_id === $request->user()->clinic_id, 404);
 
-        $validated = $request->validate([
+        $reason = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
-        ]);
+        ])['reason'];
 
-        DB::transaction(function () use ($request, $appointment, $validated): void {
-            $invoice = $appointment->invoice;
+        return $this->voidInvoiceInternal($request, $appointment->invoice, $reason, $appointment);
+    }
+
+    public function voidInvoice(Request $request, Invoice $invoice): JsonResponse
+    {
+        abort_unless($invoice->clinic_id === $request->user()->clinic_id, 404);
+
+        $reason = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ])['reason'];
+
+        $appointment = Appointment::query()->findOrFail($invoice->appointment_id);
+
+        return $this->voidInvoiceInternal($request, $invoice, $reason, $appointment);
+    }
+
+    private function voidInvoiceInternal(Request $request, ?Invoice $invoice, string $reason, Appointment $appointment): JsonResponse
+    {
+        $this->assertCanManageBilling($request);
+
+        DB::transaction(function () use ($request, $invoice, $reason): void {
             abort_if(! $invoice, 422, 'Appointment invoice was not initialized.');
             abort_if(! $invoice->canVoid(), 422, 'Invoice is already voided.');
 
             $before = $invoice->toArray();
             $invoice->lifecycle_state = Invoice::LIFECYCLE_VOIDED;
-            $invoice->save();
+            $this->recalculateInvoice($invoice);
 
-            $this->writeAuditLog($request, $invoice, 'INVOICE_VOIDED', $invoice, $before, $invoice->toArray(), $validated['reason']);
+            $this->writeAuditLog($request, $invoice, 'INVOICE_VOIDED', $invoice, $before, $invoice->toArray(), $reason);
         });
 
         $appointment->load('invoice.items', 'invoice.transactions', 'invoice.auditLogs.actor');
 
         return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
+    private function assertCanManageBilling(Request $request): void
+    {
+        abort_unless(in_array((string) $request->user()->role, self::BILLING_ACTION_ROLES, true), 403, 'You are not allowed to perform this billing action.');
     }
 
     private function assertInvoiceMutable(Invoice $invoice): void
@@ -298,10 +375,35 @@ class AppointmentBillingController extends Controller
     private function recalculateInvoice(Invoice $invoice): void
     {
         $subtotal = (float) $invoice->items()->sum('total');
+        $paidAmount = max((float) $invoice->paid_amount, 0.0);
+        $hasRefundTransactions = $invoice->transactions()->where('amount', '<', 0)->exists();
+
         $invoice->total = $subtotal;
-        $invoice->status = $invoice->paid_amount >= $subtotal
-            ? Invoice::BILLING_PAID
-            : ($invoice->paid_amount > 0 ? Invoice::BILLING_PARTIAL : Invoice::BILLING_UNPAID);
+
+        if ($invoice->currentLifecycleState() === Invoice::LIFECYCLE_VOIDED) {
+            $invoice->status = Invoice::BILLING_VOIDED;
+        } elseif ($paidAmount <= 0.0) {
+            $invoice->status = $hasRefundTransactions ? Invoice::BILLING_REFUNDED : Invoice::BILLING_UNPAID;
+        } elseif ($paidAmount < $subtotal) {
+            $invoice->status = Invoice::BILLING_PARTIAL;
+        } else {
+            $invoice->status = Invoice::BILLING_PAID;
+        }
+
         $invoice->save();
+    }
+
+    private function recordDoctorEarningsForTransaction(Appointment $appointment, Invoice $invoice, Transaction $transaction): void
+    {
+        try {
+            $this->doctorEarningsCalculator->recordForPayment($appointment, $invoice, $transaction);
+        } catch (RuntimeException $exception) {
+            Log::warning('Skipping doctor earnings ledger creation during payment processing.', [
+                'appointment_id' => $appointment->id,
+                'invoice_id' => $invoice->id,
+                'transaction_id' => $transaction->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }

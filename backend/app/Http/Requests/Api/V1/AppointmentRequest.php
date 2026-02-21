@@ -26,7 +26,7 @@ class AppointmentRequest extends FormRequest
             'billing' => ['required', 'array'],
             'billing.total' => ['required', 'numeric', 'min:0'],
             'billing.paidAmount' => ['required', 'numeric', 'min:0'],
-            'billing.status' => ['required', 'in:PAID,UNPAID,PARTIAL'],
+            'billing.status' => ['required', 'in:PAID,UNPAID,PARTIAL,REFUNDED,VOIDED'],
         ];
     }
 }

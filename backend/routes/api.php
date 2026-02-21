@@ -64,9 +64,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'updateItem']);
         Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem']);
         Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment']);
+        Route::post('appointments/{appointment}/billing/refunds', [AppointmentBillingController::class, 'refund']);
         Route::post('appointments/{appointment}/billing/finalize', [AppointmentBillingController::class, 'finalize']);
         Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
         Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
+        Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
         Route::get('reports/financial', [FinancialReportController::class, 'index']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index']);
