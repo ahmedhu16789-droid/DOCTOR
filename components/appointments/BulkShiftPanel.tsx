@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getDoctorsFromApi, shiftAppointmentsViaApi } from '../../services/api';
+import { getDelayInsightViaApi, getDoctorsFromApi, previewShiftAppointmentsViaApi, shiftAppointmentsViaApi } from '../../services/api';
 import { User, UserRole } from '../../types';
 
 interface BulkShiftPanelProps {
@@ -23,6 +23,8 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [delayInsight, setDelayInsight] = useState<any | null>(null);
+  const [previewRows, setPreviewRows] = useState<Array<{ appointmentId: string; status: string; preserved?: boolean; beforeTime: string; afterTime: string }> | null>(null);
 
   useEffect(() => {
     if (!activeBranchId) {
@@ -35,10 +37,6 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       .then((payload) => {
         setDoctorOptions(payload);
         setDoctorId((currentDoctorId) => {
-          if (currentUser.role === UserRole.DOCTOR) {
-            return currentUser.id;
-          }
-
           if (currentDoctorId && payload.some((doctor) => doctor.id === currentDoctorId)) {
             return currentDoctorId;
           }
@@ -50,11 +48,33 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
         setDoctorOptions([]);
         setDoctorId('');
       });
-  }, [activeBranchId, currentUser.id, currentUser.role]);
+  }, [activeBranchId]);
 
   const canShiftAppointments = useMemo(() => {
-    return [UserRole.ADMIN, UserRole.DOCTOR, UserRole.RECEPTIONIST].includes(currentUser.role);
+    return [UserRole.ADMIN, UserRole.BRANCH_MANAGER, UserRole.RECEPTIONIST].includes(currentUser.role);
   }, [currentUser.role]);
+
+  useEffect(() => {
+    if (!doctorId || !activeBranchId || !canShiftAppointments) {
+      setDelayInsight(null);
+      return;
+    }
+
+    getDelayInsightViaApi({
+      doctorId,
+      branchId: activeBranchId,
+      date,
+    })
+      .then((insight) => {
+        setDelayInsight(insight);
+
+        if (insight.showAlert) {
+          setFromTime(insight.fromTime ?? fromTime);
+          setShiftMinutes(insight.suggestedShiftMinutes || shiftMinutes);
+        }
+      })
+      .catch(() => setDelayInsight(null));
+  }, [doctorId, activeBranchId, date, canShiftAppointments]);
 
   if (!canShiftAppointments) {
     return null;
@@ -82,12 +102,36 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       });
 
       setFeedback(t('migration_success', { count: result.shiftedAppointments }));
+      setPreviewRows(null);
       await onShiftApplied?.();
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : t('migration_error');
       setError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!doctorId || !activeBranchId) {
+      setError(t('migration_validation'));
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const preview = await previewShiftAppointmentsViaApi({
+        doctorId,
+        branchId: activeBranchId,
+        date,
+        fromTime,
+        shiftMinutes,
+      });
+      setPreviewRows(preview.preview ?? []);
+    } catch (previewError) {
+      const message = previewError instanceof Error ? previewError.message : t('migration_error');
+      setError(message);
     }
   };
 
@@ -111,12 +155,18 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
 
       {isExpanded && (
         <form onSubmit={handleSubmit} className="space-y-3 pt-2">
+          {delayInsight?.showAlert && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div className="flex items-center gap-2 font-semibold"><AlertCircle className="w-4 h-4" /> {t('delay_detection_alert_title')}</div>
+              <div>{t('delay_detection_alert_body', { delay: delayInsight.delayMinutes, count: delayInsight.impactedCount, shift: delayInsight.suggestedShiftMinutes })}</div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('doctor')}</label>
             <select
               value={doctorId}
               onChange={(event) => setDoctorId(event.target.value)}
-              disabled={currentUser.role === UserRole.DOCTOR}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
             >
               {doctorOptions.map((doctor) => (
@@ -159,21 +209,34 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
             </select>
           </div>
 
-          {feedback && <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">{feedback}</p>}
-          {error && (
-            <p className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-3 py-2 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
-            </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={handlePreview} className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold hover:bg-gray-50">
+              {t('migration_preview')}
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-70"
+            >
+              {isSubmitting ? t('migration_loading') : t('migration_submit')}
+            </button>
+          </div>
+
+          {previewRows && (
+            <div className="rounded-lg border border-gray-200">
+              <div className="max-h-48 overflow-auto text-xs">
+                {previewRows.map((row) => (
+                  <div key={row.appointmentId} className="flex justify-between px-3 py-2 border-b border-gray-100">
+                    <span>{row.beforeTime} → {row.afterTime}</span>
+                    <span className={row.preserved ? 'text-gray-400' : 'text-gray-700'}>{row.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting || !doctorId || !activeBranchId}
-            className="w-full bg-primary-600 text-white rounded-md px-3 py-2 text-sm font-semibold hover:bg-primary-700 disabled:opacity-60"
-          >
-            {isSubmitting ? t('migration_loading') : t('migration_submit')}
-          </button>
+          {feedback && <p className="text-sm text-green-600 font-medium">{feedback}</p>}
+          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
         </form>
       )}
     </div>

@@ -17,7 +17,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
     public function test_bulk_shift_moves_appointments_after_given_time(): void
     {
-        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+        [$doctor, $branch, $patient, $clinic, $reception] = $this->seedContext();
 
         $appointmentOne = Appointment::query()->create([
             'clinic_id' => $clinic->id,
@@ -39,7 +39,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
             'status' => 'SCHEDULED',
         ]);
 
-        Sanctum::actingAs($doctor);
+        Sanctum::actingAs($reception);
 
         $this->postJson('/api/v1/appointments/shift', [
             'doctorId' => $doctor->id,
@@ -59,7 +59,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
     public function test_bulk_shift_updates_future_available_slots_even_if_not_booked(): void
     {
-        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+        [$doctor, $branch, $patient, $clinic, $reception] = $this->seedContext();
 
         Appointment::query()->create([
             'clinic_id' => $clinic->id,
@@ -71,7 +71,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
             'status' => 'SCHEDULED',
         ]);
 
-        Sanctum::actingAs($doctor);
+        Sanctum::actingAs($reception);
 
         $this->postJson('/api/v1/appointments/shift', [
             'doctorId' => $doctor->id,
@@ -105,7 +105,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
     public function test_bulk_shift_is_forbidden_for_non_supported_roles(): void
     {
-        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+        [$doctor, $branch, $patient, $clinic, $reception] = $this->seedContext();
 
         Appointment::query()->create([
             'clinic_id' => $clinic->id,
@@ -136,7 +136,7 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
     public function test_reschedule_updates_target_slot_when_available(): void
     {
-        [$doctor, $branch, $patient, $clinic] = $this->seedContext();
+        [$doctor, $branch, $patient, $clinic, $reception] = $this->seedContext();
 
         $appointment = Appointment::query()->create([
             'clinic_id' => $clinic->id,
@@ -162,6 +162,40 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
         $this->assertSame('10:00', $fresh->time_slot);
         $this->assertSame('SCHEDULED', $fresh->status);
+    }
+
+
+    public function test_bulk_shift_is_idempotent_for_same_scope(): void
+    {
+        [$doctor, $branch, $patient, $clinic, $reception] = $this->seedContext();
+
+        Appointment::query()->create([
+            'clinic_id' => $clinic->id,
+            'branch_id' => $branch->id,
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+            'date' => '2026-03-10',
+            'time_slot' => '09:00',
+            'status' => 'SCHEDULED',
+        ]);
+
+        Sanctum::actingAs($reception);
+
+        $this->postJson('/api/v1/appointments/shift', [
+            'doctorId' => $doctor->id,
+            'branchId' => $branch->id,
+            'date' => '2026-03-10',
+            'fromTime' => '09:00',
+            'shiftMinutes' => 30,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/appointments/shift', [
+            'doctorId' => $doctor->id,
+            'branchId' => $branch->id,
+            'date' => '2026-03-10',
+            'fromTime' => '09:00',
+            'shiftMinutes' => 30,
+        ])->assertStatus(422);
     }
 
     private function seedContext(): array
@@ -192,6 +226,14 @@ class AppointmentRescheduleAndShiftTest extends TestCase
 
         $doctor->branches()->attach($branch->id, ['clinic_id' => $clinic->id]);
 
+        $reception = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'RECEPTIONIST',
+            'password' => 'password123',
+        ]);
+
+        $reception->branches()->attach($branch->id, ['clinic_id' => $clinic->id]);
+
         $patient = Patient::query()->create([
             'clinic_id' => $clinic->id,
             'name' => 'Patient One',
@@ -201,6 +243,6 @@ class AppointmentRescheduleAndShiftTest extends TestCase
             'medical_history_summary' => null,
         ]);
 
-        return [$doctor, $branch, $patient, $clinic];
+        return [$doctor, $branch, $patient, $clinic, $reception];
     }
 }

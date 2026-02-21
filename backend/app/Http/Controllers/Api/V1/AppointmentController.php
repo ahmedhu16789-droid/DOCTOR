@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
@@ -128,12 +129,8 @@ class AppointmentController extends Controller
             'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
         ]);
 
-        $allowedRoles = ['ADMIN', 'DOCTOR', 'RECEPTIONIST'];
+        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
         abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
-
-        if ($request->user()->role === 'DOCTOR') {
-            abort_if((int) $request->user()->id !== (int) $validated['doctorId'], 403, 'Doctors can only shift their own appointments.');
-        }
 
         $clinicId = $request->user()->clinic_id;
 
@@ -147,14 +144,14 @@ class AppointmentController extends Controller
 
         abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
 
-        $shiftedCount = DB::transaction(function () use ($clinicId, $validated): int {
+        $shiftedCount = DB::transaction(function () use ($clinicId, $validated, $request): int {
             $appointments = Appointment::query()
                 ->where('clinic_id', $clinicId)
                 ->where('doctor_id', $validated['doctorId'])
                 ->where('branch_id', $validated['branchId'])
                 ->whereDate('date', $validated['date'])
                 ->where('time_slot', '>=', $validated['fromTime'])
-                ->whereNotIn('status', ['CANCELLED', 'NO_SHOW'])
+                ->whereNotIn('status', ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'])
                 ->orderBy('time_slot')
                 ->lockForUpdate()
                 ->get();
@@ -167,6 +164,25 @@ class AppointmentController extends Controller
                 ]);
             }
 
+            if ($appointments->isEmpty()) {
+                return 0;
+            }
+
+            $alreadyShifted = AppointmentSlotShift::query()
+                ->where('clinic_id', $clinicId)
+                ->where('doctor_id', $validated['doctorId'])
+                ->where('branch_id', $validated['branchId'])
+                ->whereDate('date', $validated['date'])
+                ->where('from_time', $validated['fromTime'])
+                ->where('shift_minutes', $validated['shiftMinutes'])
+                ->exists();
+
+            if ($alreadyShifted) {
+                throw ValidationException::withMessages([
+                    'shiftMinutes' => 'This shift has already been applied for the selected scope.',
+                ]);
+            }
+
             AppointmentSlotShift::query()->create([
                 'clinic_id' => $clinicId,
                 'doctor_id' => $validated['doctorId'],
@@ -174,6 +190,7 @@ class AppointmentController extends Controller
                 'date' => $validated['date'],
                 'from_time' => $validated['fromTime'],
                 'shift_minutes' => $validated['shiftMinutes'],
+                'applied_by_user_id' => $request->user()->id,
             ]);
 
             return $appointments->count();
@@ -189,6 +206,178 @@ class AppointmentController extends Controller
                 'date' => $validated['date'],
                 'fromTime' => $validated['fromTime'],
                 'shiftMinutes' => $validated['shiftMinutes'],
+            ],
+        ]);
+    }
+
+    public function delayInsight(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'doctorId' => ['required', 'integer', 'exists:users,id'],
+            'branchId' => ['required', 'integer', 'exists:branches,id'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
+        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+
+        $clinicId = $request->user()->clinic_id;
+        $date = (string) ($validated['date'] ?? now()->toDateString());
+
+        $doctor = User::query()
+            ->select(['id'])
+            ->whereKey($validated['doctorId'])
+            ->where('clinic_id', $clinicId)
+            ->where('role', 'DOCTOR')
+            ->whereHas('branches', fn ($query) => $query->where('branches.id', $validated['branchId']))
+            ->first();
+
+        abort_if(! $doctor, 422, 'Doctor is not assigned to the selected branch.');
+
+        $appointments = Appointment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $validated['doctorId'])
+            ->where('branch_id', $validated['branchId'])
+            ->whereDate('date', $date)
+            ->orderBy('time_slot')
+            ->get();
+
+        $timezone = data_get($request->user()->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
+        $now = now()->timezone($timezone);
+        $graceMinutes = max(0, (int) config('appointments.delay_detection.grace_minutes', 5));
+        $thresholdMinutes = max(1, (int) config('appointments.delay_detection.threshold_minutes', 10));
+        $roundingMinutes = max(1, (int) config('appointments.delay_detection.rounding_minutes', 5));
+        $mode = (string) config('appointments.delay_detection.mode', 'scheduled_start');
+
+        $activeStatuses = ['WAITING', 'CALLED', 'IN_PROGRESS'];
+        $current = $appointments
+            ->first(fn (Appointment $appointment) => in_array($appointment->status, $activeStatuses, true));
+
+        if (! $current) {
+            $current = $appointments
+                ->first(fn (Appointment $appointment) => $appointment->status === 'SCHEDULED' && $appointment->time_slot <= $now->format('H:i'));
+        }
+
+        if (! $current) {
+            return response()->json([
+                'data' => [
+                    'showAlert' => false,
+                    'reason' => 'No active delayed appointment found.',
+                    'delayMinutes' => 0,
+                    'impactedCount' => 0,
+                    'suggestedShiftMinutes' => 0,
+                    'fromTime' => null,
+                    'preview' => [],
+                    'config' => [
+                        'graceMinutes' => $graceMinutes,
+                        'thresholdMinutes' => $thresholdMinutes,
+                        'roundingMinutes' => $roundingMinutes,
+                        'mode' => $mode,
+                    ],
+                ],
+            ]);
+        }
+
+        $currentStart = Carbon::createFromFormat('Y-m-d H:i', sprintf('%s %s', $date, $current->time_slot), $timezone);
+        $referenceTime = $currentStart;
+
+        if ($mode === 'expected_end') {
+            $slotDuration = $this->resolveDoctorSlotDuration($request->user()->clinic_id, (int) $validated['doctorId'], (int) $validated['branchId'], $currentStart);
+            $referenceTime = $currentStart->copy()->addMinutes($slotDuration);
+        }
+
+        $rawDelayMinutes = max(0, $referenceTime->diffInMinutes($now, false) - $graceMinutes);
+        $roundedShift = $rawDelayMinutes > 0
+            ? (int) (ceil($rawDelayMinutes / $roundingMinutes) * $roundingMinutes)
+            : 0;
+
+        $preservedStatuses = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
+        $upcoming = $appointments
+            ->filter(fn (Appointment $appointment) => $appointment->time_slot > $current->time_slot)
+            ->values();
+
+        $impacted = $upcoming
+            ->filter(fn (Appointment $appointment) => ! in_array($appointment->status, $preservedStatuses, true))
+            ->values();
+
+        $preview = $impacted->map(function (Appointment $appointment) use ($date, $timezone, $roundedShift): array {
+            $before = Carbon::createFromFormat('Y-m-d H:i', sprintf('%s %s', $date, $appointment->time_slot), $timezone);
+
+            return [
+                'appointmentId' => (string) $appointment->id,
+                'patientId' => (string) $appointment->patient_id,
+                'status' => (string) $appointment->status,
+                'beforeTime' => $appointment->time_slot,
+                'afterTime' => $before->copy()->addMinutes($roundedShift)->format('H:i'),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => [
+                'showAlert' => $rawDelayMinutes >= $thresholdMinutes && $roundedShift > 0 && $impacted->isNotEmpty(),
+                'delayMinutes' => $rawDelayMinutes,
+                'impactedCount' => $impacted->count(),
+                'suggestedShiftMinutes' => $roundedShift,
+                'fromTime' => $upcoming->first()?->time_slot,
+                'preview' => $preview,
+                'config' => [
+                    'graceMinutes' => $graceMinutes,
+                    'thresholdMinutes' => $thresholdMinutes,
+                    'roundingMinutes' => $roundingMinutes,
+                    'mode' => $mode,
+                ],
+            ],
+        ]);
+    }
+
+    public function delayShiftPreview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'doctorId' => ['required', 'integer', 'exists:users,id'],
+            'branchId' => ['required', 'integer', 'exists:branches,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'fromTime' => ['required', 'date_format:H:i'],
+            'shiftMinutes' => ['required', 'integer', 'min:1', 'max:720'],
+        ]);
+
+        $allowedRoles = ['ADMIN', 'BRANCH_MANAGER', 'RECEPTIONIST'];
+        abort_unless(in_array((string) $request->user()->role, $allowedRoles, true), 403);
+
+        $clinicId = $request->user()->clinic_id;
+        $timezone = data_get($request->user()->clinic?->settings, 'timezone', config('app.timezone', 'UTC'));
+
+        $appointments = Appointment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('doctor_id', $validated['doctorId'])
+            ->where('branch_id', $validated['branchId'])
+            ->whereDate('date', $validated['date'])
+            ->where('time_slot', '>=', $validated['fromTime'])
+            ->orderBy('time_slot')
+            ->get();
+
+        $preservedStatuses = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
+
+        $preview = $appointments->map(function (Appointment $appointment) use ($validated, $timezone, $preservedStatuses): array {
+            $before = Carbon::createFromFormat('Y-m-d H:i', sprintf('%s %s', $validated['date'], $appointment->time_slot), $timezone);
+            $preserved = in_array($appointment->status, $preservedStatuses, true);
+
+            return [
+                'appointmentId' => (string) $appointment->id,
+                'status' => (string) $appointment->status,
+                'preserved' => $preserved,
+                'beforeTime' => $appointment->time_slot,
+                'afterTime' => $preserved ? $appointment->time_slot : $before->copy()->addMinutes((int) $validated['shiftMinutes'])->format('H:i'),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => [
+                'doctorId' => (string) $validated['doctorId'],
+                'branchId' => (string) $validated['branchId'],
+                'date' => $validated['date'],
+                'fromTime' => $validated['fromTime'],
+                'shiftMinutes' => (int) $validated['shiftMinutes'],
+                'preview' => $preview,
             ],
         ]);
     }
@@ -352,6 +541,36 @@ class AppointmentController extends Controller
         ApiCache::bump('appointments.index', $request->user()->clinic_id);
 
         return response()->json(['data' => new AppointmentResource($appointment)]);
+    }
+
+    private function resolveDoctorSlotDuration(int $clinicId, int $doctorId, int $branchId, Carbon $date): int
+    {
+        $doctor = User::query()
+            ->select(['id', 'schedule'])
+            ->whereKey($doctorId)
+            ->where('clinic_id', $clinicId)
+            ->where('role', 'DOCTOR')
+            ->first();
+
+        $dayOfWeek = (int) $date->dayOfWeek;
+
+        $slot = collect($doctor?->schedule ?? [])->first(function (array $shift) use ($branchId, $dayOfWeek, $date): bool {
+            if ((int) ($shift['dayOfWeek'] ?? -1) !== $dayOfWeek) {
+                return false;
+            }
+
+            if ((int) ($shift['branchId'] ?? 0) !== $branchId) {
+                return false;
+            }
+
+            $start = (string) ($shift['startTime'] ?? '00:00');
+            $end = (string) ($shift['endTime'] ?? '23:59');
+            $time = $date->format('H:i');
+
+            return $time >= $start && $time < $end;
+        });
+
+        return max(5, (int) ($slot['slotDuration'] ?? 20));
     }
 
     public function store(AppointmentRequest $request): JsonResponse
