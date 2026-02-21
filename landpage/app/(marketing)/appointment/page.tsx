@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { getLandingData } from "@/lib/getLandingData";
 import { getAppointmentJsonLd } from "@/lib/seoJsonLd";
+import { getClinicContext } from "@/lib/publicBookingApi";
 
 const data = getLandingData();
 const appointment = data.appointmentPage;
@@ -33,8 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AppointmentPage() {
+export default async function AppointmentPage() {
   const jsonLd = getAppointmentJsonLd(data);
+  const clinicContext = await getClinicContext();
 
   return (
     <>
@@ -48,7 +50,10 @@ export default function AppointmentPage() {
         }}
       />
       <main id="main-content" className="min-h-screen bg-slate-50">
-        <AppointmentLayout sidebar={<ClinicInfoCard clinicInfo={appointment.clinicInfo} />} content={<BookingCard data={appointment} />} />
+        <AppointmentLayout
+          sidebar={<ClinicInfoCard clinicInfo={appointment.clinicInfo} clinicContext={clinicContext} />}
+          content={<BookingCard data={appointment} clinicContext={clinicContext} />}
+        />
       </main>
       <Footer brand={{ name: data.brand.name, logoText: appointment.nav.brand.logoText }} footer={data.footer} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />

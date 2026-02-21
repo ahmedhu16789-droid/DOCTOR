@@ -1,7 +1,12 @@
 import Image from "next/image";
 import type { AppointmentPageData } from "@/types/landing";
+import type { BookingClinicContext } from "@/lib/publicBookingApi";
 
-export function ClinicInfoCard({ clinicInfo }: { clinicInfo: AppointmentPageData["clinicInfo"] }) {
+export function ClinicInfoCard({ clinicInfo, clinicContext }: { clinicInfo: AppointmentPageData["clinicInfo"]; clinicContext: BookingClinicContext | null }) {
+  const location = clinicContext?.clinic.address || clinicInfo.location;
+  const phone = clinicContext?.clinic.phone || clinicInfo.phone;
+  const hours = clinicContext?.clinic.hours || clinicInfo.hours;
+
   return (
     <div className="sticky top-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6">
@@ -16,9 +21,9 @@ export function ClinicInfoCard({ clinicInfo }: { clinicInfo: AppointmentPageData
         </div>
       </div>
       <div className="space-y-4">
-        <InfoItem label={clinicInfo.locationLabel} value={clinicInfo.location} icon="📍" />
-        <InfoItem label={clinicInfo.phoneLabel} value={clinicInfo.phone} icon="📞" />
-        <InfoItem label={clinicInfo.hoursLabel} value={clinicInfo.hours} icon="🕒" />
+        <InfoItem label={clinicInfo.locationLabel} value={location} icon="📍" />
+        <InfoItem label={clinicInfo.phoneLabel} value={phone} icon="📞" />
+        <InfoItem label={clinicInfo.hoursLabel} value={hours} icon="🕒" />
       </div>
       <div className="mt-6 border-t border-slate-100 pt-6">
         <div className="relative h-32 overflow-hidden rounded-lg bg-slate-200">
