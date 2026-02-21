@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsurePatientAuthenticated;
 use App\Http\Middleware\EnsureUserCanAccessBranch;
+use App\Http\Middleware\EnsureUserHasPermission;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'branch.access' => EnsureUserCanAccessBranch::class,
+            'permission.access' => EnsureUserHasPermission::class,
             'patient.auth' => EnsurePatientAuthenticated::class,
         ]);
     })
