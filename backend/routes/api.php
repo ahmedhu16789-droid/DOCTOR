@@ -108,6 +108,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
         Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
         Route::get('reports/financial', [FinancialReportController::class, 'index'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::get('reports/financial/export', [FinancialReportController::class, 'export'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+        Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
+            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
             ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
         Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
             ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);

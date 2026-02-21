@@ -424,6 +424,33 @@ class DoctorPayrollControllerTest extends TestCase
     /**
      * @return array{0: User, 1: User}
      */
+
+
+    public function test_it_exports_doctor_payroll_csv_with_filter_context_filename(): void
+    {
+        [$actor, $doctor] = $this->createUsersInSameClinic();
+
+        DoctorEarningsLedger::query()->create([
+            'clinic_id' => $actor->clinic_id,
+            'doctor_id' => $doctor->id,
+            'period_month' => '2026-02',
+            'earning_type' => 'COMMISSION',
+            'basis_amount' => 1000,
+            'rate' => 20,
+            'amount' => 200,
+            'currency' => 'EGP',
+            'status' => 'PENDING',
+        ]);
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->get('/api/v1/reports/doctor-payroll/export?period_month=2026-02&format=csv')
+            ->assertOk();
+
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('doctor-payroll_all-branches_2026-02.csv', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('Doctor Payroll Export', $response->streamedContent());
+    }
     private function createUsersInSameClinic(): array
     {
         $clinic = Clinic::query()->create([

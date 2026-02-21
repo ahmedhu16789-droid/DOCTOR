@@ -93,6 +93,58 @@ class FinancialReportFilterTest extends TestCase
             ->assertJsonCount(1, 'data.recentTransactions');
     }
 
+
+
+    public function test_it_exports_financial_report_csv_with_filter_context_filename(): void
+    {
+        Carbon::setTestNow('2026-03-05 10:00:00');
+
+        $clinic = Clinic::query()->create([
+            'name' => 'Finance Clinic',
+            'subscription_status' => 'trial',
+            'settings' => ['timezone' => 'UTC', 'currency' => 'EGP'],
+        ]);
+
+        $branch = Branch::query()->create([
+            'clinic_id' => $clinic->id,
+            'name' => 'Branch A',
+            'location' => 'Cairo',
+            'contact_phone' => '01010000001',
+            'is_active' => true,
+        ]);
+
+        $admin = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'ADMIN',
+        ]);
+
+        $doctor = User::factory()->create([
+            'clinic_id' => $clinic->id,
+            'role' => 'DOCTOR',
+        ]);
+
+        $appointment = $this->seedAppointmentWithInvoice($clinic->id, $branch->id, $doctor->id, 100, 80);
+
+        Transaction::query()->create([
+            'clinic_id' => $clinic->id,
+            'invoice_id' => $appointment->invoice->id,
+            'amount' => 80,
+            'method' => 'CASH',
+            'paid_at' => now(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->get('/api/v1/reports/financial/export?branch_id='.$branch->id.'&from=2026-03-01&to=2026-03-31&format=csv')
+            ->assertOk();
+
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString(
+            'financial-report_branch-'.$branch->id.'_2026-03-01_to_2026-03-31.csv',
+            (string) $response->headers->get('content-disposition')
+        );
+        $this->assertStringContainsString('Financial Report Export', $response->streamedContent());
+    }
     private function seedAppointmentWithInvoice(int $clinicId, int $branchId, int $doctorId, float $total, float $paidAmount): Appointment
     {
         $patient = Patient::query()->create([
