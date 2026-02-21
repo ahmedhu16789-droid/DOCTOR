@@ -47,14 +47,14 @@ class DoctorEarningsLedger extends Model
                 return;
             }
 
-            $isClosed = DoctorPayrollPeriod::query()
+            $isMonthClosed = DoctorPayrollPeriod::query()
                 ->when($ledger->clinic_id, fn (Builder $query) => $query->where('clinic_id', $ledger->clinic_id))
                 ->where('doctor_id', $ledger->doctor_id)
                 ->where('period_month', $ledger->period_month)
-                ->whereIn('status', ['CLOSED', 'SETTLED'])
+                ->whereNotNull('closed_at')
                 ->exists();
 
-            if ($isClosed) {
+            if ($isMonthClosed) {
                 throw new RuntimeException('Payroll period is closed. New ledger entries are allowed only as ADJUSTMENT.');
             }
         });
