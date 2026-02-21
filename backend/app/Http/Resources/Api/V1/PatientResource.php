@@ -26,6 +26,7 @@ class PatientResource extends JsonResource
             'age' => $this->age,
             'medicalHistorySummary' => $this->medical_history_summary,
             'lastVisit' => $lastVisit,
+            'duplicateHint' => $this->when(isset($this->duplicate_hint), $this->duplicate_hint),
         ];
     }
 }

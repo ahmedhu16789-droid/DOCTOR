@@ -8,7 +8,7 @@ interface PatientLookupProps {
   patients: Patient[];
   onSelectPatient: (patient: Patient) => void;
   onAddNewPatient: (patient: Partial<Patient>) => Promise<Patient | void> | Patient | void;
-  onSearchByPhone?: (phone: string) => Promise<Patient[]>;
+  onSearchByPhone?: (phone: string, name?: string) => Promise<Patient[]>;
 }
 
 export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelectPatient, onAddNewPatient, onSearchByPhone }) => {
@@ -74,6 +74,30 @@ export const PatientLookup: React.FC<PatientLookupProps> = ({ patients, onSelect
     setIsSubmitting(true);
 
     try {
+      if (onSearchByPhone) {
+        const candidates = await onSearchByPhone(newPhone, newName);
+        const duplicateCandidates = candidates.filter((candidate) => {
+          if (!candidate.duplicateHint) return false;
+          return candidate.duplicateHint.phoneExact && candidate.duplicateHint.confidence !== 'low';
+        });
+
+        if (duplicateCandidates.length > 0) {
+          const duplicateSummary = duplicateCandidates
+            .slice(0, 3)
+            .map((candidate) => `• ${candidate.name} (${candidate.phone}) — ${candidate.duplicateHint?.reason ?? 'possible duplicate'}`)
+            .join('\n');
+
+          const shouldCreateDuplicate = window.confirm(
+            `Potential duplicate patient found:\n\n${duplicateSummary}\n\nCreate a new patient anyway?`
+          );
+
+          if (!shouldCreateDuplicate) {
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const created = await onAddNewPatient({
         name: newName,
         phone: newPhone,

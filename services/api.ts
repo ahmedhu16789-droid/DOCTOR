@@ -123,6 +123,12 @@ interface ApiPatient {
   age: number;
   medicalHistorySummary: string;
   lastVisit?: string | null;
+  duplicateHint?: {
+    confidence: 'high' | 'medium' | 'low';
+    reason: string;
+    nameSimilarity: number;
+    phoneExact: boolean;
+  };
 }
 
 interface ApiBranch {
@@ -359,6 +365,7 @@ const normalizePatient = (patient: ApiPatient): Patient => ({
   medicalHistorySummary: patient.medicalHistorySummary ?? 'New Patient',
   lastVisit: patient.lastVisit ?? '-',
   balance: 0,
+  duplicateHint: patient.duplicateHint,
 });
 
 const mapAppointmentType = (status: AppointmentStatus): 'Consultation' | 'Follow-up' | 'Procedure' => {
@@ -559,20 +566,24 @@ export const updateEmployeeViaApi = async (employee: User): Promise<User> => {
 };
 
 
-export const lookupPatientsByPhoneFromApi = async (phone: string): Promise<Patient[]> => {
+export const lookupPatientsByPhoneFromApi = async (phone: string, name?: string): Promise<Patient[]> => {
   const normalizedPhone = phone.trim();
   if (!normalizedPhone) return [];
 
-  const cached = patientLookupCache.get(normalizedPhone);
+  const cacheKey = `${normalizedPhone}|${name?.trim().toLowerCase() ?? ''}`;
+  const cached = patientLookupCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < 30_000) {
     return cached.data;
   }
 
   const query = new URLSearchParams({ phone: normalizedPhone });
+  if (name?.trim()) {
+    query.set('name', name.trim());
+  }
   const payload = await apiFetch<{ data: ApiPatient[] }>(`/patients?${query.toString()}`);
   const patients = (payload.data ?? []).map(normalizePatient);
 
-  patientLookupCache.set(normalizedPhone, { ts: Date.now(), data: patients });
+  patientLookupCache.set(cacheKey, { ts: Date.now(), data: patients });
 
   return patients;
 };
