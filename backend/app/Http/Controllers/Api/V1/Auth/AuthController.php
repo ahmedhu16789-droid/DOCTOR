@@ -152,12 +152,23 @@ class AuthController extends Controller
         
         $dayOfWeek = $now->dayOfWeek;
         $currentTime = $now->format('H:i');
+        $isDebug = (bool) config('app.debug');
 
-        Log::info("Calculated Active Branch Logic for User: {$user->id} ({$user->name})");
-        Log::info("Timezone: {$timezone} | DayOfWeek: {$dayOfWeek} | CurrentTime: {$currentTime}");
-        Log::info("User Branches Count: " . $user->branches->count());
-        Log::info("User Branches IDs: " . $user->branches->pluck('id')->implode(', '));
-        Log::info("Schedule: " . json_encode($user->schedule));
+        if ($isDebug) {
+            Log::debug('Resolving active branch during auth.', [
+                'user_id_masked' => $this->maskIdentifier((string) $user->id),
+                'timezone' => $timezone,
+                'day_of_week' => $dayOfWeek,
+                'current_time' => $currentTime,
+                'branch_count' => $user->branches->count(),
+                'branch_ids_masked' => $user->branches
+                    ->pluck('id')
+                    ->map(fn ($id) => $this->maskIdentifier((string) $id))
+                    ->values()
+                    ->all(),
+                'schedule_shift_count' => count($user->schedule ?? []),
+            ]);
+        }
 
         $activeShift = collect($user->schedule ?? [])->first(function (array $shift) use ($dayOfWeek, $currentTime): bool {
             $start = (string) ($shift['startTime'] ?? '00:00');
@@ -169,18 +180,52 @@ class AuthController extends Controller
                 && $start <= $currentTime
                 && $currentTime <= $end;
 
-            Log::info("Checking shift: Day: {$shiftDay}, Start: {$start}, End: {$end}, Branch: " . ($shift['branchId'] ?? 'N/A') . " => Active: " . ($isActive ? 'YES' : 'NO'));
+            if ($isDebug) {
+                Log::debug('Evaluated shift for active branch.', [
+                    'shift_day' => $shiftDay,
+                    'start' => $start,
+                    'end' => $end,
+                    'branch_id_masked' => isset($shift['branchId'])
+                        ? $this->maskIdentifier((string) $shift['branchId'])
+                        : null,
+                    'is_active' => $isActive,
+                ]);
+            }
+
             return $isActive;
         });
 
         if (is_array($activeShift) && isset($activeShift['branchId'])) {
-            Log::info("Found active shift branch: " . $activeShift['branchId']);
+            if ($isDebug) {
+                Log::debug('Resolved active branch from matching shift.', [
+                    'branch_id_masked' => $this->maskIdentifier((string) $activeShift['branchId']),
+                ]);
+            }
+
             return (string) $activeShift['branchId'];
         }
 
         $firstAssignedBranch = $user->branches->pluck('id')->first();
-        Log::info("Fallback to first assigned branch: " . ($firstAssignedBranch ?? 'NONE'));
+
+        if ($isDebug) {
+            Log::debug('Fallback to first assigned branch.', [
+                'branch_id_masked' => $firstAssignedBranch
+                    ? $this->maskIdentifier((string) $firstAssignedBranch)
+                    : null,
+            ]);
+        }
 
         return $firstAssignedBranch ? (string) $firstAssignedBranch : null;
+    }
+
+    private function maskIdentifier(string $id): string
+    {
+        $length = strlen($id);
+
+        if ($length <= 4) {
+            return str_repeat('*', $length);
+        }
+
+        return substr($id, 0, 2) . str_repeat('*', $length - 4) . substr($id, -2);
     }
 }
