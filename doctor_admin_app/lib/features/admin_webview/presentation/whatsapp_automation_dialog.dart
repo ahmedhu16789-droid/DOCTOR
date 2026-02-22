@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -42,6 +44,8 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
   int _currentIndex = 0;
   String _statusMessage = 'Initializing...';
   StreamSubscription<LoadingState>? _loadingSubscription;
+  bool _isWhatsAppBootstrapped = false;
+  final _random = Random();
 
   @override
   void initState() {
@@ -61,6 +65,15 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       _processNextMessage();
     } on PlatformException catch (e) {
       debugPrint('Webview init error: $e');
+      if (e.code == 'environment_already_initialized') {
+        if (!mounted) return;
+        setState(() {
+          _initialized = true;
+          _statusMessage = 'Ready. Loading WhatsApp...';
+        });
+        _processNextMessage();
+        return;
+      }
       widget.onCompleted?.call();
     }
   }
@@ -86,6 +99,96 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     await Future.delayed(const Duration(seconds: 5));
   }
 
+
+  String _normalizePhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digits.isEmpty) return phone;
+
+    var cleaned = digits;
+    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
+    if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
+
+    if (cleaned.startsWith('20')) return cleaned;
+    if (cleaned.startsWith('0') && cleaned.length >= 10) return '20${cleaned.substring(1)}';
+    if (cleaned.length == 10 || cleaned.length == 11) return '20$cleaned';
+
+    return cleaned;
+  }
+
+  Future<bool> _bootstrapWhatsAppShell() async {
+    if (_isWhatsAppBootstrapped) return true;
+
+    await _controller.loadUrl('https://web.whatsapp.com/');
+    await _waitForPageLoad(timeout: const Duration(seconds: 40));
+
+    for (int i = 0; i < 40; i++) {
+      final state = await _executeScriptWithRetry(r"""
+        (function() {
+          var body = document.body;
+          if (!body) return 'NO_BODY';
+          var bodyLen = (body.innerText || '').length + (body.innerHTML || '').length;
+          var hasQr = !!document.querySelector('[data-ref]');
+          var hasSide = !!document.querySelector('#pane-side');
+          var hasLanding = !!document.querySelector('[data-testid="chat-list-search"]');
+          if (hasQr) return 'NEEDS_LOGIN';
+          if (hasSide || hasLanding) return 'READY';
+          if (bodyLen > 2000) return 'PARTIAL';
+          return 'BLANK';
+        })();
+      """, retries: 1, delay: const Duration(milliseconds: 1));
+
+      if (state == 'READY' || state == 'NEEDS_LOGIN' || state == 'PARTIAL') {
+        _isWhatsAppBootstrapped = true;
+        return true;
+      }
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+
+    return false;
+  }
+
+  Future<String?> _executeScriptWithRetry(
+    String script, {
+    int retries = 12,
+    Duration delay = const Duration(milliseconds: 700),
+  }) async {
+    for (int i = 0; i < retries; i++) {
+      final result = await _controller.executeScript(script);
+      final value = result?.toString().trim();
+      if (value != null && value.isNotEmpty && value != 'null') {
+        return value;
+      }
+      await Future.delayed(delay);
+    }
+    return null;
+  }
+
+  Future<bool> _waitForComposerReady() async {
+    for (int i = 0; i < 50; i++) {
+      final state = await _executeScriptWithRetry(r'''
+        (function() {
+          if (document.querySelector('[data-ref]')) return 'NEEDS_LOGIN';
+
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+
+          if (!composer) return 'WAITING_CHAT';
+
+          var rect = composer.getBoundingClientRect();
+          var visible = rect.width > 0 && rect.height > 0;
+          return visible ? 'CHAT_READY' : 'CHAT_HIDDEN';
+        })();
+      ''', retries: 1, delay: const Duration(milliseconds: 1));
+
+      if (state == 'CHAT_READY') return true;
+      if (state == 'NEEDS_LOGIN') return false;
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
+    return false;
+  }
+
   void _processNextMessage() async {
     if (_isProcessing) return;
     if (_currentIndex >= widget.messages.length) {
@@ -104,13 +207,18 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
     }
 
     try {
-      final encodedText = Uri.encodeComponent(msg.text);
-      final url = 'https://web.whatsapp.com/send?phone=${msg.phone}&text=$encodedText';
+      final normalizedPhone = _normalizePhone(msg.phone);
+      final url = 'https://web.whatsapp.com/send?phone=$normalizedPhone';
+
+      final bootstrapReady = await _bootstrapWhatsAppShell();
+      if (!bootstrapReady) {
+        throw Exception('WhatsApp shell failed to initialize.');
+      }
 
       // --- Load the page and wait for it to complete ---
       await _controller.loadUrl(url);
-      await _waitForPageLoad();
-      debugPrint('WA: Page loaded for ${msg.phone}');
+      await _waitForPageLoad(timeout: const Duration(seconds: 35));
+      debugPrint('WA: Page loaded for ${msg.phone} (normalized: $normalizedPhone)');
 
       // --- Check for QR / Login screen ---
       final loginCheck = await _controller.executeScript(r'''
@@ -147,9 +255,53 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
         // Reload after login and wait for page
         if (mounted) setState(() => _statusMessage = 'Logged in! Loading chat...');
         await _controller.loadUrl(url);
-        await _waitForPageLoad();
+        await _waitForPageLoad(timeout: const Duration(seconds: 35));
       } else {
         widget.onLoggedIn?.call();
+      }
+
+      var chatReady = await _waitForComposerReady();
+      if (!chatReady) {
+        final fallbackUrl = 'https://web.whatsapp.com/send?phone=$normalizedPhone&text=${Uri.encodeComponent(msg.text)}';
+        debugPrint('WA: Composer not ready. Retrying with fallback url...');
+        await _controller.loadUrl(fallbackUrl);
+        await _waitForPageLoad(timeout: const Duration(seconds: 35));
+        chatReady = await _waitForComposerReady();
+      }
+      if (!chatReady) {
+        throw Exception('Chat is not ready for ${msg.phone} (normalized: $normalizedPhone).');
+      }
+
+      final messageTextJson = jsonEncode(msg.text);
+      final fillResult = await _executeScriptWithRetry('''
+        (function() {
+          var message = $messageTextJson;
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+          if (!composer) return 'COMPOSER_NOT_FOUND';
+
+          composer.focus();
+          try {
+            composer.click();
+            document.execCommand('insertText', false, message);
+          } catch (e) {
+            composer.textContent = message;
+          }
+
+          composer.dispatchEvent(new InputEvent('input', {
+            bubbles: true,
+            data: message,
+            inputType: 'insertText'
+          }));
+
+          return 'TEXT_READY:' + composer.tagName;
+        })();
+      ''', retries: 8, delay: const Duration(milliseconds: 900));
+      debugPrint('WA Fill: $fillResult');
+      if (fillResult == null || !fillResult.startsWith('TEXT_READY')) {
+        throw Exception('Failed to fill message composer for ${msg.phone}. result=$fillResult');
       }
 
       // --- Simulate human interaction to trigger React hydration ---
@@ -190,7 +342,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       debugPrint('WA: Human events injected, waiting for hydration...');
 
       // --- DEBUG: log DOM structure to find correct selectors ---
-      final domDebug = await _controller.executeScript(r'''
+      final domDebug = await _executeScriptWithRetry(r'''
         (function() {
           var info = 'visibility:' + document.visibilityState + ' bodyLen:' + document.body.innerHTML.length;
           // Dump all buttons
@@ -212,11 +364,11 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
           info += ' roles:[' + roleList.slice(0,10).join(',') + ']';
           return info;
         })();
-      ''');
+      ''', retries: 6, delay: const Duration(milliseconds: 700));
       debugPrint('WA DOM Debug: $domDebug');
 
       // --- Try to send the message ---
-      final sendResult = await _controller.executeScript(r'''
+      final sendResult = await _executeScriptWithRetry(r'''
         (function() {
           // 1. Try data-icon send spans
           var spans = document.querySelectorAll("span");
@@ -239,17 +391,23 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
           }
 
           // 3. Try data-testid
-          var testIds = ["compose-btn-send", "send-btn", "msg-compose-send"];
+          var testIds = ["compose-btn-send", "send-btn", "msg-compose-send", "send", "compose-send"];
           for (var id of testIds) {
             var el = document.querySelector("[data-testid=\""+id+"\"]");
             if (el) { el.click(); return "CLICKED_TESTID:"+id; }
           }
 
-          // 4. Simulate Enter on footer or any visible textbox
-          var footer = document.querySelector("footer") || document.querySelector("[data-testid=\"conversation-compose-box\"]");
-          if (footer) {
-            footer.dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
-            return "ENTER_ON_FOOTER";
+          // 4. Simulate Enter on compose textbox.
+          var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
+                         document.querySelector('[data-tab="10"][contenteditable="true"]') ||
+                         document.querySelector('footer [contenteditable="true"]') ||
+                         document.querySelector('[contenteditable="true"][role="textbox"]');
+          if (composer) {
+            composer.focus();
+            composer.dispatchEvent(new KeyboardEvent("keydown", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            composer.dispatchEvent(new KeyboardEvent("keypress", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            composer.dispatchEvent(new KeyboardEvent("keyup", {key:"Enter", code:"Enter", keyCode:13, which:13, bubbles:true}));
+            return "ENTER_ON_COMPOSER";
           }
 
           // 5. Last resort: press Enter on the last focused element
@@ -260,19 +418,28 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
 
           return "NOTHING_FOUND";
         })();
-      ''');
+      ''', retries: 10, delay: const Duration(milliseconds: 700));
       debugPrint('WA Send: $sendResult');
+      if (sendResult == null || sendResult == 'NOTHING_FOUND') {
+        throw Exception('Failed to trigger WhatsApp send action for ${msg.phone}. result=$sendResult');
+      }
 
-      // Wait for message to be sent and move to next
-      await Future.delayed(const Duration(seconds: 4));
+      // Wait between messages with a human-like random delay (4s..25s)
+      final waitSeconds = 4 + _random.nextInt(22);
+      if (mounted) {
+        setState(() {
+          _statusMessage = '✓ Sent to ${msg.phone}. Waiting ${waitSeconds}s before next message...';
+        });
+      }
+      await Future.delayed(Duration(seconds: waitSeconds));
 
       if (mounted) {
         setState(() {
-          _statusMessage = '✓ Sent to ${msg.phone}';
           _currentIndex++;
+          _statusMessage =
+              'Processing next message (${_currentIndex + 1}/${widget.messages.length})...';
         });
       }
-      await Future.delayed(const Duration(seconds: 1));
       _isProcessing = false;
       _processNextMessage();
     } catch (e) {
