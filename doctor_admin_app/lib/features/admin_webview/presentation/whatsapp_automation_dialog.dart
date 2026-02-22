@@ -273,7 +273,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       }
 
       final messageTextJson = jsonEncode(msg.text);
-      final fillResult = await _controller.executeScript('''
+      final fillResult = await _executeScriptWithRetry('''
         (function() {
           var message = $messageTextJson;
           var composer = document.querySelector('[data-testid="conversation-compose-box-input"]') ||
@@ -298,8 +298,11 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
 
           return 'TEXT_READY:' + composer.tagName;
         })();
-      ''');
+      ''', retries: 8, delay: const Duration(milliseconds: 900));
       debugPrint('WA Fill: $fillResult');
+      if (fillResult == null || !fillResult.startsWith('TEXT_READY')) {
+        throw Exception('Failed to fill message composer for ${msg.phone}. result=$fillResult');
+      }
 
       // --- Simulate human interaction to trigger React hydration ---
       // WhatsApp detects if window has focus; without it, React may not hydrate
@@ -339,7 +342,7 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
       debugPrint('WA: Human events injected, waiting for hydration...');
 
       // --- DEBUG: log DOM structure to find correct selectors ---
-      final domDebug = await _controller.executeScript(r'''
+      final domDebug = await _executeScriptWithRetry(r'''
         (function() {
           var info = 'visibility:' + document.visibilityState + ' bodyLen:' + document.body.innerHTML.length;
           // Dump all buttons
@@ -361,11 +364,11 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
           info += ' roles:[' + roleList.slice(0,10).join(',') + ']';
           return info;
         })();
-      ''');
+      ''', retries: 6, delay: const Duration(milliseconds: 700));
       debugPrint('WA DOM Debug: $domDebug');
 
       // --- Try to send the message ---
-      final sendResult = await _controller.executeScript(r'''
+      final sendResult = await _executeScriptWithRetry(r'''
         (function() {
           // 1. Try data-icon send spans
           var spans = document.querySelectorAll("span");
@@ -415,8 +418,11 @@ class _WhatsAppAutomationDialogState extends State<WhatsAppAutomationDialog> {
 
           return "NOTHING_FOUND";
         })();
-      ''');
+      ''', retries: 10, delay: const Duration(milliseconds: 700));
       debugPrint('WA Send: $sendResult');
+      if (sendResult == null || sendResult == 'NOTHING_FOUND') {
+        throw Exception('Failed to trigger WhatsApp send action for ${msg.phone}. result=$sendResult');
+      }
 
       // Wait between messages with a human-like random delay (4s..25s)
       final waitSeconds = 4 + _random.nextInt(22);

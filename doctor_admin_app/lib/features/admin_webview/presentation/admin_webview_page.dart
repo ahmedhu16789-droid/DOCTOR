@@ -48,7 +48,7 @@ class _AdminWebViewPageState extends State<AdminWebViewPage> {
               setState(() {
                 _whatsappQueue.addAll(messages);
                 _isProcessingWhatsApp = true;
-                _isWhatsAppVisible = true; // Always show immediately so WebView renders properly
+                _isWhatsAppVisible = false; // Start in background; only show when login/QR is needed
               });
             }
           }
