@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Billing\EnsureClinicResourceLimitAction;
 use App\Http\Controllers\Controller;
 use App\Actions\Auth\CreateOneTimeAccessLinkAction;
 use App\Http\Requests\Api\V1\DoctorUpsertRequest;
@@ -31,8 +32,10 @@ class DoctorController extends Controller
         return DoctorResource::collection($doctors);
     }
 
-    public function store(DoctorUpsertRequest $request, CreateOneTimeAccessLinkAction $createOneTimeAccessLink)
+    public function store(DoctorUpsertRequest $request, CreateOneTimeAccessLinkAction $createOneTimeAccessLink, EnsureClinicResourceLimitAction $ensureClinicResourceLimit)
     {
+        $ensureClinicResourceLimit->execute($request->user()->clinic, 'max_doctors');
+
         $payload = DB::transaction(function () use ($request, $createOneTimeAccessLink): array {
             $doctor = User::create([
                 'clinic_id' => $request->user()->clinic_id,
