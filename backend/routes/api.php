@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Auth\AccessLinkController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PatientAuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\ClinicEntitlementController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientPortalController;
 use App\Http\Controllers\Api\V1\PublicBookingController;
@@ -132,5 +133,6 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
         Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
+        Route::get('clinic/entitlements/usage', [ClinicEntitlementController::class, 'usage']);
     });
 });

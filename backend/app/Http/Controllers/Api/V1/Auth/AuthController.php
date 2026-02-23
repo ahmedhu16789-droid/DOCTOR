@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Clinic;
+use App\Models\Plan;
+use App\Models\ClinicSubscription;
+use App\Models\ClinicEntitlement;
 use App\Models\User;
 use App\Support\ApiCache;
 use Carbon\Carbon;
@@ -35,6 +38,38 @@ class AuthController extends Controller
                     'currency' => $validated['settings']['currency'] ?? 'USD',
                     'timezone' => $validated['settings']['timezone'] ?? 'UTC',
                 ],
+            ]);
+
+            $defaultLimits = [
+                'max_branches' => 3,
+                'max_doctors' => 10,
+                'max_staff' => 25,
+                'max_patients_per_month' => 1000,
+            ];
+
+            $plan = Plan::query()->firstOrCreate(
+                ['code' => 'DEFAULT'],
+                [
+                    'name' => 'Default Plan',
+                    'description' => 'Default plan for newly registered clinics.',
+                    'default_limits' => $defaultLimits,
+                    'is_active' => true,
+                ]
+            );
+
+            $subscription = ClinicSubscription::query()->create([
+                'clinic_id' => $clinic->id,
+                'plan_id' => $plan->id,
+                'subscription_type' => 'ANNUAL',
+                'status' => 'trial',
+                'starts_at' => now(),
+                'ends_at' => now()->addYear(),
+            ]);
+
+            ClinicEntitlement::query()->create([
+                'clinic_id' => $clinic->id,
+                'clinic_subscription_id' => $subscription->id,
+                ...$defaultLimits,
             ]);
 
             $user = User::create([

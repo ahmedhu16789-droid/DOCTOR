@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Clinic extends Model
@@ -43,6 +44,21 @@ class Clinic extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ClinicSubscription::class);
+    }
+
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(ClinicSubscription::class)
+            ->where('starts_at', '<=', now())
+            ->where(function ($query): void {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+            })
+            ->latestOfMany('starts_at');
     }
 
     protected static function booted(): void
