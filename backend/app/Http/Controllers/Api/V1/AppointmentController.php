@@ -187,6 +187,16 @@ class AppointmentController extends Controller
                 return 0;
             }
 
+            AppointmentSlotShift::query()->create([
+                'clinic_id' => $clinicId,
+                'doctor_id' => $validated['doctorId'],
+                'branch_id' => $validated['branchId'],
+                'date' => $validated['date'],
+                'from_time' => $validated['fromTime'],
+                'shift_minutes' => $validated['shiftMinutes'],
+                'applied_by_user_id' => $request->user()->id,
+            ]);
+
             return $appointments->count();
         });
 
