@@ -115,7 +115,11 @@ class ClinicSubscriptionStatusService
             return false;
         }
 
-        return $now->greaterThan($endAt) && $now->lessThanOrEqualTo($endAt->addDays(14));
+        $gracePeriodDays = max((int) config('billing.grace_period_days', 14), 0);
+
+        return $gracePeriodDays > 0
+            && $now->greaterThan($endAt)
+            && $now->lessThanOrEqualTo($endAt->addDays($gracePeriodDays));
     }
 
     private function maxDate(?CarbonImmutable $current, ?CarbonImmutable $candidate): ?CarbonImmutable

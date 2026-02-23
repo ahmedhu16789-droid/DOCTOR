@@ -57,73 +57,80 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
-        Route::post('auth/access-links', [AccessLinkController::class, 'create']);
-        Route::get('patients', [PatientController::class, 'index']);
-        Route::post('patients', [PatientController::class, 'store']);
-        Route::get('patients/{patient}/audit-timeline', [PatientController::class, 'auditTimeline']);
-        Route::get('branches', [BranchController::class, 'index']);
-        Route::post('branches', [BranchController::class, 'store']);
-        Route::put('branches/{branch}', [BranchController::class, 'update']);
-        Route::get('branches/{branch}/settings', [BranchController::class, 'showSettings']);
-        Route::put('branches/{branch}/settings', [BranchController::class, 'updateSettings']);
-        Route::delete('branches/{branch}/settings', [BranchController::class, 'resetSettings']);
-        Route::delete('branches/{branch}', [BranchController::class, 'destroy']);
-        Route::get('departments', [DirectoryController::class, 'departments']);
-        Route::get('roles', [DirectoryController::class, 'roles']);
-        Route::get('doctors', [DoctorController::class, 'index']);
-        Route::post('doctors', [DoctorController::class, 'store']);
-        Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
-        Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
-        Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
-        Route::get('doctor/advanced-mode/capabilities', [DoctorAdvancedModeController::class, 'capabilities']);
-        Route::put('doctor/advanced-mode', [DoctorAdvancedModeController::class, 'toggle']);
-        Route::get('employees', [EmployeeController::class, 'index']);
-        Route::post('employees', [EmployeeController::class, 'store']);
-        Route::put('employees/{employee}', [EmployeeController::class, 'update']);
-        Route::get('appointments', [AppointmentController::class, 'index'])->middleware('branch.access:branchId');
-        Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
-        Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
-        Route::post('appointments', [AppointmentController::class, 'store']);
-        Route::get('appointments/delay-insight', [AppointmentController::class, 'delayInsight']);
-        Route::post('appointments/shift/preview', [AppointmentController::class, 'delayShiftPreview']);
-        Route::post('appointments/shift', [AppointmentController::class, 'bulkShift']);
-        Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
-        Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
-        Route::post('appointments/{appointment}/start-now', [AppointmentController::class, 'startNow']);
-
-        Route::get('medications', [MedicationController::class, 'index']);
-        Route::get('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'show']);
-        Route::put('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'upsert']);
-        Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
-        Route::patch('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'updateItem']);
-        Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem'])
-            ->middleware('permission.access:finance.remove_item,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment'])
-            ->middleware('permission.access:finance.collect_payment,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER|RECEPTIONIST');
-        Route::post('appointments/{appointment}/billing/refunds', [AppointmentBillingController::class, 'refund'])
-            ->middleware('permission.access:finance.refund,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::post('appointments/{appointment}/billing/finalize', [AppointmentBillingController::class, 'finalize']);
-        Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
-        Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
-        Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
+        Route::get('clinic/entitlements/usage', [ClinicEntitlementController::class, 'usage']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
-        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
-        Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
-        Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
-        Route::get('reports/financial', [FinancialReportController::class, 'index'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::get('reports/financial/export', [FinancialReportController::class, 'export'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
-            ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
-            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
-        Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
-            ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
-        Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
-            ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-        Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])
-            ->middleware('permission.access:payroll.settle,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+
+        Route::middleware('clinic.subscription.active')->group(function (): void {
+            Route::post('auth/access-links', [AccessLinkController::class, 'create']);
+            Route::get('patients', [PatientController::class, 'index']);
+            Route::post('patients', [PatientController::class, 'store']);
+            Route::get('patients/{patient}/audit-timeline', [PatientController::class, 'auditTimeline']);
+            Route::get('branches', [BranchController::class, 'index']);
+            Route::post('branches', [BranchController::class, 'store']);
+            Route::put('branches/{branch}', [BranchController::class, 'update']);
+            Route::get('branches/{branch}/settings', [BranchController::class, 'showSettings']);
+            Route::put('branches/{branch}/settings', [BranchController::class, 'updateSettings']);
+            Route::delete('branches/{branch}/settings', [BranchController::class, 'resetSettings']);
+            Route::delete('branches/{branch}', [BranchController::class, 'destroy']);
+            Route::get('departments', [DirectoryController::class, 'departments']);
+            Route::get('roles', [DirectoryController::class, 'roles']);
+            Route::get('doctors', [DoctorController::class, 'index']);
+            Route::post('doctors', [DoctorController::class, 'store']);
+            Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
+            Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
+            Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
+            Route::get('doctor/advanced-mode/capabilities', [DoctorAdvancedModeController::class, 'capabilities']);
+            Route::put('doctor/advanced-mode', [DoctorAdvancedModeController::class, 'toggle']);
+            Route::get('employees', [EmployeeController::class, 'index']);
+            Route::post('employees', [EmployeeController::class, 'store']);
+            Route::put('employees/{employee}', [EmployeeController::class, 'update']);
+            Route::get('appointments', [AppointmentController::class, 'index'])->middleware('branch.access:branchId');
+            Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
+            Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
+            Route::post('appointments', [AppointmentController::class, 'store']);
+            Route::get('appointments/delay-insight', [AppointmentController::class, 'delayInsight']);
+            Route::post('appointments/shift/preview', [AppointmentController::class, 'delayShiftPreview']);
+            Route::post('appointments/shift', [AppointmentController::class, 'bulkShift']);
+            Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
+            Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
+            Route::post('appointments/{appointment}/start-now', [AppointmentController::class, 'startNow']);
+
+            Route::get('medications', [MedicationController::class, 'index']);
+            Route::get('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'show']);
+            Route::put('appointments/{appointment}/encounter', [MedicalEncounterController::class, 'upsert']);
+            Route::post('appointments/{appointment}/billing/items', [AppointmentBillingController::class, 'addItem']);
+            Route::patch('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'updateItem']);
+            Route::delete('appointments/{appointment}/billing/items/{item}', [AppointmentBillingController::class, 'removeItem'])
+                ->middleware('permission.access:finance.remove_item,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::post('appointments/{appointment}/billing/payments', [AppointmentBillingController::class, 'processPayment'])
+                ->middleware('permission.access:finance.collect_payment,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER|RECEPTIONIST');
+            Route::post('appointments/{appointment}/billing/refunds', [AppointmentBillingController::class, 'refund'])
+                ->middleware('permission.access:finance.refund,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::post('appointments/{appointment}/billing/finalize', [AppointmentBillingController::class, 'finalize']);
+            Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
+            Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
+            Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
+            Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
+            Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
+            Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
+            Route::get('reports/financial', [FinancialReportController::class, 'index'])
+                ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::get('reports/financial/export', [FinancialReportController::class, 'export'])
+                ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
+                ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
+                ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
+            Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
+                ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
+            Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
+                ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+            Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])
+                ->middleware('permission.access:payroll.settle,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+
+            Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
+            Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
+        });
 
         Route::prefix('platform')->middleware('platform.admin')->group(function (): void {
             Route::get('clinics', [PlatformClinicController::class, 'index']);
@@ -132,9 +139,5 @@ Route::prefix('v1')->group(function (): void {
             Route::patch('clinics/{id}/status', [PlatformClinicController::class, 'updateStatus']);
             Route::post('clinics/{id}/payments', [PlatformClinicController::class, 'storePayment']);
         });
-
-        Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
-        Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
-        Route::get('clinic/entitlements/usage', [ClinicEntitlementController::class, 'usage']);
     });
 });
