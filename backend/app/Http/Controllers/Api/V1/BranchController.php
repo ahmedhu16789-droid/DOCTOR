@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Billing\EnsureClinicResourceLimitAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BranchSettingsUpsertRequest;
 use App\Http\Requests\Api\V1\BranchUpsertRequest;
@@ -50,8 +51,10 @@ class BranchController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    public function store(BranchUpsertRequest $request)
+    public function store(BranchUpsertRequest $request, EnsureClinicResourceLimitAction $ensureClinicResourceLimit)
     {
+        $ensureClinicResourceLimit->execute($request->user()->clinic, 'max_branches');
+
         $branch = Branch::create([
             'clinic_id' => $request->user()->clinic_id,
             'name' => $request->string('name')->value(),
