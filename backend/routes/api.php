@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientPortalController;
 use App\Http\Controllers\Api\V1\PublicBookingController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\Platform\ClinicController as PlatformClinicController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -122,6 +123,13 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('permission.access:payroll.close,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
         Route::post('payroll/periods/{id}/settle', [DoctorPayrollController::class, 'settle'])
             ->middleware('permission.access:payroll.settle,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
+
+        Route::prefix('platform')->middleware('platform.admin')->group(function (): void {
+            Route::get('clinics', [PlatformClinicController::class, 'index']);
+            Route::get('clinics/{id}', [PlatformClinicController::class, 'show']);
+            Route::patch('clinics/{id}/status', [PlatformClinicController::class, 'updateStatus']);
+        });
+
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
         Route::put('clinic/settings', [ClinicSettingsController::class, 'update']);
     });

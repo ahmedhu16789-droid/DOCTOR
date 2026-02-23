@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsurePatientAuthenticated;
 use App\Http\Middleware\EnsureUserCanAccessBranch;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsurePlatformAdmin;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'branch.access' => EnsureUserCanAccessBranch::class,
             'permission.access' => EnsureUserHasPermission::class,
             'patient.auth' => EnsurePatientAuthenticated::class,
+            'platform.admin' => EnsurePlatformAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -5,6 +5,7 @@ import { AppointmentBooking } from '../../pages/AppointmentBooking';
 import { BulkShiftPanel } from '../appointments/BulkShiftPanel';
 import { ReceptionQueue } from '../ReceptionQueue';
 import { AdminDashboard } from '../../pages/AdminDashboard';
+import { PlatformDashboard } from '../../pages/PlatformDashboard';
 import { EmployeeManagement } from '../../pages/EmployeeManagement';
 import { BranchManagement } from '../../pages/BranchManagement';
 import { ClinicSettings } from '../../pages/ClinicSettings';
@@ -119,6 +120,10 @@ export function AppMainContent({
             userRole={user.role}
           />
         </div>
+      )}
+
+      {activeTab === 'platform-dashboard' && user?.isPlatformAdmin && (
+        <PlatformDashboard />
       )}
 
       {activeTab === 'doctors' && user && (

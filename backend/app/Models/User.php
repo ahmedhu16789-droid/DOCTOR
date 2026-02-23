@@ -23,6 +23,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'clinic_id',
+        'is_platform_admin',
         'name',
         'email',
         'phone',
@@ -56,6 +57,7 @@ class User extends Authenticatable
             'diagnosis_templates' => 'array',
             'plan_templates' => 'array',
             'doctor_advanced_mode_enabled' => 'boolean',
+            'is_platform_admin' => 'boolean',
         ];
     }
 

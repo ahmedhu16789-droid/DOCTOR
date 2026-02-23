@@ -1,4 +1,18 @@
+export enum PlatformUserRole {
+  PLATFORM_ADMIN = 'PLATFORM_ADMIN'
+}
+
+export enum ClinicUserRole {
+  ADMIN = 'ADMIN', // Super Admin (Owner)
+  BRANCH_MANAGER = 'BRANCH_MANAGER',
+  DOCTOR = 'DOCTOR',
+  RECEPTIONIST = 'RECEPTIONIST',
+  NURSE = 'NURSE',
+  PHARMACY_MANAGER = 'PHARMACY_MANAGER'
+}
+
 export enum UserRole {
+  PLATFORM_ADMIN = 'PLATFORM_ADMIN',
   ADMIN = 'ADMIN', // Super Admin (Owner)
   BRANCH_MANAGER = 'BRANCH_MANAGER',
   DOCTOR = 'DOCTOR',
@@ -84,6 +98,7 @@ export interface User {
   id: string;
   name: string;
   role: UserRole;
+  isPlatformAdmin?: boolean;
   avatarUrl?: string;
   specialty?: Department; // For doctors
   assignedBranches: string[]; // Branch IDs

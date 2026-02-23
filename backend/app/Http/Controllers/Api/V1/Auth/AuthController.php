@@ -107,8 +107,9 @@ class AuthController extends Controller
                 'diagnosisTemplates' => $user->diagnosis_templates ?? [],
                 'planTemplates' => $user->plan_templates ?? [],
                 'doctorAdvancedModeEnabled' => (bool) $user->doctor_advanced_mode_enabled,
+                'isPlatformAdmin' => (bool) $user->is_platform_admin,
             ],
-            'clinicId' => (string) $user->clinic_id,
+            'clinicId' => $user->clinic_id ? (string) $user->clinic_id : null,
         ]);
     }
 
@@ -138,8 +139,9 @@ class AuthController extends Controller
                     'diagnosisTemplates' => $user->diagnosis_templates ?? [],
                     'planTemplates' => $user->plan_templates ?? [],
                 'doctorAdvancedModeEnabled' => (bool) $user->doctor_advanced_mode_enabled,
+                'isPlatformAdmin' => (bool) $user->is_platform_admin,
                 ],
-                'clinicId' => (string) $user->clinic_id,
+                'clinicId' => $user->clinic_id ? (string) $user->clinic_id : null,
             ]
         );
 
@@ -148,8 +150,8 @@ class AuthController extends Controller
 
     private function resolveActiveBranchId(User $user): ?string
     {
-        // Use clinic timezone for accurate shift detection
-        $timezone = $user->clinic->settings['timezone'] ?? config('app.timezone');
+        // Use clinic timezone for accurate shift detection when tenant-bound, fallback to app timezone for platform users.
+        $timezone = $user->clinic?->settings['timezone'] ?? config('app.timezone');
         $now = Carbon::now($timezone);
         
         $dayOfWeek = $now->dayOfWeek;
