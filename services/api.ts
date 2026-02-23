@@ -20,12 +20,13 @@ interface ApiUser {
   planTemplates?: string[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
+  isPlatformAdmin?: boolean;
 }
 
 interface ApiLoginResponse {
   token?: string;
   user: ApiUser;
-  clinicId: string;
+  clinicId: string | null;
 }
 
 interface ApiAppointment {
@@ -188,6 +189,7 @@ interface ApiDoctor {
   planTemplates?: string[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
+  isPlatformAdmin?: boolean;
 }
 
 
@@ -248,6 +250,16 @@ export interface DelayInsightResponse {
   };
 }
 
+
+
+export interface PlatformClinic {
+  id: string;
+  name: string;
+  subscriptionStatus: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  settings?: Record<string, unknown> | null;
+}
 
 export interface FinancialSummary {
   totalRevenue: number;
@@ -442,6 +454,7 @@ const normalizeUser = (apiUser: ApiUser, fallbackUser?: User | null): User => {
     planTemplates: apiUser.planTemplates ?? fallbackUser?.planTemplates ?? [],
     doctorAdvancedModeEnabled: apiUser.doctorAdvancedModeEnabled ?? fallbackUser?.doctorAdvancedModeEnabled ?? false,
     doctorAdvancedCapabilities: apiUser.doctorAdvancedCapabilities ?? fallbackUser?.doctorAdvancedCapabilities,
+    isPlatformAdmin: apiUser.isPlatformAdmin ?? fallbackUser?.isPlatformAdmin ?? false,
   };
 };
 
@@ -559,11 +572,31 @@ export const loginWithApi = async (email: string, password: string): Promise<Use
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await apiFetch<{ user: ApiUser; clinicId: string }>('/auth/me');
+  const response = await apiFetch<{ user: ApiUser; clinicId: string | null }>('/auth/me');
   const user = normalizeUser(response.user);
   setStoredUser(user);
 
   return user;
+};
+
+
+export const getPlatformClinicsFromApi = async (): Promise<PlatformClinic[]> => {
+  const payload = await apiFetch<{ data: PlatformClinic[] }>('/platform/clinics');
+  return payload.data ?? [];
+};
+
+export const getPlatformClinicFromApi = async (id: string): Promise<PlatformClinic> => {
+  const payload = await apiFetch<{ data: PlatformClinic }>(`/platform/clinics/${id}`);
+  return payload.data;
+};
+
+export const updatePlatformClinicStatusViaApi = async (id: string, status: string): Promise<PlatformClinic> => {
+  const payload = await apiFetch<{ data: PlatformClinic }>(`/platform/clinics/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
+  return payload.data;
 };
 
 export const getBranchesFromApi = async (signal?: AbortSignal): Promise<Branch[]> => {
@@ -1098,6 +1131,7 @@ export interface DoctorProfilePayload {
   planTemplates: string[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
+  isPlatformAdmin?: boolean;
 }
 
 export const getDoctorProfileFromApi = async (): Promise<DoctorProfilePayload> => {

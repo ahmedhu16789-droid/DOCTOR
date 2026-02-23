@@ -343,11 +343,16 @@ export default function App() {
     setStoredUser(selectedUser);
     setUser(selectedUser);
     setView('APP');
-    setActiveTab('dashboard');
+    setActiveTab(selectedUser.isPlatformAdmin ? 'platform-dashboard' : 'dashboard');
   };
 
   useEffect(() => {
     if (!user) {
+      setActiveBranchId('');
+      return;
+    }
+
+    if (user.isPlatformAdmin) {
       setActiveBranchId('');
       return;
     }

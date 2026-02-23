@@ -15,7 +15,13 @@ class TenantScope implements Scope
             return;
         }
 
-        $clinicId = Auth::user()->clinic_id;
+        $user = Auth::user();
+
+        if ($user?->is_platform_admin) {
+            return;
+        }
+
+        $clinicId = $user?->clinic_id;
 
         if ($clinicId) {
             $builder->where($model->getTable().'.clinic_id', $clinicId);
