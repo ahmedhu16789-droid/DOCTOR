@@ -11,6 +11,10 @@ use Illuminate\Support\Carbon;
 
 class ClinicEntitlementService
 {
+    public function __construct(private readonly ClinicSubscriptionStatusService $subscriptionStatusService)
+    {
+    }
+
     public function summary(Clinic $clinic): array
     {
         $subscription = $this->resolveActiveSubscription($clinic);
@@ -25,10 +29,10 @@ class ClinicEntitlementService
                     'code' => $subscription?->plan?->code,
                     'name' => $subscription?->plan?->name,
                 ],
-                'type' => $subscription?->subscription_type,
-                'status' => $subscription?->status,
-                'startsAt' => $subscription?->starts_at?->toISOString(),
-                'endsAt' => $subscription?->ends_at?->toISOString(),
+                'type' => $subscription?->license_type,
+                'status' => $subscription ? $this->subscriptionStatusService->resolve($subscription)['status'] : null,
+                'startsAt' => $subscription?->license_starts_at?->toISOString(),
+                'endsAt' => $subscription?->license_ends_at?->toISOString(),
             ],
             'limits' => [
                 'max_branches' => $this->limitPayload($limits['max_branches'] ?? null, $usage['branches']),
@@ -44,13 +48,10 @@ class ClinicEntitlementService
         $now = now();
 
         return ClinicSubscription::query()
-            ->with(['plan', 'entitlement'])
+            ->with(['plan', 'entitlement', 'payments'])
             ->where('clinic_id', $clinic->id)
-            ->where('starts_at', '<=', $now)
-            ->where(function ($query) use ($now): void {
-                $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-            })
-            ->orderByDesc('starts_at')
+            ->where('license_starts_at', '<=', $now)
+            ->orderByDesc('license_starts_at')
             ->first();
     }
 

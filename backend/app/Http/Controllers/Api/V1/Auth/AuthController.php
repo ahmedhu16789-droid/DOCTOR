@@ -61,9 +61,14 @@ class AuthController extends Controller
                 'clinic_id' => $clinic->id,
                 'plan_id' => $plan->id,
                 'subscription_type' => 'ANNUAL',
-                'status' => 'trial',
+                'license_type' => 'ANNUAL',
+                'status' => 'grace',
                 'starts_at' => now(),
                 'ends_at' => now()->addYear(),
+                'license_starts_at' => now(),
+                'license_ends_at' => now()->addYear(),
+                'hosting_starts_at' => now(),
+                'hosting_ends_at' => now()->addYear(),
             ]);
 
             ClinicEntitlement::query()->create([

@@ -256,9 +256,49 @@ export interface PlatformClinic {
   id: string;
   name: string;
   subscriptionStatus: string;
+  effectiveStatus?: 'active' | 'grace' | 'suspended' | 'expired' | null;
+  subscriptionType?: 'ANNUAL' | 'LIFETIME' | null;
+  subscriptionStartsAt?: string | null;
+  subscriptionEndsAt?: string | null;
+  hostingStartsAt?: string | null;
+  hostingEndsAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   settings?: Record<string, unknown> | null;
+}
+
+export interface PlatformSubscriptionTimelinePayment {
+  id: string;
+  paymentKind: 'LICENSE' | 'HOSTING';
+  periodYears: number;
+  amount: number;
+  paidAt: string;
+  recordedBy?: { id: string; name: string } | null;
+  notes?: string | null;
+  receiptRef?: string | null;
+}
+
+export interface PlatformSubscriptionTimeline {
+  id: string;
+  status: string;
+  effectiveStatus: 'active' | 'grace' | 'suspended' | 'expired';
+  plan: {
+    id?: string | null;
+    code?: string | null;
+    name?: string | null;
+  };
+  license: {
+    type: 'ANNUAL' | 'LIFETIME';
+    startsAt?: string | null;
+    endsAt?: string | null;
+    isActive: boolean;
+  };
+  hosting: {
+    startsAt?: string | null;
+    endsAt?: string | null;
+    isActive: boolean;
+  };
+  payments: PlatformSubscriptionTimelinePayment[];
 }
 
 export interface FinancialSummary {
@@ -597,6 +637,30 @@ export const updatePlatformClinicStatusViaApi = async (id: string, status: strin
   });
 
   return payload.data;
+};
+
+
+export const getPlatformClinicTimelineFromApi = async (id: string): Promise<PlatformSubscriptionTimeline[]> => {
+  const payload = await apiFetch<{ data: { clinicId: string; subscriptions: PlatformSubscriptionTimeline[] } }>(`/platform/clinics/${id}/timeline`);
+  return payload.data?.subscriptions ?? [];
+};
+
+export const recordPlatformClinicPaymentViaApi = async (clinicId: string, payment: {
+  clinic_subscription_id: string;
+  payment_kind: 'LICENSE' | 'HOSTING';
+  period_years: number;
+  amount: number;
+  paid_at: string;
+  notes?: string;
+  receipt_ref?: string;
+}): Promise<void> => {
+  await apiFetch(`/platform/clinics/${clinicId}/payments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payment,
+      clinic_subscription_id: Number(payment.clinic_subscription_id),
+    }),
+  });
 };
 
 export const getBranchesFromApi = async (signal?: AbortSignal): Promise<Branch[]> => {

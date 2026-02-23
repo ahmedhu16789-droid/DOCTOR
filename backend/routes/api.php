@@ -128,7 +128,9 @@ Route::prefix('v1')->group(function (): void {
         Route::prefix('platform')->middleware('platform.admin')->group(function (): void {
             Route::get('clinics', [PlatformClinicController::class, 'index']);
             Route::get('clinics/{id}', [PlatformClinicController::class, 'show']);
+            Route::get('clinics/{id}/timeline', [PlatformClinicController::class, 'timeline']);
             Route::patch('clinics/{id}/status', [PlatformClinicController::class, 'updateStatus']);
+            Route::post('clinics/{id}/payments', [PlatformClinicController::class, 'storePayment']);
         });
 
         Route::get('clinic/settings', [ClinicSettingsController::class, 'show']);
