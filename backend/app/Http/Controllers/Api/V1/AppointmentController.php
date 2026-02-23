@@ -184,7 +184,9 @@ class AppointmentController extends Controller
             }
 
             if ($appointments->isEmpty()) {
-                return 0;
+                // We no longer return 0 here. 
+                // We want to create the AppointmentSlotShift rule anyway
+                // so that future UNBOOKED slots reflect this shift.
             }
 
             AppointmentSlotShift::query()->create([
