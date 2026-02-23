@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->foreignId('clinic_id')->constrained()->cascadeOnDelete();
             $table->foreignId('plan_id')->constrained()->restrictOnDelete();
             $table->enum('subscription_type', ['ANNUAL', 'LIFETIME']);
-            $table->string('status')->default('active');
+            $table->enum('status', ['active', 'grace', 'suspended', 'expired'])->default('active');
             $table->timestamp('starts_at');
             $table->timestamp('ends_at')->nullable();
             $table->timestamps();
@@ -75,7 +75,7 @@ return new class extends Migration {
                 'clinic_id' => $clinic->id,
                 'plan_id' => $planId,
                 'subscription_type' => $isLifetime ? 'LIFETIME' : 'ANNUAL',
-                'status' => $clinic->subscription_status ?: 'active',
+                'status' => in_array($clinic->subscription_status, ['active', 'grace', 'suspended', 'expired'], true) ? $clinic->subscription_status : 'active',
                 'starts_at' => $startsAt,
                 'ends_at' => $isLifetime ? null : \Illuminate\Support\Carbon::parse($startsAt)->addYear(),
                 'created_at' => $now,

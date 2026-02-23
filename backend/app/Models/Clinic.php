@@ -54,11 +54,8 @@ class Clinic extends Model
     public function activeSubscription(): HasOne
     {
         return $this->hasOne(ClinicSubscription::class)
-            ->where('starts_at', '<=', now())
-            ->where(function ($query): void {
-                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
-            })
-            ->latestOfMany('starts_at');
+            ->where('license_starts_at', '<=', now())
+            ->latestOfMany('license_starts_at');
     }
 
     protected static function booted(): void
