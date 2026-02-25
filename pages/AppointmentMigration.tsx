@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getDoctorsFromApi, shiftAppointmentsViaApi } from '../services/api';
+import { repositories } from '../services/repositories';
 import { sendWhatsAppQueue, WhatsAppMessage } from '../utils/whatsapp';
 import { Select } from '../components/common/Select';
 import { Branch, User, UserRole } from '../types';
@@ -45,7 +45,7 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
   useEffect(() => {
     if (!canAccess) return;
 
-    getDoctorsFromApi(doctorsQuery)
+    repositories.doctors.getDoctors(doctorsQuery)
       .then((payload) => {
         let filtered = payload;
 
@@ -119,7 +119,7 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
       setFeedback(null);
       setError(null);
 
-      const result = await shiftAppointmentsViaApi({
+      const result = await repositories.appointments.shiftAppointments({
         doctorId,
         branchId,
         date,

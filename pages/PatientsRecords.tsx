@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Activity, CalendarDays, CheckCircle2, CircleDot, Clock3, Search, Stethoscope, UserRoundSearch, Users, X, XCircle, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getMedicalEncounterFromApi, getPatientAuditTimelineFromApi, MedicalEncounterWithHistory, AuditTimelineEntry } from '../services/api';
+import { MedicalEncounterWithHistory, AuditTimelineEntry } from '../services/api';
+import { repositories } from '../services/repositories';
 import { Appointment, AppointmentStatus, Patient, PaymentStatus, UserRole } from '../types';
 import { formatTimeTo12Hour, formatDateShort } from '../utils/time';
 
@@ -120,7 +121,7 @@ export function PatientsRecords({
     const loadVisitsEncounters = async () => {
       const loaded = await Promise.allSettled(
         selectedPatientVisits.map(async (visit) => {
-          const encounterPayload = await getMedicalEncounterFromApi(visit.id);
+          const encounterPayload = await repositories.appointments.getMedicalEncounter(visit.id);
           return [visit.id, encounterPayload.data] as const;
         }),
       );
@@ -157,7 +158,7 @@ export function PatientsRecords({
     }
 
     const loadAudit = async () => {
-      const timeline = await getPatientAuditTimelineFromApi(selectedPatientId);
+      const timeline = await repositories.appointments.getPatientAuditTimeline(selectedPatientId);
       if (active) {
         setAuditTimeline(timeline);
       }
