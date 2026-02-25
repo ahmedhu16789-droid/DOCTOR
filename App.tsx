@@ -10,6 +10,7 @@ import { DataSourceMode } from './services/repositories/contracts';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
 import { PatientPortalApp } from './patient-portal/PatientPortalApp';
+import { MOCK_USERS } from './constants';
 
 import { useTranslation } from 'react-i18next';
 
@@ -21,6 +22,8 @@ interface HybridEntityIdMap {
 }
 
 const APP_DATA_SOURCE_MODE: DataSourceMode = DATA_SOURCE_MODE;
+const DEMO_NO_AUTH_ENABLED = import.meta.env.VITE_DEMO_NO_AUTH === 'true';
+const DEMO_USER_STORAGE_KEY = 'doctor:demo-user';
 
 const HYBRID_ID_MAP_STORAGE_KEY = 'doctor:hybrid-id-map:v1';
 export default function App() {
@@ -30,6 +33,7 @@ export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
   const [user, setUser] = useState<User | null>(null);
+  const [demoRole, setDemoRole] = useState<UserRole>(UserRole.ADMIN);
   const [activeTab, setActiveTab] = useState(() => {
     // Restore active tab from localStorage on page load
     const saved = localStorage.getItem('activeTab');
@@ -90,6 +94,29 @@ export default function App() {
   useEffect(() => {
     if (sessionInitializedRef.current) return;
     sessionInitializedRef.current = true;
+
+    if (DEMO_NO_AUTH_ENABLED) {
+      const cachedDemoSessionRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
+      if (cachedDemoSessionRaw) {
+        try {
+          const cachedDemoSession = JSON.parse(cachedDemoSessionRaw) as { role: UserRole; userId: string };
+          const cachedDemoUser = MOCK_USERS.find((candidate) => candidate.id === cachedDemoSession.userId && candidate.role === cachedDemoSession.role);
+
+          if (cachedDemoUser) {
+            setDemoRole(cachedDemoSession.role);
+            setStoredUser(cachedDemoUser);
+            setUser(cachedDemoUser);
+            setView('APP');
+            return;
+          }
+        } catch {
+          localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+        }
+      }
+
+      setView('AUTH');
+      return;
+    }
 
     const cachedUser = getStoredUser();
 
@@ -334,6 +361,10 @@ export default function App() {
 
   const handleLogin = (selectedUser: User) => {
     setStoredUser(selectedUser);
+    if (DEMO_NO_AUTH_ENABLED) {
+      localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify({ role: selectedUser.role, userId: selectedUser.id }));
+      setDemoRole(selectedUser.role);
+    }
     setUser(selectedUser);
     setView('APP');
     setActiveTab(selectedUser.isPlatformAdmin ? 'platform-dashboard' : 'dashboard');
@@ -404,10 +435,20 @@ export default function App() {
 
   const handleLogout = () => {
     repositories.auth.clearAuthToken();
+    if (DEMO_NO_AUTH_ENABLED) {
+      localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+    }
     setUser(null);
     setView('AUTH');
     setAppointments([]);
   };
+
+  const demoRoleOptions: Array<{ role: UserRole; label: string }> = [
+    { role: UserRole.ADMIN, label: 'Admin' },
+    { role: UserRole.DOCTOR, label: 'Doctor' },
+    { role: UserRole.RECEPTIONIST, label: 'Receptionist' },
+  ];
+  const demoUsersForRole = MOCK_USERS.filter((candidate) => candidate.role === demoRole);
 
   const handleStartVisitNow = async (id: string) => {
     const previous = appointments.find((appointment) => appointment.id === id);
@@ -618,6 +659,50 @@ export default function App() {
   }
 
   if (view === 'AUTH') {
+    if (DEMO_NO_AUTH_ENABLED) {
+      return (
+        <AppShell toast={toast}>
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-5">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Demo Access</h1>
+                <p className="text-sm text-gray-600">Choose a role and user to continue without login.</p>
+              </div>
+
+              <div className="flex gap-2">
+                {demoRoleOptions.map((option) => (
+                  <button
+                    key={option.role}
+                    onClick={() => setDemoRole(option.role)}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${demoRole === option.role ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                {demoUsersForRole.map((candidate) => (
+                  <button
+                    key={candidate.id}
+                    onClick={() => handleLogin(candidate)}
+                    className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-left hover:bg-gray-50"
+                  >
+                    <span className="font-medium text-gray-900">{candidate.name}</span>
+                    <span className="text-xs uppercase tracking-wide text-gray-500">{candidate.role}</span>
+                  </button>
+                ))}
+
+                {demoUsersForRole.length === 0 && (
+                  <p className="text-sm text-gray-500">No demo users available for this role.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </AppShell>
+      );
+    }
+
     return (
       <AppShell toast={toast}>
         <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />
