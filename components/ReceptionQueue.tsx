@@ -24,6 +24,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
   const [paymentApt, setPaymentApt] = useState<Appointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tvQueueDisplayMode, setTvQueueDisplayMode] = useState<'FULL_NAME' | 'MASKED_NAME'>('MASKED_NAME');
+  const [clinicName, setClinicName] = useState<string>('');
   const [startNowLoadingId, setStartNowLoadingId] = useState<string | null>(null);
   const [startNowError, setStartNowError] = useState<string | null>(null);
 
@@ -62,8 +63,10 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
       try {
         const settings = await clinicSettingsRepository.getClinicSettings();
         setTvQueueDisplayMode(settings.tv_queue_display_mode ?? 'MASKED_NAME');
+        setClinicName(settings.name || t('clinic_name'));
       } catch (error) {
         console.error('Failed to load clinic settings for TV queue display mode', error);
+        setClinicName(t('clinic_name'));
       }
     };
 
@@ -187,7 +190,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
           </div>
         </div>
         <div className="mt-8 text-center text-gray-500 text-sm">
-          {t('clinic_name')} • {new Date().toLocaleDateString()}
+          {clinicName || t('clinic_name')} • {new Date().toLocaleDateString()}
         </div>
       </div>
     );

@@ -6,6 +6,7 @@ import { Select } from '../components/common/Select';
 import { useTranslation } from 'react-i18next';
 import { formatTimeTo12Hour } from '../utils/time';
 import { getPublicBookingRepository, PublicBookingMode } from '../services/publicBookingRepository';
+import { repositories } from '../services/repositories';
 
 interface PublicBookingProps {
   onBackToLogin: () => void;
@@ -16,6 +17,24 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
   const envMode = import.meta.env.VITE_PUBLIC_BOOKING_MODE === 'backend' ? 'backend' : 'demo';
   const [mode, setMode] = useState<PublicBookingMode>(envMode);
   const bookingRepository = useMemo(() => getPublicBookingRepository(mode), [mode]);
+  const [clinicName, setClinicName] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const settings = await repositories.settings.getClinicSettings();
+        if (isMounted) {
+          setClinicName(settings?.name || t('clinic_name'));
+        }
+      } catch {
+        if (isMounted) {
+          setClinicName(t('clinic_name'));
+        }
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [t]);
 
   // Flow State
   const [step, setStep] = useState<'SEARCH' | 'SLOT_SELECTION' | 'AUTH' | 'CONFIRM'>('SEARCH');
@@ -160,7 +179,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
               AF
             </div>
-            <span className="font-bold text-lg text-gray-800">{t('clinic_name')}</span>
+            <span className="font-bold text-lg text-gray-800">{clinicName || t('clinic_name')}</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-36">

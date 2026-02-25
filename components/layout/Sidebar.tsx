@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Calendar, Users, Activity, Settings,
   LogOut, Building2, Stethoscope, Briefcase, Wallet, Clock3, Shield,
@@ -8,6 +8,7 @@ import { UserRole } from '../../types';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { repositories } from '../../services/repositories';
 
 interface SidebarProps {
   userRole: UserRole;
@@ -25,6 +26,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { direction } = useLanguage();
+  const [clinicName, setClinicName] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const settings = await repositories.settings.getClinicSettings();
+        if (isMounted) {
+          setClinicName(settings?.name || t('clinic_name'));
+        }
+      } catch {
+        if (isMounted) {
+          setClinicName(t('clinic_name'));
+        }
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [t]);
 
   const MENU_ITEMS = [
     {
@@ -64,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
-          {!collapsed && <span className="font-bold text-lg tracking-tight text-gray-900">{t('clinic_name')}</span>}
+          {!collapsed && <span className="font-bold text-lg tracking-tight text-gray-900">{clinicName || t('clinic_name')}</span>}
         </div>
       </div>
 

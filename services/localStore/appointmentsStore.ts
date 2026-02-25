@@ -234,6 +234,83 @@ export const clinicDataStore = {
     return updated;
   },
 
+  addBillingItem: (appointmentId: string, payload: { serviceId?: string; name: string; category?: string; quantity?: number; unitPrice: number }): Appointment | null => {
+    let updated: Appointment | null = null;
+    writeStore((data) => ({
+      ...data,
+      appointments: data.appointments.map((appointment) => {
+        if (appointment.id !== appointmentId) return appointment;
+
+        const qty = payload.quantity ?? 1;
+        const total = qty * payload.unitPrice;
+
+        const newItem = {
+          id: `itm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          serviceId: payload.serviceId ?? 'srv_custom',
+          name: payload.name,
+          category: payload.category ?? 'General',
+          quantity: qty,
+          unitPrice: payload.unitPrice,
+          total,
+          addedBy: 'mock-user',
+          timestamp: new Date().toISOString(),
+        };
+
+        const existingItems = appointment.billing?.items ?? [];
+        const nextItems = [...existingItems, newItem];
+        const nextSubtotal = nextItems.reduce((sum, item) => sum + item.total, 0);
+        const nextTotal = nextSubtotal - (appointment.billing?.discount ?? 0);
+        const nextPaid = appointment.billing?.paidAmount ?? 0;
+
+        const status = nextPaid <= 0 ? PaymentStatus.UNPAID : nextPaid >= nextTotal ? PaymentStatus.PAID : PaymentStatus.PARTIAL;
+
+        updated = {
+          ...appointment,
+          billing: {
+            ...appointment.billing,
+            items: nextItems,
+            subtotal: nextSubtotal,
+            total: nextTotal,
+            status,
+          } as any, // Cast necessary if TS complains about partial billing type structures
+        };
+        return updated;
+      }),
+    }));
+    return updated;
+  },
+
+  removeBillingItem: (appointmentId: string, itemId: string): Appointment | null => {
+    let updated: Appointment | null = null;
+    writeStore((data) => ({
+      ...data,
+      appointments: data.appointments.map((appointment) => {
+        if (appointment.id !== appointmentId) return appointment;
+
+        const existingItems = appointment.billing?.items ?? [];
+        const nextItems = existingItems.filter(item => item.id !== itemId);
+        const nextSubtotal = nextItems.reduce((sum, item) => sum + item.total, 0);
+        const nextTotal = nextSubtotal - (appointment.billing?.discount ?? 0);
+        const nextPaid = appointment.billing?.paidAmount ?? 0;
+
+        const status = nextPaid <= 0 ? PaymentStatus.UNPAID : nextPaid >= nextTotal ? PaymentStatus.PAID : PaymentStatus.PARTIAL;
+
+        updated = {
+          ...appointment,
+          billing: {
+            ...appointment.billing,
+            items: nextItems,
+            subtotal: nextSubtotal,
+            total: nextTotal,
+            status,
+          } as any,
+        };
+        return updated;
+      }),
+    }));
+    return updated;
+  },
+
   shiftAppointments: (params: {
     doctorId: string;
     branchId: string;

@@ -24,7 +24,7 @@ export const mockRepositories: Repositories = {
       return JSON.parse(raw) as User;
     },
     clearAuthToken: () => localStorage.removeItem('doctor:user'),
-    consumeAccessLink: async () => {},
+    consumeAccessLink: async () => { },
     createAccessLink: async (userId: string) => ({ token: `mock-${userId}`, expiresAt: new Date(Date.now() + 3600000).toISOString(), userId, email: clinicDataStore.getUsers().find(u => u.id === userId)?.email ?? '' }),
   },
   branches: {
@@ -104,12 +104,18 @@ export const mockRepositories: Repositories = {
       const updated = clinicDataStore.updateAppointmentStatus(appointmentId, status);
       return { id: appointmentId, status: updated?.status ?? status } as ApiAppointment;
     },
-    addBillingItem: async (appointmentId) => ({ id: appointmentId } as ApiAppointment),
+    addBillingItem: async (appointmentId, payload) => {
+      const updated = clinicDataStore.addBillingItem(appointmentId, payload);
+      return { id: appointmentId, billing: updated?.billing } as unknown as ApiAppointment;
+    },
     processAppointmentPayment: async (appointmentId, payload) => {
       const updated = clinicDataStore.processAppointmentPayment(appointmentId, payload);
-      return { id: appointmentId, billing: updated?.billing } as ApiAppointment;
+      return { id: appointmentId, billing: updated?.billing } as unknown as ApiAppointment;
     },
-    removeBillingItem: async (appointmentId) => ({ id: appointmentId } as ApiAppointment),
+    removeBillingItem: async (appointmentId, itemId) => {
+      const updated = clinicDataStore.removeBillingItem(appointmentId, itemId);
+      return { id: appointmentId, billing: updated?.billing } as unknown as ApiAppointment;
+    },
     getMedicalEncounter: async () => ({ data: null, history: [] } as MedicalEncounterWithHistory),
     saveMedicalEncounter: async () => ({ id: `enc-${Date.now()}` } as any),
     getDelayInsight: async () => ({ showAlert: false, delayMinutes: 0, impactedCount: 0, suggestedShiftMinutes: 0, fromTime: null, preview: [], config: { graceMinutes: 5, thresholdMinutes: 15, roundingMinutes: 5, mode: 'manual' } } as DelayInsightResponse),
@@ -135,11 +141,11 @@ export const mockRepositories: Repositories = {
   },
   reports: {
     getFinancialReport: async () => ({ summary: { totalRevenue: 0, totalExpenses: 0, netProfit: 0 }, dailyBreakdown: [] } as unknown as FinancialReportPayload),
-    exportFinancialReportCsv: async () => ({ filename: 'financial-report.csv', content: '' } as ReportExportPayload),
+    exportFinancialReportCsv: async () => ({ filename: 'financial-report.csv', content: '' } as unknown as ReportExportPayload),
     getReconciliationReport: async () => [] as ReconciliationSummaryRecord[],
     getDoctorPayrollReport: async () => [],
-    exportDoctorPayrollReportCsv: async () => ({ filename: 'doctor-payroll.csv', content: '' } as ReportExportPayload),
-    closeDoctorPayrollPeriod: async () => {},
-    settleDoctorPayrollPeriod: async () => {},
+    exportDoctorPayrollReportCsv: async () => ({ filename: 'doctor-payroll.csv', content: '' } as unknown as ReportExportPayload),
+    closeDoctorPayrollPeriod: async () => { },
+    settleDoctorPayrollPeriod: async () => { },
   },
 };

@@ -29,7 +29,7 @@ interface ApiLoginResponse {
   clinicId: string | null;
 }
 
-interface ApiAppointment {
+export interface ApiAppointment {
   id: string;
   patientId: string;
   doctorId: string;
