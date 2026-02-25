@@ -1,6 +1,7 @@
 import { DEPARTMENTS } from '../../../constants';
 import { AppointmentStatus, Department, PaymentStatus, User, UserRole } from '../../../types';
 import { generateTimeSlots } from '../../mockData';
+import { MOCK_USERS_SEED } from '../../mock/seed';
 import type { ApiAppointment, ApiDepartmentOption, ClinicSettingsPayload, DelayInsightResponse, DoctorProfilePayload, FinancialReportPayload, MedicalEncounterWithHistory, ReconciliationSummaryRecord, ReportExportPayload } from '../../api';
 import type { Repositories } from '../contracts';
 import { clinicDataStore } from '../../localStore/appointmentsStore';
@@ -40,7 +41,17 @@ export const mockRepositories: Repositories = {
     resetBranchSettings: async (branchId) => clinicDataStore.resetBranchSettings(branchId),
   },
   doctors: {
-    getDoctors: async () => clinicDataStore.getUsers().filter((u) => u.role === UserRole.DOCTOR),
+    getDoctors: async (params) => {
+      const doctorsFromSeed = MOCK_USERS_SEED.filter((u) => u.role === UserRole.DOCTOR);
+
+      return doctorsFromSeed.filter((doctor) => {
+        const matchesBranch = !params?.branchId || doctor.assignedBranches?.includes(params.branchId);
+        const matchesSpecialty = !params?.specialty || doctor.specialty === params.specialty;
+        const matchesName = !params?.name || doctor.name.toLowerCase().includes(params.name.toLowerCase());
+
+        return matchesBranch && matchesSpecialty && matchesName;
+      });
+    },
     createDoctor: async (doctor) => {
       const created = { ...doctor, id: doctor.id || `u-${Date.now()}` };
       return clinicDataStore.saveUser(created);
@@ -56,7 +67,31 @@ export const mockRepositories: Repositories = {
     getAppointments: async () => readAppointments(),
     createPatient: async (patient) => clinicDataStore.createPatient(patient),
     lookupPatientsByPhone: async (phone, name) => readPatients().filter((p) => p.phone.includes(phone) && (!name || p.name.toLowerCase().includes(name.toLowerCase()))),
-    getAvailableSlotsBulk: async ({ doctorIds, date }) => Object.fromEntries(doctorIds.map((id) => [id, generateTimeSlots(date, id)])),
+    getAvailableSlotsBulk: async ({ doctorIds, branchId, date }) => {
+      const appointments = readAppointments();
+
+      return Object.fromEntries(
+        doctorIds.map((doctorId) => {
+          const generated = generateTimeSlots(date, doctorId);
+          const withStoreAvailability = generated.map((slot) => {
+            const isBookedInStore = appointments.some((appointment) => (
+              appointment.date === date
+              && appointment.branchId === branchId
+              && appointment.doctorId === doctorId
+              && appointment.timeSlot === slot.time
+              && appointment.status !== AppointmentStatus.CANCELLED
+            ));
+
+            return {
+              ...slot,
+              available: slot.available && !isBookedInStore,
+            };
+          });
+
+          return [doctorId, withStoreAvailability];
+        })
+      );
+    },
     createAppointment: async (appointment) => {
       const created = clinicDataStore.createAppointment(appointment);
       return { id: created.id, patientId: created.patientId, doctorId: created.doctorId, branchId: created.branchId, date: created.date, timeSlot: created.timeSlot, status: created.status ?? AppointmentStatus.SCHEDULED, billing: { total: created.billing?.total ?? 0, paidAmount: created.billing?.paidAmount ?? 0, status: created.billing?.status ?? PaymentStatus.UNPAID } } as ApiAppointment;
