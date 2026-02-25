@@ -210,6 +210,79 @@ export const handleMockRequest = async <T>(path: string, options: RequestInit): 
             }) as unknown as T;
         }
 
+        // ---- CLINIC SETTINGS ----
+        if (pathname === '/clinic/settings' && method === 'GET') {
+            return createEnvelope({
+                name: 'Al-Fath Clinic',
+                email: 'contact@alfath.com',
+                phone: '01000000000',
+                website: 'www.alfath.com',
+                timezone: 'Africa/Cairo',
+                currency: 'EGP',
+                logoUrl: '',
+                commission_basis: 'PAID_AMOUNT',
+                apply_on_discounted_amount: false,
+                include_tax: false,
+                clawback_on_refund: false,
+                accrual_day_of_month: 1,
+                tv_queue_display_mode: 'FULL_NAME'
+            }) as unknown as T;
+        }
+        if (pathname === '/clinic/settings' && method === 'PUT') {
+            return createEnvelope(body) as unknown as T;
+        }
+
+        // ---- BILLING ----
+        if (pathname.match(/^\/appointments\/[^\/]+\/billing\/items$/) && method === 'POST') {
+            const id = pathname.split('/')[2];
+            const apt = memoryAppointments.find(a => a.id === id);
+            if (apt) {
+                const qty = body.quantity || 1;
+                const newItem = {
+                    id: `itm${Date.now()}`,
+                    serviceId: body.serviceId || 'srv_custom',
+                    name: body.name,
+                    category: body.category || 'General',
+                    quantity: qty,
+                    unitPrice: body.unitPrice,
+                    total: qty * body.unitPrice,
+                    addedBy: 'mock-user',
+                    timestamp: new Date().toISOString()
+                };
+                apt.billing.items = [...(apt.billing.items || []), newItem];
+                apt.billing.subtotal = apt.billing.items.reduce((acc, i) => acc + i.total, 0);
+                apt.billing.total = apt.billing.subtotal - apt.billing.discount;
+            }
+            return createEnvelope(apt) as unknown as T;
+        }
+
+        if (pathname.match(/^\/appointments\/[^\/]+\/billing\/items\/[^\/]+$/) && method === 'DELETE') {
+            const parts = pathname.split('/');
+            const id = parts[2];
+            const itemId = parts[5];
+            const apt = memoryAppointments.find(a => a.id === id);
+            if (apt && apt.billing.items) {
+                apt.billing.items = apt.billing.items.filter((i: any) => i.id !== itemId);
+                apt.billing.subtotal = apt.billing.items.reduce((acc, i) => acc + i.total, 0);
+                apt.billing.total = apt.billing.subtotal - apt.billing.discount;
+            }
+            return createEnvelope(apt) as unknown as T;
+        }
+
+        if (pathname.match(/^\/appointments\/[^\/]+\/billing\/payments$/) && method === 'POST') {
+            const id = pathname.split('/')[2];
+            const apt = memoryAppointments.find(a => a.id === id);
+            if (apt) {
+                apt.billing.paidAmount += body.amount || (body.payments ? body.payments.reduce((acc: number, p: any) => acc + p.amount, 0) : 0);
+                if (apt.billing.paidAmount >= apt.billing.total) {
+                    apt.billing.status = PaymentStatus.PAID;
+                } else if (apt.billing.paidAmount > 0) {
+                    apt.billing.status = PaymentStatus.PARTIAL;
+                }
+            }
+            return createEnvelope(apt) as unknown as T;
+        }
+
         // Fallback Mock
         console.warn(`[MOCK ENGINE] Unhandled route: ${method} ${pathname}`);
         return createEnvelope([]) as unknown as T;
