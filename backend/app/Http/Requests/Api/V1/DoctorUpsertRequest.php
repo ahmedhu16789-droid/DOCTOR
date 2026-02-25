@@ -42,6 +42,9 @@ class DoctorUpsertRequest extends FormRequest
             'diagnosisTemplates.*' => ['string', 'min:2', 'max:180'],
             'planTemplates' => ['nullable', 'array', 'max:30'],
             'planTemplates.*' => ['string', 'min:2', 'max:180'],
+            'services' => ['nullable', 'array', 'max:100'],
+            'services.*.name' => ['required_with:services', 'string', 'min:2', 'max:255'],
+            'services.*.price' => ['required_with:services', 'numeric', 'min:0'],
         ];
     }
 }

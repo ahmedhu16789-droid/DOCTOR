@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Actions\Auth\CreateOneTimeAccessLinkAction;
 use App\Http\Requests\Api\V1\DoctorUpsertRequest;
 use App\Http\Resources\Api\V1\DoctorResource;
+use App\Models\DoctorService;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\User;
@@ -21,7 +22,7 @@ class DoctorController extends Controller
     {
         $doctors = User::query()
             ->select(['id', 'clinic_id', 'name', 'email', 'phone', 'role', 'specialty', 'consultation_fee', 'schedule', 'payroll', 'exam_finding_templates', 'diagnosis_templates', 'plan_templates'])
-            ->with(['branches:id'])
+            ->with(['branches:id', 'doctorServices:id,doctor_id,name,price'])
             ->where('role', 'DOCTOR')
             ->when($request->filled('name'), fn ($query) => $query->where('name', 'like', '%'.$request->string('name')->value().'%'))
             ->when($request->filled('specialty'), fn ($query) => $query->where('specialty', $request->string('specialty')->value()))
@@ -67,7 +68,10 @@ class DoctorController extends Controller
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
 
-            $doctor->load('branches');
+            $doctor->load(['branches', 'doctorServices']);
+
+            $this->syncDoctorServices($doctor, $request->input('services', []));
+            $doctor->load(['branches', 'doctorServices']);
 
             $accessLink = null;
 
@@ -136,12 +140,13 @@ class DoctorController extends Controller
             ]);
 
             $doctor->branches()->sync($this->branchPivotPayload($request));
+            $this->syncDoctorServices($doctor, $request->input('services', []));
 
             if ($previousConsultationFee !== $newConsultationFee) {
                 $this->syncPendingPublicBookingConsultationFees($doctor, $newConsultationFee);
             }
 
-            return $doctor->load('branches');
+            return $doctor->load(['branches', 'doctorServices']);
         });
 
         return response()->json(new DoctorResource($doctor));
@@ -167,6 +172,35 @@ class DoctorController extends Controller
         return collect($request->input('assignedBranches', []))
             ->mapWithKeys(fn ($branchId) => [(int) $branchId => ['clinic_id' => $clinicId]])
             ->all();
+    }
+
+
+    private function syncDoctorServices(User $doctor, array $services): void
+    {
+        $doctor->doctorServices()->delete();
+
+        if (empty($services)) {
+            return;
+        }
+
+        $payload = collect($services)
+            ->map(fn (array $service): array => [
+                'clinic_id' => $doctor->clinic_id,
+                'doctor_id' => $doctor->id,
+                'name' => trim((string) ($service['name'] ?? '')),
+                'price' => (float) ($service['price'] ?? 0),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])
+            ->filter(fn (array $service): bool => $service['name'] !== '')
+            ->values()
+            ->all();
+
+        if (empty($payload)) {
+            return;
+        }
+
+        DoctorService::query()->insert($payload);
     }
 
     private function syncPendingPublicBookingConsultationFees(User $doctor, float $newConsultationFee): void
