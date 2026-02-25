@@ -114,4 +114,12 @@ export const booking = {
     "doctor_slot_picker.no_afternoon_slots": "لا توجد مواعيد بعد الظهر متاحة.",
     "doctor_slot_picker.available": "متاح",
     "doctor_slot_picker.selected": "محدد",
-    "doctor_slot_picker.booked": "محجوز",};
+    "doctor_slot_picker.booked": "محجوز",
+    "booking.failed_fetch_doctors_fallback": "تعذر تحديث قائمة الأطباء حالياً. تم الإبقاء على آخر بيانات متاحة.",
+    "booking.failed_fetch_slots_fallback": "تعذر تحديث المواعيد المتاحة الآن. تم الإبقاء على آخر بيانات متاحة.",
+    "booking.patient_has_later_appointment": "هذا المريض لديه موعد لاحق اليوم",
+    "booking.at_time": "الساعة {{time}}",
+    "booking.patient_early_arrival_cancel_silent": "المريض حضر مبكراً — إلغاء موعد الساعة {{time}} بصمت (بدون إشعار)",
+    "public_booking.create_failed_backend": "تعذر إنشاء الحجز على الخادم. تحقق من البيانات ثم أعد المحاولة.",
+    "public_booking.create_failed_demo": "تعذر تأكيد الحجز التجريبي.",
+};

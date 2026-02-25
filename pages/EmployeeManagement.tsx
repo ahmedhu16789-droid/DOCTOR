@@ -67,7 +67,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
       setSelectedEmp(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save employee';
-      setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للموظفين في باقتك الحالية.' : message);
+      setFormError(message.includes('limit') ? t('employee.limit_reached') : message);
     } finally {
       setFormSaving(false);
     }
@@ -94,12 +94,12 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
   };
 
   const handleDeactivateEmployee = async (emp: Employee): Promise<void> => {
-    if (!window.confirm(`هل أنت متأكد من تعطيل الموظف "${emp.name}"؟ لن يتمكن من تسجيل الدخول بعد ذلك.`)) return;
+    if (!window.confirm(t('employee.deactivate_confirm', { name: emp.name }))) return;
     try {
       await deactivateEmployeeViaApi(emp.id);
       setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'فشل تعطيل الموظف');
+      alert(err instanceof Error ? err.message : t('employee.deactivate_failed'));
     }
   };
 
@@ -213,7 +213,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
                   <button
                     onClick={() => handleDeactivateEmployee(emp)}
                     className="text-red-600 hover:text-red-800 inline-flex items-center gap-1 ms-3"
-                    title="تعطيل الموظف"
+                    title={t('employee.deactivate_title')}
                   >
                     <UserX className="w-4 h-4" />
                   </button>

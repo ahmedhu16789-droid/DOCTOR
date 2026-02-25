@@ -99,19 +99,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
             setEditingUser(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to save doctor';
-            setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للأطباء في باقتك الحالية.' : message);
+            setFormError(message.includes('limit') ? t('doctor.limit_reached') : message);
         } finally {
             setFormSaving(false);
         }
     };
 
     const handleDeactivateDoctor = async (u: User): Promise<void> => {
-        if (!window.confirm(`هل أنت متأكد من تعطيل الدكتور "${u.name}"؟ لن يتمكن من تسجيل الدخول بعد ذلك.`)) return;
+        if (!window.confirm(t('doctor.deactivate_confirm', { name: u.name }))) return;
         try {
             await deactivateDoctorViaApi(u.id);
             setUsers((prev) => prev.filter((d) => d.id !== u.id));
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'فشل تعطيل الطبيب');
+            alert(err instanceof Error ? err.message : t('doctor.deactivate_failed'));
         }
     };
 
@@ -214,7 +214,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                                                 <button onClick={() => handleGenerateAccessLink(u)} className="text-blue-700 font-medium hover:text-blue-900 inline-flex items-center gap-1">
                                                     <Link2 className="w-4 h-4" /> {t('copy_access_link')}
                                                 </button>
-                                                <button onClick={() => handleDeactivateDoctor(u)} className="text-red-600 font-medium hover:text-red-800 inline-flex items-center gap-1" title="تعطيل الطبيب">
+                                                <button onClick={() => handleDeactivateDoctor(u)} className="text-red-600 font-medium hover:text-red-800 inline-flex items-center gap-1" title={t('doctor.deactivate_title')}>
                                                     <UserX className="w-4 h-4" />
                                                 </button>
                                             </div>

@@ -185,27 +185,27 @@ export const DoctorProfile: React.FC = () => {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'يرجى تعبئة جميع الحقول.' });
+      setPasswordMessage({ type: 'error', text: t('doctor_profile.password.error_all_fields_required') });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'كلمتا المرور الجديدة غير متطابقتين.' });
+      setPasswordMessage({ type: 'error', text: t('doctor_profile.password.error_mismatch') });
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordMessage({ type: 'error', text: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.' });
+      setPasswordMessage({ type: 'error', text: t('doctor_profile.password.error_min_length') });
       return;
     }
     setPasswordSaving(true);
     setPasswordMessage(null);
     try {
       await changePasswordViaApi(currentPassword, newPassword);
-      setPasswordMessage({ type: 'success', text: 'تم تغيير كلمة المرور بنجاح.' });
+      setPasswordMessage({ type: 'success', text: t('doctor_profile.password.success_changed') });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setPasswordMessage({ type: 'error', text: err instanceof Error ? err.message : 'فشل تغيير كلمة المرور.' });
+      setPasswordMessage({ type: 'error', text: err instanceof Error ? err.message : t('doctor_profile.password.error_change_failed') });
     } finally {
       setPasswordSaving(false);
     }
@@ -226,22 +226,22 @@ export const DoctorProfile: React.FC = () => {
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Lock className="w-5 h-5 text-gray-500" />
-          <h2 className="text-base font-bold text-gray-900">تغيير كلمة المرور</h2>
+          <h2 className="text-base font-bold text-gray-900">{t('doctor_profile.password.change_title')}</h2>
         </div>
         <div className="grid grid-cols-1 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الحالية</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('doctor_profile.password.current')}</label>
             <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
               className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('doctor_profile.password.new')}</label>
               <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('doctor_profile.password.confirm')}</label>
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
             </div>
@@ -252,15 +252,15 @@ export const DoctorProfile: React.FC = () => {
         )}
         <button onClick={handleChangePassword} disabled={passwordSaving}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 disabled:opacity-60">
-          {passwordSaving ? 'جاري الحفظ...' : 'تغيير كلمة المرور'}
+          {passwordSaving ? t('saving') : t('doctor_profile.password.change_action')}
         </button>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Doctor Advanced Mode</h2>
-            <p className="text-sm text-gray-500">Unlock timeline, delay visibility, and same-day controls for your own appointments only.</p>
+            <h2 className="text-base font-semibold text-gray-900">{t('doctor_profile.advanced_mode.title')}</h2>
+            <p className="text-sm text-gray-500">{t('doctor_profile.advanced_mode.description')}</p>
           </div>
           <button
             type="button"
@@ -273,7 +273,7 @@ export const DoctorProfile: React.FC = () => {
           </button>
         </div>
         <p className={`mt-2 text-xs font-medium ${doctorAdvancedModeEnabled ? 'text-emerald-700' : 'text-gray-500'}`}>
-          {doctorAdvancedModeEnabled ? 'Advanced controls enabled' : 'Default minimal workflow enabled'}
+          {doctorAdvancedModeEnabled ? t('doctor_profile.advanced_mode.enabled') : t('doctor_profile.advanced_mode.disabled')}
         </p>
       </div>
 

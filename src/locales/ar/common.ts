@@ -195,4 +195,6 @@ export const common = {
     "service_remove_failed": "تعذر حذف الخدمة حالياً",
     "payment_record_failed": "تعذر تسجيل الدفعة حالياً",
     "search_result_hint": "أدخل الاسم أو الرقم للبحث",
+    "migration.whatsapp_doctor_fragment": " مع د. {{doctorName}}",
+    "migration.whatsapp_reschedule_message": "مرحباً، تم تعديل موعدك{{doctorFragment}} ليكون الساعة {{afterTime}} بدلاً من {{beforeTime}}. شكراً لتفهمكم ونتمنى لكم دوام الصحة والعافية.",
 };

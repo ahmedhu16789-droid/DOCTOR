@@ -139,7 +139,7 @@ export const PublicBooking: React.FC<PublicBookingProps> = ({ onBackToLogin }) =
       setSelectedPatient(patient);
       setStep('CONFIRM');
     } catch {
-      setBookingError(mode === 'backend' ? 'تعذر إنشاء الحجز على الخادم. تحقق من البيانات ثم أعد المحاولة.' : 'تعذر تأكيد الحجز التجريبي.');
+      setBookingError(mode === 'backend' ? t('public_booking.create_failed_backend') : t('public_booking.create_failed_demo'));
     }
   };
 

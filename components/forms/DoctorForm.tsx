@@ -232,28 +232,28 @@ export const DoctorForm: React.FC<DoctorFormProps> = ({ initialData, branches, d
 
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800">الخدمات والأسعار</h3>
+                <h3 className="text-sm font-semibold text-gray-800">{t('doctor_form.services_and_prices')}</h3>
                 <button type="button" onClick={() => appendService({ name: '', price: 0 })} className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-md">
-                  + إضافة خدمة
+                  {t('doctor_form.add_service')}
                 </button>
               </div>
 
-              {serviceFields.length === 0 && <p className="text-xs text-gray-500">أضف الخدمات التي يقدمها الطبيب داخل العيادة وسعر كل خدمة.</p>}
+              {serviceFields.length === 0 && <p className="text-xs text-gray-500">{t('doctor_form.services_empty_hint')}</p>}
 
               <div className="space-y-3">
                 {serviceFields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-100 rounded-lg p-3">
                     <div className="md:col-span-7">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">اسم الخدمة</label>
-                      <input {...register(`services.${index}.name` as const)} type="text" className="block w-full rounded-md border-gray-300 border p-2" placeholder="مثال: تنظيف أسنان" />
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('doctor_form.service_name')}</label>
+                      <input {...register(`services.${index}.name` as const)} type="text" className="block w-full rounded-md border-gray-300 border p-2" placeholder={t('doctor_form.service_name_placeholder')} />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">السعر</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('doctor_form.service_price')}</label>
                       <input {...register(`services.${index}.price` as const, { valueAsNumber: true })} type="number" min={0} className="block w-full rounded-md border-gray-300 border p-2" />
                     </div>
                     <div className="md:col-span-2">
                       <button type="button" onClick={() => removeService(index)} className="w-full px-3 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md">
-                        حذف
+                        {t('delete')}
                       </button>
                     </div>
                   </div>

@@ -214,11 +214,11 @@ export const FinancialReports: React.FC = () => {
                 />
                 {(stats.noShowRevenue > 0 || stats.noShowCount > 0) && (
                     <KPICard
-                        title="خسائر عدم الحضور"
+                        title={t('financial.no_show_losses_title')}
                         value={`${stats.noShowRevenue.toLocaleString()} EGP`}
                         icon={UserX}
                         color="red"
-                        subtitle={`${stats.noShowCount} حجز لم يحضر صاحبه`}
+                        subtitle={t('financial.no_show_losses_subtitle', { count: stats.noShowCount })}
                     />
                 )}
             </div>
