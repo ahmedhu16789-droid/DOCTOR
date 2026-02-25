@@ -234,6 +234,100 @@ export const clinicDataStore = {
     return updated;
   },
 
+  shiftAppointments: (params: {
+    doctorId: string;
+    branchId: string;
+    date: string;
+    fromTime: string;
+    shiftMinutes: number;
+  }): {
+    shiftedAppointments: number;
+    shiftedData: Array<{
+      appointmentId: string;
+      patientId: string;
+      patientName?: string | null;
+      patientPhone?: string | null;
+      beforeTime: string;
+      afterTime: string;
+    }>;
+  } => {
+    const blockedStatuses = new Set<AppointmentStatus>([
+      AppointmentStatus.IN_PROGRESS,
+      AppointmentStatus.COMPLETED,
+      AppointmentStatus.CANCELLED,
+      AppointmentStatus.NO_SHOW,
+    ]);
+
+    const shiftedData: Array<{
+      appointmentId: string;
+      patientId: string;
+      patientName?: string | null;
+      patientPhone?: string | null;
+      beforeTime: string;
+      afterTime: string;
+    }> = [];
+
+    const toMinutes = (time: string): number => {
+      const [hours, minutes] = time.split(':').map((part) => Number.parseInt(part, 10));
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return Number.NaN;
+      }
+      return (hours * 60) + minutes;
+    };
+
+    const fromMinutes = toMinutes(params.fromTime);
+
+    writeStore((data) => {
+      const patientById = new Map(data.patients.map((patient) => [patient.id, patient]));
+
+      const appointments = data.appointments.map((appointment) => {
+        if (
+          appointment.doctorId !== params.doctorId
+          || appointment.branchId !== params.branchId
+          || appointment.date !== params.date
+          || blockedStatuses.has(appointment.status)
+        ) {
+          return appointment;
+        }
+
+        const appointmentMinutes = toMinutes(appointment.timeSlot);
+        if (Number.isNaN(appointmentMinutes) || Number.isNaN(fromMinutes) || appointmentMinutes < fromMinutes) {
+          return appointment;
+        }
+
+        const shiftedMinutes = Math.max(0, appointmentMinutes + params.shiftMinutes);
+        const shiftedHours = Math.floor((shiftedMinutes % (24 * 60)) / 60);
+        const shiftedMinutePart = shiftedMinutes % 60;
+        const afterTime = `${String(shiftedHours).padStart(2, '0')}:${String(shiftedMinutePart).padStart(2, '0')}`;
+        const patient = patientById.get(appointment.patientId);
+
+        shiftedData.push({
+          appointmentId: appointment.id,
+          patientId: appointment.patientId,
+          patientName: patient?.name ?? appointment.patientName,
+          patientPhone: patient?.phone,
+          beforeTime: appointment.timeSlot,
+          afterTime,
+        });
+
+        return {
+          ...appointment,
+          timeSlot: afterTime,
+        };
+      });
+
+      return {
+        ...data,
+        appointments,
+      };
+    });
+
+    return {
+      shiftedAppointments: shiftedData.length,
+      shiftedData,
+    };
+  },
+
   getBranches: (): Branch[] => readStore().data.branches,
   createBranch: (branch: Omit<Branch, 'id'>): Branch => {
     const created: Branch = { ...branch, id: `b-${Date.now()}` };
