@@ -24,6 +24,7 @@ export const common = {
     "set_new_password": "Save New Password",
     "access_link_invalid": "This link is invalid or already used.",
     "access_link_success": "Password updated successfully. You can login now.",
+    "access_denied": "Access denied. Please use the secure portal.",
 
     // Navigation
     "dashboard": "Dashboard",
@@ -98,6 +99,9 @@ export const common = {
     "waiting": "Waiting",
     "service": "Service",
     "delay": "Delay",
+    "auto_saved": "Auto-saved at",
+    "no_data_available": "No data available",
+    "schedule_duration_mins": "Duration (mins)",
 
     // Payments
     "process_payment": "Process Payment",
