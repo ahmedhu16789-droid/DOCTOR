@@ -3,15 +3,8 @@ import { CheckCircle2, Lock, Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Select } from '../components/common/Select';
-import {
-  DoctorPayrollReportFilters,
-  DoctorPayrollReportRecord,
-  getDoctorPayrollReportFromApi,
-  closeDoctorPayrollPeriod,
-  settleDoctorPayrollPeriod,
-  getDoctorsFromApi,
-  getBranchesFromApi,
-} from '../services/api';
+import { DoctorPayrollReportFilters, DoctorPayrollReportRecord } from '../services/api';
+import { repositories } from '../services/repositories';
 
 const defaultFilters: DoctorPayrollReportFilters = {
   doctorId: '',
@@ -37,7 +30,7 @@ export const DoctorPayrollReports: React.FC = () => {
     try {
       setIsLoading(true);
       setErrorMessage('');
-      const payload = await getDoctorPayrollReportFromApi(nextFilters ?? filters);
+      const payload = await repositories.reports.getDoctorPayrollReport(nextFilters ?? filters);
       setReportRows(payload);
     } catch (error) {
       console.error('Failed to load doctor payroll report', error);
@@ -50,7 +43,7 @@ export const DoctorPayrollReports: React.FC = () => {
   useEffect(() => {
     const preloadFilters = async () => {
       try {
-        const [doctorList, branchList] = await Promise.all([getDoctorsFromApi(), getBranchesFromApi()]);
+        const [doctorList, branchList] = await Promise.all([repositories.doctors.getDoctors(), repositories.branches.getBranches()]);
         setDoctors(doctorList.map((doctor) => ({ id: doctor.id, name: doctor.name })));
         setBranches(branchList.map((branch) => ({ id: branch.id, name: branch.name })));
       } catch (error) {
@@ -83,7 +76,7 @@ export const DoctorPayrollReports: React.FC = () => {
   const onCloseMonth = async (periodId: string) => {
     try {
       setActionLoadingId(periodId);
-      await closeDoctorPayrollPeriod(periodId);
+      await repositories.reports.closeDoctorPayrollPeriod(periodId);
       await loadReport();
     } catch (error) {
       console.error('Failed to close payroll period', error);
@@ -121,7 +114,7 @@ export const DoctorPayrollReports: React.FC = () => {
         return;
       }
 
-      await settleDoctorPayrollPeriod(settlementRow.periodId, {
+      await repositories.reports.settleDoctorPayrollPeriod(settlementRow.periodId, {
         settlement_date: new Date().toISOString().slice(0, 10),
         amount,
         method: 'cash',

@@ -4,9 +4,9 @@ import { Login } from './pages/Login';
 import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentEntry, Branch } from './types';
-import { getAppointments, getPatients } from './services/mockData';
-import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, startVisitNowViaApi, updateAppointmentStatusViaApi } from './services/api';
-import { setStoredUser } from './services/core/authSession';
+import { setStoredUser, getStoredUser } from './services/core/authSession';
+import { DATA_SOURCE_MODE, repositories } from './services/repositories';
+import { DataSourceMode } from './services/repositories/contracts';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
 import { PatientPortalApp } from './patient-portal/PatientPortalApp';
@@ -20,14 +20,7 @@ interface HybridEntityIdMap {
   branch?: Record<string, string>;
 }
 
-const DATA_SOURCE_MODE: DataSourceMode = (() => {
-  const rawMode = String(import.meta.env.VITE_DATA_SOURCE_MODE ?? 'api').toLowerCase();
-  if (rawMode === 'mock' || rawMode === 'hybrid' || rawMode === 'api') {
-    return rawMode;
-  }
-
-  return 'api';
-})();
+const APP_DATA_SOURCE_MODE: DataSourceMode = DATA_SOURCE_MODE;
 
 const HYBRID_ID_MAP_STORAGE_KEY = 'doctor:hybrid-id-map:v1';
 export default function App() {
@@ -121,7 +114,7 @@ export default function App() {
     const initSession = async () => {
       try {
         setLoading(true);
-        const currentUser = await getCurrentUser();
+        const currentUser = await repositories.auth.getCurrentUser();
 
         if (currentUser) {
           setUser(currentUser);
@@ -132,7 +125,7 @@ export default function App() {
       } catch (error) {
         if (!cachedUser) {
           console.error('Session restoration failed:', error);
-          clearAuthToken();
+          repositories.auth.clearAuthToken();
           setView('AUTH');
         }
       } finally {
@@ -153,15 +146,15 @@ export default function App() {
 
     try {
       if (mode === 'appointments-only') {
-        const freshAppointments = await getAppointmentsFromApi(patientsRef.current);
+        const freshAppointments = await repositories.appointments.getAppointments(patientsRef.current);
         setAppointments(freshAppointments);
         return;
       }
 
       const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
-        getPatientsFromApi(),
-        getAppointmentsFromApi([]),
-        getBranchesFromApi(),
+        repositories.appointments.getPatients(),
+        repositories.appointments.getAppointments([]),
+        repositories.branches.getBranches(),
       ]);
       const patientById = new Map(freshPatients.map((p) => [p.id, p]));
       const hydrated = freshAppointments.map((apt) => ({
@@ -204,12 +197,12 @@ export default function App() {
 
         try {
           console.log('Initiating data fetch...');
-          const refreshPatients = () => getPatientsFromApi();
-          const refreshAppointments = () => getAppointmentsFromApi([]);
+          const refreshPatients = () => repositories.appointments.getPatients();
+          const refreshAppointments = () => repositories.appointments.getAppointments([]);
 
           const pPatients = refreshPatients().then(res => { console.log('Patients FETCHED'); return res; });
           const pAppointments = refreshAppointments().then(res => { console.log('Appointments FETCHED'); return res; });
-          const pBranches = getBranchesFromApi(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
+          const pBranches = repositories.branches.getBranches(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
 
           const [patientsResult, appointmentsResult, branchesResult] = await Promise.allSettled([
             pPatients,
@@ -226,7 +219,7 @@ export default function App() {
           let fallbackBranches: Branch[] = readCachedSessionData(user?.id)?.branches ?? [];
 
           if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
-            [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+            [fallbackAppointments, fallbackPatients] = await Promise.all([repositories.appointments.getAppointments(), repositories.appointments.getPatients()]);
           }
 
           const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
@@ -410,7 +403,7 @@ export default function App() {
 
 
   const handleLogout = () => {
-    clearAuthToken();
+    repositories.auth.clearAuthToken();
     setUser(null);
     setView('AUTH');
     setAppointments([]);
@@ -424,7 +417,7 @@ export default function App() {
     ));
 
     try {
-      const updated = await startVisitNowViaApi(id);
+      const updated = await repositories.appointments.startVisitNow(id);
       setAppointments((prev) => prev.map((a) =>
         a.id === id
           ? { ...a, status: updated.status, checkInAt: updated.checkInAt ?? a.checkInAt, calledAt: updated.calledAt ?? a.calledAt, startedAt: updated.startedAt ?? a.startedAt }
@@ -435,7 +428,7 @@ export default function App() {
       if (previous) {
         setAppointments((prev) => prev.map((a) => a.id === id ? previous : a));
       }
-      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+      repositories.appointments.getAppointments(patients).then(setAppointments).catch(() => undefined);
     }
   };
 
@@ -444,9 +437,9 @@ export default function App() {
       a.id === id ? { ...a, status: newStatus } : a
     ));
 
-    updateAppointmentStatusViaApi(id, newStatus).catch(() => {
+    repositories.appointments.updateAppointmentStatus(id, newStatus).catch(() => {
       setToast({ type: 'error', message: t('appointment_status_update_failed') });
-      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+      repositories.appointments.getAppointments(patients).then(setAppointments).catch(() => undefined);
     });
   };
 
@@ -502,11 +495,11 @@ export default function App() {
     }
 
     try {
-      await createAppointmentViaApi(newApt, {
-        dataSourceMode: DATA_SOURCE_MODE,
+      await repositories.appointments.createAppointment(newApt, {
+        dataSourceMode: APP_DATA_SOURCE_MODE,
         entityIdMap: hybridEntityIdMap,
       });
-      const refreshedAppointments = await getAppointmentsFromApi(patients);
+      const refreshedAppointments = await repositories.appointments.getAppointments(patients);
       setAppointments(refreshedAppointments);
       setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
     } catch (error) {
@@ -537,7 +530,7 @@ export default function App() {
 
   const handleAddService = async (aptId: string, service: ServiceItem) => {
     try {
-      const updated = await addBillingItemViaApi(aptId, {
+      const updated = await repositories.appointments.addBillingItem(aptId, {
         serviceId: service.id,
         name: service.name,
         category: service.category,
@@ -562,7 +555,7 @@ export default function App() {
 
   const handleRemoveService = async (aptId: string, itemId: string) => {
     try {
-      const updated = await removeBillingItemViaApi(aptId, itemId);
+      const updated = await repositories.appointments.removeBillingItem(aptId, itemId);
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
@@ -581,7 +574,7 @@ export default function App() {
 
   const handleProcessPayment = async (aptId: string, payments: PaymentEntry[]) => {
     try {
-      const updated = await processAppointmentPaymentViaApi(aptId, { payments });
+      const updated = await repositories.appointments.processAppointmentPayment(aptId, { payments });
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {

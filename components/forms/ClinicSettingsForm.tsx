@@ -3,7 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { Save, Mail, Clock, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Select } from '../common/Select';
-import { ClinicSettingsPayload, getClinicSettingsFromApi, updateClinicSettingsViaApi } from '../../services/api';
+import { ClinicSettingsPayload } from '../../services/api';
+import { repositories } from '../../services/repositories';
 
 export const ClinicSettingsForm: React.FC = () => {
     const { t } = useTranslation();
@@ -33,7 +34,7 @@ export const ClinicSettingsForm: React.FC = () => {
         const loadSettings = async () => {
             try {
                 setIsLoading(true);
-                const settings = await getClinicSettingsFromApi();
+                const settings = await repositories.settings.getClinicSettings();
                 reset(settings);
             } catch (error) {
                 console.error('Failed to load clinic settings', error);
@@ -50,7 +51,7 @@ export const ClinicSettingsForm: React.FC = () => {
         setErrorMessage('');
 
         try {
-            const savedSettings = await updateClinicSettingsViaApi(data);
+            const savedSettings = await repositories.settings.updateClinicSettings(data);
             reset(savedSettings);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);

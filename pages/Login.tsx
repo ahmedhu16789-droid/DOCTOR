@@ -4,7 +4,7 @@ import { User } from '../types';
 import { Building2, Globe, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
-import { consumeAccessLinkViaApi, loginWithApi } from '../services/api';
+import { repositories } from '../services/repositories';
 import { authenticateWithLocalCredentials } from '../services/authLinks';
 
 interface LoginProps {
@@ -37,7 +37,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
     setLoading(true);
 
     try {
-      const user = await loginWithApi(email, password);
+      const user = await repositories.auth.login(email, password);
       onLogin(user);
     } catch (err) {
       const localUser = authenticateWithLocalCredentials(email, password);
@@ -62,7 +62,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
     }
 
     try {
-      await consumeAccessLinkViaApi({
+      await repositories.auth.consumeAccessLink({
         token: resetToken,
         email,
         password: newPassword,

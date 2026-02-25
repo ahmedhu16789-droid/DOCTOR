@@ -4,7 +4,7 @@ import { BranchForm } from '../components/forms/BranchForm';
 import { BranchSettingsForm } from '../components/forms/BranchSettingsForm';
 import { Building2, Plus, MapPin, Phone, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createBranchViaApi, deleteBranchViaApi, getBranchSettingsFromApi, getBranchesFromApi, resetBranchSettingsViaApi, updateBranchSettingsViaApi, updateBranchViaApi } from '../services/api';
+import { repositories } from '../services/repositories';
 import { Branch, BranchOperationalSettings } from '../types';
 
 export const BranchManagement: React.FC = () => {
@@ -16,7 +16,7 @@ export const BranchManagement: React.FC = () => {
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
 
   useEffect(() => {
-    getBranchesFromApi()
+    repositories.branches.getBranches()
       .then(setBranches)
       .catch(() => setBranches(BRANCHES));
   }, []);
@@ -30,13 +30,13 @@ export const BranchManagement: React.FC = () => {
 
   const openSettings = async (branch: Branch) => {
     setSettingsBranch(branch);
-    const response = await getBranchSettingsFromApi(branch.id);
+    const response = await repositories.branches.getBranchSettings(branch.id);
     setBranchSettings(response.effective);
   };
 
   const handleSaveBranch = async (formData: Omit<Branch, 'id'>) => {
     if (isCreatingBranch) {
-      const saved = await createBranchViaApi(formData);
+      const saved = await repositories.branches.createBranch(formData);
       setBranches((prev) => [...prev, saved]);
       closeModal();
       return;
@@ -44,7 +44,7 @@ export const BranchManagement: React.FC = () => {
 
     if (!editingBranch) return;
 
-    const saved = await updateBranchViaApi({
+    const saved = await repositories.branches.updateBranch({
       ...editingBranch,
       ...formData,
     });
@@ -60,7 +60,7 @@ export const BranchManagement: React.FC = () => {
     setBranches((prev) => prev.filter((branch) => branch.id !== id));
 
     try {
-      await deleteBranchViaApi(id);
+      await repositories.branches.deleteBranch(id);
     } catch {
       setBranches(previous);
       alert('Unable to delete branch from API');
@@ -164,12 +164,12 @@ export const BranchManagement: React.FC = () => {
               initialData={branchSettings}
               onCancel={closeModal}
               onSave={async (settings) => {
-                const updated = await updateBranchSettingsViaApi(settingsBranch.id, settings);
+                const updated = await repositories.branches.updateBranchSettings(settingsBranch.id, settings);
                 setBranches((prev) => prev.map((item) => item.id === settingsBranch.id ? { ...item, settings: updated } : item));
                 closeModal();
               }}
               onReset={async () => {
-                const updated = await resetBranchSettingsViaApi(settingsBranch.id);
+                const updated = await repositories.branches.resetBranchSettings(settingsBranch.id);
                 setBranches((prev) => prev.map((item) => item.id === settingsBranch.id ? { ...item, settings: updated } : item));
                 closeModal();
               }}
