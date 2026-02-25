@@ -13,6 +13,7 @@ import {
   User,
 } from '../../types';
 import type { ClinicSettingsPayload } from '../api';
+import { DEFAULT_CLINIC_SETTINGS } from './clinicSettingsStore';
 import { MOCK_APPOINTMENTS, MOCK_PATIENTS } from '../mockData';
 
 const STORE_KEY = 'doctor:clinic:data';
@@ -25,12 +26,6 @@ const LEGACY_KEYS = {
   branches: 'doctor:mock:branches:v1',
   branchSettings: 'doctor:mock:branch-settings:v1',
   clinicSettings: 'doctor:mock:clinic-settings:v1',
-};
-
-const defaultClinicSettings: ClinicSettingsPayload = {
-  name: 'Al-Fath Clinic', email: 'info@alfath.com', phone: '0100000000', website: '', timezone: 'Africa/Cairo', currency: 'EGP', logoUrl: '',
-  commission_basis: 'PAID_AMOUNT', apply_on_discounted_amount: true, include_tax: false, clawback_on_refund: true, accrual_day_of_month: 1,
-  tv_queue_display_mode: 'FULL_NAME', doctor_advanced_mode_enabled: false,
 };
 
 type ClinicStoreData = {
@@ -64,7 +59,7 @@ const buildDefaultData = (): ClinicStoreData => ({
   appointments: [...MOCK_APPOINTMENTS],
   branches: [...BRANCHES],
   branchSettings: {},
-  clinicSettings: { ...defaultClinicSettings },
+  clinicSettings: { ...DEFAULT_CLINIC_SETTINGS },
 });
 
 const migrateLegacyStore = (): PersistedClinicStore => {
