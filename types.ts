@@ -85,6 +85,12 @@ export interface WeeklyShift {
   slotDuration: number; // minutes
 }
 
+export interface DoctorServiceItem {
+  id?: string;
+  name: string;
+  price: number;
+}
+
 export interface PayrollConfig {
   model: 'FIXED_SALARY' | 'PERCENTAGE' | 'HYBRID';
   baseSalary: number;
@@ -115,6 +121,7 @@ export interface User {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  services?: DoctorServiceItem[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: {
     advancedModeEnabled: boolean;

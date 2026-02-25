@@ -31,6 +31,12 @@ class DoctorResource extends JsonResource
             'examFindingTemplates' => $this->exam_finding_templates ?? [],
             'diagnosisTemplates' => $this->diagnosis_templates ?? [],
             'planTemplates' => $this->plan_templates ?? [],
+            'services' => $this->whenLoaded('doctorServices', fn () => $this->doctorServices
+                ->map(fn ($service) => [
+                    'id' => (string) $service->id,
+                    'name' => (string) $service->name,
+                    'price' => (float) $service->price,
+                ])->values()->all(), []),
             'payroll' => [
                 'model' => $this->payroll['model'] ?? 'PERCENTAGE',
                 'baseSalary' => (float) ($this->payroll['baseSalary'] ?? 0),

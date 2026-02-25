@@ -18,6 +18,7 @@ interface ApiUser {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  services?: ApiDoctorService[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
   isPlatformAdmin?: boolean;
@@ -173,6 +174,12 @@ interface ApiDataEnvelope<T> {
   data: T;
 }
 
+interface ApiDoctorService {
+  id: string;
+  name: string;
+  price: number;
+}
+
 interface ApiDoctor {
   id: string;
   name: string;
@@ -187,6 +194,7 @@ interface ApiDoctor {
   examFindingTemplates?: string[];
   diagnosisTemplates?: string[];
   planTemplates?: string[];
+  services?: ApiDoctorService[];
   doctorAdvancedModeEnabled?: boolean;
   doctorAdvancedCapabilities?: DoctorAdvancedCapabilities;
   isPlatformAdmin?: boolean;
@@ -524,6 +532,7 @@ const normalizeDoctor = (doctor: ApiDoctor): User => ({
   examFindingTemplates: doctor.examFindingTemplates ?? [],
   diagnosisTemplates: doctor.diagnosisTemplates ?? [],
   planTemplates: doctor.planTemplates ?? [],
+  services: doctor.services ?? [],
   status: 'ACTIVE',
 });
 

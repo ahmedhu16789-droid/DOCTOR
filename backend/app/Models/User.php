@@ -76,4 +76,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(DoctorPayrollContract::class, 'doctor_id');
     }
+
+    public function doctorServices(): HasMany
+    {
+        return $this->hasMany(DoctorService::class, 'doctor_id');
+    }
 }
