@@ -217,7 +217,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
         <div className="flex gap-2">
           <div className="flex items-center gap-2 mr-4 text-sm text-gray-500">
             <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-amber-500 mr-1"></span> {t('waiting')}: {waiting.length}</span>
-            <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-primary-500 mr-1"></span> {t('in_progress')}: {inProgress.length}</span>
+            <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-primary-500 mr-1"></span> {t('IN_PROGRESS')}: {inProgress.length}</span>
           </div>
           {onRefresh && (
             <button

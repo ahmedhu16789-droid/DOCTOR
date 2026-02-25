@@ -24,6 +24,7 @@ export const common = {
     "set_new_password": "حفظ كلمة المرور الجديدة",
     "access_link_invalid": "الرابط غير صالح أو تم استخدامه بالفعل.",
     "access_link_success": "تم ضبط كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.",
+    "access_denied": "تم رفض الوصول. يرجى استخدام البوابة الآمنة.",
 
     // Navigation
     "dashboard": "لوحة التحكم",
@@ -99,6 +100,9 @@ export const common = {
     "waiting": "الانتظار",
     "service": "الخدمة",
     "delay": "التأخير",
+    "auto_saved": "تم الحفظ التلقائي في",
+    "no_data_available": "لا توجد بيانات متاحة",
+    "schedule_duration_mins": "المدة (بالدقائق)",
 
     // Payments
     "process_payment": "معالجة الدفع",
