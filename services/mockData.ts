@@ -1,21 +1,7 @@
-import { Appointment, AppointmentStatus, Department, Patient, TimeSlot, Medication, ServiceItem, PaymentStatus, WeeklyShift, Employee, UserRole, PaymentMethod } from '../types';
-import { BRANCHES } from '../constants';
+import { Appointment, AppointmentStatus, Department, Patient, TimeSlot, Medication, ServiceItem, WeeklyShift, Employee, UserRole } from '../types';
+import { MOCK_APPOINTMENTS_SEED, MOCK_PATIENTS_SEED, MOCK_SCHEDULES } from './mock/seed';
 
-// --- Schedules ---
-// Dr. Sarah: Mon/Wed (Branch 1), Tue/Thu (Branch 2)
-export const MOCK_SCHEDULES: Record<string, WeeklyShift[]> = {
-  'u1': [
-    { id: 's1', dayOfWeek: 1, startTime: '09:00', endTime: '14:00', branchId: 'b1', slotDuration: 20 }, // Mon
-    { id: 's2', dayOfWeek: 3, startTime: '09:00', endTime: '14:00', branchId: 'b1', slotDuration: 20 }, // Wed
-    { id: 's3', dayOfWeek: 2, startTime: '14:00', endTime: '18:00', branchId: 'b2', slotDuration: 30 }, // Tue
-    { id: 's4', dayOfWeek: 4, startTime: '14:00', endTime: '18:00', branchId: 'b2', slotDuration: 30 }, // Thu
-  ],
-  'u3': [
-     { id: 's5', dayOfWeek: 0, startTime: '10:00', endTime: '16:00', branchId: 'b1', slotDuration: 15 }, // Sun
-     { id: 's6', dayOfWeek: 1, startTime: '10:00', endTime: '16:00', branchId: 'b1', slotDuration: 15 }, // Mon
-     { id: 's7', dayOfWeek: 2, startTime: '10:00', endTime: '16:00', branchId: 'b1', slotDuration: 15 }, // Tue
-  ]
-};
+export { MOCK_SCHEDULES };
 
 export const MOCK_SERVICES: ServiceItem[] = [
   { id: 'srv_cns', name: 'Specialist Consultation', price: 400, category: 'CONSULTATION', department: Department.CARDIOLOGY },
@@ -28,33 +14,7 @@ export const MOCK_SERVICES: ServiceItem[] = [
   { id: 'srv_lab_bc', name: 'Blood Glucose Test', price: 80, category: 'LAB' },
 ];
 
-export const MOCK_PATIENTS: Patient[] = [
-  { 
-    id: 'p1', 
-    name: 'Ahmed Mahmoud', 
-    age: 45, 
-    gender: 'Male', 
-    phone: '01001234567', 
-    lastVisit: '2023-10-15', 
-    medicalHistorySummary: 'Hypertension, Diabetic Type 2',
-    allergies: ['Penicillin', 'Peanuts'],
-    chronicConditions: ['Hypertension', 'Diabetes T2'],
-    balance: 0
-  },
-  { 
-    id: 'p2', 
-    name: 'Layla Hassan', 
-    age: 28, 
-    gender: 'Female', 
-    phone: '01119876543', 
-    lastVisit: '2023-11-01', 
-    medicalHistorySummary: 'Asthma, Penicillin Allergy',
-    allergies: ['Dust Mites', 'Aspirin'],
-    chronicConditions: ['Asthma'],
-    balance: 150
-  },
-  { id: 'p3', name: 'Ibrahim Youssef', age: 42, gender: 'Male', phone: '01223334444', lastVisit: '2023-11-20', medicalHistorySummary: 'None', balance: 0 },
-];
+export const MOCK_PATIENTS: Patient[] = MOCK_PATIENTS_SEED;
 
 export const MOCK_EMPLOYEES: Employee[] = [
     {
@@ -81,88 +41,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
     }
 ];
 
-const today = new Date().toISOString().split('T')[0];
-
-export const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: 'apt1',
-    patientId: 'p1',
-    patientName: 'Ahmed Mahmoud',
-    doctorId: 'u1',
-    doctorName: 'Dr. Sarah Ahmed',
-    branchId: 'b1',
-    date: today,
-    timeSlot: '09:00',
-    department: Department.CARDIOLOGY,
-    status: AppointmentStatus.IN_PROGRESS,
-    type: 'Consultation',
-    notes: 'Checking BP medication',
-    createdAt: new Date().toISOString(),
-    billing: {
-      items: [
-        { id: '1', serviceId: 'srv_cns', name: 'Specialist Consultation', quantity: 1, unitPrice: 400, total: 400, addedBy: 'system', timestamp: today }
-      ],
-      subtotal: 400,
-      discount: 0,
-      total: 400,
-      paidAmount: 0,
-      status: PaymentStatus.UNPAID,
-      transactions: []
-    }
-  },
-  {
-    id: 'apt2',
-    patientId: 'p2',
-    patientName: 'Layla Hassan',
-    doctorId: 'u1',
-    doctorName: 'Dr. Sarah Ahmed',
-    branchId: 'b1',
-    date: today,
-    timeSlot: '09:40',
-    department: Department.CARDIOLOGY,
-    status: AppointmentStatus.WAITING,
-    type: 'Follow-up',
-    createdAt: new Date().toISOString(),
-    billing: {
-      items: [
-        { id: '2', serviceId: 'srv_fol', name: 'Follow-up Visit', quantity: 1, unitPrice: 150, total: 150, addedBy: 'system', timestamp: today }
-      ],
-      subtotal: 150,
-      discount: 0,
-      total: 150,
-      paidAmount: 150,
-      status: PaymentStatus.PAID,
-      transactions: [
-        { id: 'tx1', amount: 150, method: PaymentMethod.CASH, timestamp: today, recordedBy: 'u2', reference: 'REC-001', type: 'PAYMENT' }
-      ]
-    }
-  },
-  {
-    id: 'apt3',
-    patientId: 'p3',
-    patientName: 'Ibrahim Youssef',
-    doctorId: 'u3',
-    doctorName: 'Dr. Kareem Ezz',
-    branchId: 'b1',
-    date: today,
-    timeSlot: '10:00',
-    department: Department.ORTHOPEDICS,
-    status: AppointmentStatus.SCHEDULED,
-    type: 'Consultation',
-    createdAt: new Date().toISOString(),
-    billing: {
-      items: [
-        { id: '3', serviceId: 'srv_cns', name: 'Specialist Consultation', quantity: 1, unitPrice: 400, total: 400, addedBy: 'system', timestamp: today }
-      ],
-      subtotal: 400,
-      discount: 0,
-      total: 400,
-      paidAmount: 0,
-      status: PaymentStatus.UNPAID,
-      transactions: []
-    }
-  }
-];
+export const MOCK_APPOINTMENTS: Appointment[] = MOCK_APPOINTMENTS_SEED;
 
 export const MOCK_MEDICATIONS: Medication[] = [
     { id: 'm1', name: 'Panadol Extra', dosage: '500mg', frequency: 'TID', duration: '5 days' },
@@ -209,7 +88,7 @@ export const generateTimeSlots = (dateStr: string, doctorId: string): TimeSlot[]
   const dayOfWeek = date.getDay(); // 0-6
   
   // 1. Get Doctor's Schedule for this day
-  const docSchedule = MOCK_SCHEDULES[doctorId] || [];
+  const docSchedule: WeeklyShift[] = MOCK_SCHEDULES[doctorId] || [];
   const shifts = docSchedule.filter(s => s.dayOfWeek === dayOfWeek);
 
   if (shifts.length === 0) return []; // Not working today
