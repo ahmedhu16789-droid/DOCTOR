@@ -194,4 +194,6 @@ export const common = {
     "service_remove_failed": "Unable to remove service right now",
     "payment_record_failed": "Unable to record payment right now",
     "search_result_hint": "Enter name or phone to search",
+    "migration.whatsapp_doctor_fragment": " with Dr. {{doctorName}}",
+    "migration.whatsapp_reschedule_message": "Hello, your appointment{{doctorFragment}} has been rescheduled to {{afterTime}} instead of {{beforeTime}}. Thank you for your understanding and we wish you good health.",
 };

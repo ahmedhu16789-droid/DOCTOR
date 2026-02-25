@@ -68,7 +68,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
         setAvailabilityWarning(null);
       })
       .catch(() => {
-        setAvailabilityWarning(t('failed_fetch_doctors_fallback', { defaultValue: 'تعذر تحديث قائمة الأطباء حالياً. تم الإبقاء على آخر بيانات متاحة.' }));
+        setAvailabilityWarning(t('booking.failed_fetch_doctors_fallback', { defaultValue: 'Unable to refresh doctors list right now. Keeping the latest available data.' }));
       });
   }, [activeBranchId, selectedDept]);
 
@@ -88,7 +88,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
         setAvailabilityWarning(null);
       })
       .catch(() => {
-        setAvailabilityWarning(t('failed_fetch_slots_fallback', { defaultValue: 'تعذر تحديث المواعيد المتاحة الآن. تم الإبقاء على آخر بيانات متاحة.' }));
+        setAvailabilityWarning(t('booking.failed_fetch_slots_fallback', { defaultValue: 'Unable to refresh available slots right now. Keeping the latest available data.' }));
       });
   }, [doctors, activeBranchId, selectedDate]);
 
@@ -354,11 +354,11 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                   <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isEarlyCheckin ? 'text-orange-600' : 'text-blue-500'}`} />
                   <div className="flex-1">
                     <p className={`font-semibold ${isEarlyCheckin ? 'text-orange-800' : 'text-blue-800'}`}>
-                      هذا المريض لديه موعد لاحق اليوم
+                      {t('booking.patient_has_later_appointment')}
                     </p>
                     <p className={`mt-0.5 ${isEarlyCheckin ? 'text-orange-700' : 'text-blue-700'}`}>
                       <Clock className="w-3 h-3 inline mr-1" />
-                      الساعة {formatTimeTo12Hour(patientLaterAppointment.timeSlot)}
+                      {t('booking.at_time', { time: formatTimeTo12Hour(patientLaterAppointment.timeSlot) })}
                     </p>
                     <label className="flex items-center gap-2 mt-2 cursor-pointer">
                       <input
@@ -368,7 +368,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                         className="w-4 h-4 accent-orange-500"
                       />
                       <span className={`text-sm font-medium ${isEarlyCheckin ? 'text-orange-800' : 'text-blue-700'}`}>
-                        المريض حضر مبكراً — إلغاء موعد الساعة {formatTimeTo12Hour(patientLaterAppointment.timeSlot)} بصمت (بدون إشعار)
+                        {t('booking.patient_early_arrival_cancel_silent', { time: formatTimeTo12Hour(patientLaterAppointment.timeSlot) })}
                       </span>
                     </label>
                   </div>

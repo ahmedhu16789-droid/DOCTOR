@@ -59,7 +59,7 @@ export const BranchManagement: React.FC = () => {
       closeModal();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save branch';
-      setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للفروع في باقتك الحالية.' : message);
+      setFormError(message.includes('limit') ? t('branch.limit_reached') : message);
     } finally {
       setFormSaving(false);
     }
@@ -75,7 +75,7 @@ export const BranchManagement: React.FC = () => {
       await repositories.branches.deleteBranch(id);
     } catch {
       setBranches(previous);
-      alert('Unable to delete branch from API');
+      alert(t('branch.delete_failed_api'));
     }
   };
 

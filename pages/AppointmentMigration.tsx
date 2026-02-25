@@ -132,10 +132,10 @@ export const AppointmentMigration: React.FC<AppointmentMigrationProps> = ({
         const whatsappQueue: WhatsAppMessage[] = result.shiftedData
           .filter((d) => d.patientPhone)
           .map((d) => {
-            const drText = doctorName ? ` مع د. ${doctorName}` : '';
+            const drText = doctorName ? t('migration.whatsapp_doctor_fragment', { doctorName }) : '';
             return {
               phone: d.patientPhone!,
-              text: `مرحباً، تم تعديل موعدك${drText} ليكون الساعة ${d.afterTime} بدلاً من ${d.beforeTime}. شكراً لتفهمكم ونتمنى لكم دوام الصحة والعافية.`,
+              text: t('migration.whatsapp_reschedule_message', { doctorFragment: drText, afterTime: d.afterTime, beforeTime: d.beforeTime }),
             };
           });
 

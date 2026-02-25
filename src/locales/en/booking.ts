@@ -114,4 +114,12 @@ export const booking = {
     "doctor_slot_picker.no_afternoon_slots": "No afternoon slots available.",
     "doctor_slot_picker.available": "Available",
     "doctor_slot_picker.selected": "Selected",
-    "doctor_slot_picker.booked": "Booked",};
+    "doctor_slot_picker.booked": "Booked",
+    "booking.failed_fetch_doctors_fallback": "Unable to refresh doctors list right now. Keeping the latest available data.",
+    "booking.failed_fetch_slots_fallback": "Unable to refresh available slots right now. Keeping the latest available data.",
+    "booking.patient_has_later_appointment": "This patient has a later appointment today",
+    "booking.at_time": "At {{time}}",
+    "booking.patient_early_arrival_cancel_silent": "Patient arrived early — silently cancel the {{time}} appointment (without notification)",
+    "public_booking.create_failed_backend": "Unable to create the booking on the server. Please verify the data and try again.",
+    "public_booking.create_failed_demo": "Unable to confirm the demo booking.",
+};
