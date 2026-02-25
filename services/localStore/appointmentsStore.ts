@@ -234,6 +234,134 @@ export const clinicDataStore = {
     return updated;
   },
 
+  shiftAppointments: (params: {
+    doctorId: string;
+    branchId: string;
+    date: string;
+    fromTime: string;
+    shiftMinutes: number;
+  }): {
+    shiftedAppointments: number;
+    shiftedData: Array<{
+      appointmentId: string;
+      patientId: string;
+      patientName?: string | null;
+      patientPhone?: string | null;
+      beforeTime: string;
+      afterTime: string;
+    }>;
+  } => {
+    const blockedStatuses = new Set<AppointmentStatus>([
+      AppointmentStatus.IN_PROGRESS,
+      AppointmentStatus.COMPLETED,
+      AppointmentStatus.CANCELLED,
+      AppointmentStatus.NO_SHOW,
+    ]);
+
+    const shiftedData: Array<{
+      appointmentId: string;
+      patientId: string;
+      patientName?: string | null;
+      patientPhone?: string | null;
+      beforeTime: string;
+      afterTime: string;
+    }> = [];
+
+    const normalizeDate = (value: string): string => (value.includes('T') ? value.split('T')[0] : value);
+
+    const toMinutes = (time: string): number => {
+      const match = time.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+      if (!match) {
+        return Number.NaN;
+      }
+
+      const hours = Number.parseInt(match[1], 10);
+      const minutes = Number.parseInt(match[2], 10);
+
+      if (Number.isNaN(hours) || Number.isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return Number.NaN;
+      }
+
+      return (hours * 60) + minutes;
+    };
+
+    const formatMinutes = (minutes: number): string => {
+      const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+      const shiftedHours = Math.floor(normalized / 60);
+      const shiftedMinutePart = normalized % 60;
+
+      return `${String(shiftedHours).padStart(2, '0')}:${String(shiftedMinutePart).padStart(2, '0')}`;
+    };
+
+    const fromMinutes = toMinutes(params.fromTime);
+    if (Number.isNaN(fromMinutes)) {
+      return {
+        shiftedAppointments: 0,
+        shiftedData,
+      };
+    }
+
+    const migrationDate = normalizeDate(params.date);
+
+    writeStore((data) => {
+      const patientById = new Map(data.patients.map((patient) => [patient.id, patient]));
+
+      const appointments = data.appointments.map((appointment) => {
+        if (
+          appointment.doctorId !== params.doctorId
+          || appointment.branchId !== params.branchId
+          || normalizeDate(appointment.date) !== migrationDate
+          || blockedStatuses.has(appointment.status)
+        ) {
+          return appointment;
+        }
+
+        const appointmentMinutes = toMinutes(appointment.timeSlot);
+        if (Number.isNaN(appointmentMinutes) || appointmentMinutes < fromMinutes) {
+          return appointment;
+        }
+
+        const afterTime = formatMinutes(appointmentMinutes + params.shiftMinutes);
+        const patient = patientById.get(appointment.patientId);
+
+        shiftedData.push({
+          appointmentId: appointment.id,
+          patientId: appointment.patientId,
+          patientName: patient?.name ?? appointment.patientName,
+          patientPhone: patient?.phone,
+          beforeTime: appointment.timeSlot,
+          afterTime,
+        });
+
+        return {
+          ...appointment,
+          timeSlot: afterTime,
+        };
+      });
+
+      return {
+        ...data,
+        appointments,
+      };
+    });
+
+    shiftedData.sort((first, second) => {
+      const firstMinutes = toMinutes(first.beforeTime);
+      const secondMinutes = toMinutes(second.beforeTime);
+
+      if (Number.isNaN(firstMinutes) || Number.isNaN(secondMinutes)) {
+        return first.beforeTime.localeCompare(second.beforeTime);
+      }
+
+      return firstMinutes - secondMinutes;
+    });
+
+    return {
+      shiftedAppointments: shiftedData.length,
+      shiftedData,
+    };
+  },
+
   getBranches: (): Branch[] => readStore().data.branches,
   createBranch: (branch: Omit<Branch, 'id'>): Branch => {
     const created: Branch = { ...branch, id: `b-${Date.now()}` };
