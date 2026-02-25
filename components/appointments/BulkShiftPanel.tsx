@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Select } from '../common/Select';
-import { getDelayInsightViaApi, getDoctorsFromApi, shiftAppointmentsViaApi } from '../../services/api';
+import { repositories } from '../../services/repositories';
 import { sendWhatsAppQueue, WhatsAppMessage } from '../../utils/whatsapp';
 import { User, UserRole } from '../../types';
 
@@ -34,7 +34,7 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       return;
     }
 
-    getDoctorsFromApi({ branchId: activeBranchId })
+    repositories.doctors.getDoctors({ branchId: activeBranchId })
       .then((payload) => {
         setDoctorOptions(payload);
         setDoctorId((currentDoctorId) => {
@@ -61,7 +61,7 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       return;
     }
 
-    getDelayInsightViaApi({
+    repositories.appointments.getDelayInsight({
       doctorId,
       branchId: activeBranchId,
       date,
@@ -94,7 +94,7 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       setError(null);
       setFeedback(null);
 
-      const result = await shiftAppointmentsViaApi({
+      const result = await repositories.appointments.shiftAppointments({
         doctorId,
         branchId: activeBranchId,
         date,
@@ -128,6 +128,7 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">

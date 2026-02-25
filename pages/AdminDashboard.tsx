@@ -6,7 +6,8 @@ import { DoctorForm } from '../components/forms/DoctorForm';
 import { Select } from '../components/common/Select';
 import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2, UserX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createAccessLinkViaApi, createDoctorViaApi, deactivateDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
+import { deactivateDoctorViaApi, ApiDepartmentOption } from '../services/api';
+import { repositories } from '../services/repositories';
 
 interface AdminDashboardProps {
     currentUser: User;
@@ -33,9 +34,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
         (async () => {
             try {
                 const [apiDoctors, apiBranches, apiDepartments] = await Promise.all([
-                    getDoctorsFromApi(),
-                    getBranchesFromApi(),
-                    getDepartmentsFromApi(),
+                    repositories.doctors.getDoctors(),
+                    repositories.branches.getBranches(),
+                    repositories.doctors.getDepartments(),
                 ]);
                 setUsers(apiDoctors);
                 setBranches(apiBranches);
@@ -72,7 +73,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
 
     const handleGenerateAccessLink = async (user: User): Promise<void> => {
         try {
-            const { token } = await createAccessLinkViaApi(user.id);
+            const { token } = await repositories.auth.createAccessLink(user.id);
             const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
             await navigator.clipboard.writeText(link);
             alert(t('copy_link_done'));
@@ -88,7 +89,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
         setFormError(null);
         setFormSaving(true);
         try {
-            const persisted = isCreatingUser ? await createDoctorViaApi(savedUser) : await updateDoctorViaApi(savedUser);
+            const persisted = isCreatingUser ? await repositories.doctors.createDoctor(savedUser) : await repositories.doctors.updateDoctor(savedUser);
             if (isCreatingUser) {
                 setUsers([...users, persisted]);
             } else {

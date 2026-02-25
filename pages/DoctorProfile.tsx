@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { changePasswordViaApi, DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorAdvancedModeFromApi, updateDoctorProfileFromApi } from '../services/api';
+import { changePasswordViaApi, DoctorProfilePayload } from '../services/api';
+import { repositories } from '../services/repositories';
 
 const unique = (items: string[]) => [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 
@@ -129,7 +130,7 @@ export const DoctorProfile: React.FC = () => {
     setSaving(true);
     setMessage(null);
     try {
-      const saved = await updateDoctorProfileFromApi(next);
+      const saved = await repositories.doctors.updateDoctorProfile(next);
       const normalized = normalizeProfile(saved);
       setExamTemplates(normalized.examFindingTemplates);
       setDiagnosisTemplates(normalized.diagnosisTemplates);
@@ -146,7 +147,7 @@ export const DoctorProfile: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const payload = await getDoctorProfileFromApi();
+        const payload = await repositories.doctors.getDoctorProfile();
         const normalized = normalizeProfile(payload);
         setExamTemplates(normalized.examFindingTemplates);
         setDiagnosisTemplates(normalized.diagnosisTemplates);
@@ -172,7 +173,7 @@ export const DoctorProfile: React.FC = () => {
     setMessage(null);
 
     try {
-      const capabilities = await updateDoctorAdvancedModeFromApi(next);
+      const capabilities = await repositories.doctors.updateDoctorAdvancedMode(next);
       setDoctorAdvancedModeEnabled(capabilities.advancedModeEnabled);
       setMessage(capabilities.advancedModeEnabled ? 'Doctor Advanced Mode is ON.' : 'Doctor Advanced Mode is OFF.');
     } catch {

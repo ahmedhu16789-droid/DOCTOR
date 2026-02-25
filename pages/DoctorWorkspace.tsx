@@ -3,7 +3,7 @@ import { Appointment, Patient, UserRole, Medication, VitalSigns, ServiceItem } f
 import { Select } from '../components/common/Select';
 import { Activity, FileText, Pill, Clock, Save, Printer, ArrowLeft, AlertTriangle, PlusCircle, Trash2, DollarSign, X } from 'lucide-react';
 import { MOCK_SERVICES } from '../services/mockData';
-import { getDoctorProfileFromApi, getMedicalEncounterFromApi, saveMedicalEncounterViaApi } from '../services/api';
+import { repositories } from '../services/repositories';
 import { fetchDosagesForDrug } from '../services/rxnormAutocomplete';
 import { useTranslation } from 'react-i18next';
 import { formatDateTo12Hour } from '../utils/time';
@@ -90,7 +90,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const isNurse = userRole === UserRole.NURSE;
 
     const loadEncounter = async () => {
-        const payload = await getMedicalEncounterFromApi(appointment.id);
+        const payload = await repositories.appointments.getMedicalEncounter(appointment.id);
         setHistory(payload.history ?? []);
 
         const data = payload.data;
@@ -124,7 +124,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     }, [appointment.id]);
 
     useEffect(() => {
-        getDoctorProfileFromApi()
+        repositories.doctors.getDoctorProfile()
             .then((payload) => {
                 if (payload.examFindingTemplates?.length) setExamTemplates(payload.examFindingTemplates);
                 if (payload.diagnosisTemplates?.length) setDiagnosisTemplates(payload.diagnosisTemplates);
@@ -226,7 +226,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
         if (!hasDraftLoaded.current) return;
         const timer = window.setTimeout(async () => {
             try {
-                await saveMedicalEncounterViaApi(appointment.id, {
+                await repositories.appointments.saveMedicalEncounter(appointment.id, {
                     vitals: latestVitals.current,
                     examFindings: latestNotes.current,
                     diagnosis: latestDiagnosis.current,
@@ -249,7 +249,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ appointment, p
     const persistEncounter = async (status: 'DRAFT' | 'FINALIZED') => {
         setSaving(true);
         try {
-            await saveMedicalEncounterViaApi(appointment.id, {
+            await repositories.appointments.saveMedicalEncounter(appointment.id, {
                 vitals,
                 examFindings: notes,
                 diagnosis,

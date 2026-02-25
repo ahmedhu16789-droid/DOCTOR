@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Select } from '../components/common/Select';
 import { DollarSign, TrendingUp, PieChart, Download, Building2, UserX } from 'lucide-react';
-import { exportFinancialReportCsvFromApi, FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
+import { FinancialReportPayload, ReconciliationSummaryRecord } from '../services/api';
+import { repositories } from '../services/repositories';
 import { useTranslation } from 'react-i18next';
 import { Branch } from '../types';
 
@@ -22,7 +23,7 @@ export const FinancialReports: React.FC = () => {
     useEffect(() => {
         const loadBranches = async () => {
             try {
-                const branchRows = await getBranchesFromApi();
+                const branchRows = await repositories.branches.getBranches();
                 setBranches(branchRows);
             } catch (error) {
                 console.error('Failed to load branches', error);
@@ -36,7 +37,7 @@ export const FinancialReports: React.FC = () => {
         const loadReport = async () => {
             try {
                 setIsLoading(true);
-                const payload = await getFinancialReportFromApi({
+                const payload = await repositories.reports.getFinancialReport({
                     branchId: selectedBranchId || undefined,
                     from: selectedFromDate || undefined,
                     to: selectedToDate || undefined,
@@ -57,7 +58,7 @@ export const FinancialReports: React.FC = () => {
     useEffect(() => {
         const loadReconciliation = async () => {
             try {
-                const rows = await getReconciliationReportFromApi({
+                const rows = await repositories.reports.getReconciliationReport({
                     branchId: selectedBranchId || undefined,
                     date: selectedDate,
                 });
@@ -100,7 +101,7 @@ export const FinancialReports: React.FC = () => {
             setIsExporting(true);
             setErrorMessage('');
 
-            const { blob, filename } = await exportFinancialReportCsvFromApi({
+            const { blob, filename } = await repositories.reports.exportFinancialReportCsv({
                 branchId: selectedBranchId || undefined,
                 from: selectedFromDate || undefined,
                 to: selectedToDate || undefined,

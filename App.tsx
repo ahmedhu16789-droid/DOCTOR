@@ -4,12 +4,13 @@ import { Login } from './pages/Login';
 import { PublicBooking } from './pages/PublicBooking';
 import { DoctorWorkspace } from './pages/DoctorWorkspace';
 import { User, Appointment, AppointmentStatus, Patient, UserRole, PaymentStatus, ServiceItem, PaymentEntry, Branch } from './types';
-import { getAppointments, getPatients } from './services/mockData';
-import { DataSourceMode, addBillingItemViaApi, clearAuthToken, createAppointmentViaApi, getAppointmentsFromApi, getBranchesFromApi, getPatientsFromApi, getCurrentUser, getStoredUser, processAppointmentPaymentViaApi, removeBillingItemViaApi, startVisitNowViaApi, updateAppointmentStatusViaApi } from './services/api';
-import { setStoredUser } from './services/core/authSession';
+import { setStoredUser, getStoredUser } from './services/core/authSession';
+import { DATA_SOURCE_MODE, repositories } from './services/repositories';
+import { DataSourceMode } from './services/repositories/contracts';
 import { AppShell } from './components/app/AppShell';
 import { AppMainContent } from './components/app/AppMainContent';
 import { PatientPortalApp } from './patient-portal/PatientPortalApp';
+import { MOCK_USERS } from './constants';
 
 import { useTranslation } from 'react-i18next';
 
@@ -20,14 +21,9 @@ interface HybridEntityIdMap {
   branch?: Record<string, string>;
 }
 
-const DATA_SOURCE_MODE: DataSourceMode = (() => {
-  const rawMode = String(import.meta.env.VITE_DATA_SOURCE_MODE ?? 'api').toLowerCase();
-  if (rawMode === 'mock' || rawMode === 'hybrid' || rawMode === 'api') {
-    return rawMode;
-  }
-
-  return 'api';
-})();
+const APP_DATA_SOURCE_MODE: DataSourceMode = DATA_SOURCE_MODE;
+const DEMO_NO_AUTH_ENABLED = import.meta.env.VITE_DEMO_NO_AUTH === 'true';
+const DEMO_USER_STORAGE_KEY = 'doctor:demo-user';
 
 const HYBRID_ID_MAP_STORAGE_KEY = 'doctor:hybrid-id-map:v1';
 export default function App() {
@@ -37,6 +33,7 @@ export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<'AUTH' | 'APP' | 'PUBLIC'>('AUTH');
   const [user, setUser] = useState<User | null>(null);
+  const [demoRole, setDemoRole] = useState<UserRole>(UserRole.ADMIN);
   const [activeTab, setActiveTab] = useState(() => {
     // Restore active tab from localStorage on page load
     const saved = localStorage.getItem('activeTab');
@@ -107,6 +104,29 @@ export default function App() {
     if (sessionInitializedRef.current) return;
     sessionInitializedRef.current = true;
 
+    if (DEMO_NO_AUTH_ENABLED) {
+      const cachedDemoSessionRaw = localStorage.getItem(DEMO_USER_STORAGE_KEY);
+      if (cachedDemoSessionRaw) {
+        try {
+          const cachedDemoSession = JSON.parse(cachedDemoSessionRaw) as { role: UserRole; userId: string };
+          const cachedDemoUser = MOCK_USERS.find((candidate) => candidate.id === cachedDemoSession.userId && candidate.role === cachedDemoSession.role);
+
+          if (cachedDemoUser) {
+            setDemoRole(cachedDemoSession.role);
+            setStoredUser(cachedDemoUser);
+            setUser(cachedDemoUser);
+            setView('APP');
+            return;
+          }
+        } catch {
+          localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+        }
+      }
+
+      setView('AUTH');
+      return;
+    }
+
     const cachedUser = getStoredUser();
 
     if (cachedUser) {
@@ -130,7 +150,7 @@ export default function App() {
     const initSession = async () => {
       try {
         setLoading(true);
-        const currentUser = await getCurrentUser();
+        const currentUser = await repositories.auth.getCurrentUser();
 
         if (currentUser) {
           setUser(currentUser);
@@ -141,7 +161,7 @@ export default function App() {
       } catch (error) {
         if (!cachedUser) {
           console.error('Session restoration failed:', error);
-          clearAuthToken();
+          repositories.auth.clearAuthToken();
           setView('AUTH');
         }
       } finally {
@@ -162,15 +182,15 @@ export default function App() {
 
     try {
       if (mode === 'appointments-only') {
-        const freshAppointments = await getAppointmentsFromApi(patientsRef.current);
+        const freshAppointments = await repositories.appointments.getAppointments(patientsRef.current);
         setAppointments(freshAppointments);
         return;
       }
 
       const [freshPatients, freshAppointments, freshBranches] = await Promise.all([
-        getPatientsFromApi(),
-        getAppointmentsFromApi([]),
-        getBranchesFromApi(),
+        repositories.appointments.getPatients(),
+        repositories.appointments.getAppointments([]),
+        repositories.branches.getBranches(),
       ]);
       const patientById = new Map(freshPatients.map((p) => [p.id, p]));
       const hydrated = freshAppointments.map((apt) => ({
@@ -213,12 +233,12 @@ export default function App() {
 
         try {
           console.log('Initiating data fetch...');
-          const refreshPatients = () => getPatientsFromApi();
-          const refreshAppointments = () => getAppointmentsFromApi([]);
+          const refreshPatients = () => repositories.appointments.getPatients();
+          const refreshAppointments = () => repositories.appointments.getAppointments([]);
 
           const pPatients = refreshPatients().then(res => { console.log('Patients FETCHED'); return res; });
           const pAppointments = refreshAppointments().then(res => { console.log('Appointments FETCHED'); return res; });
-          const pBranches = getBranchesFromApi(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
+          const pBranches = repositories.branches.getBranches(abortController.signal).then(res => { console.log('Branches FETCHED'); return res; });
 
           const [patientsResult, appointmentsResult, branchesResult] = await Promise.allSettled([
             pPatients,
@@ -235,7 +255,7 @@ export default function App() {
           let fallbackBranches: Branch[] = readCachedSessionData(user?.id)?.branches ?? [];
 
           if (patientsResult.status !== 'fulfilled' || appointmentsResult.status !== 'fulfilled') {
-            [fallbackAppointments, fallbackPatients] = await Promise.all([getAppointments(), getPatients()]);
+            [fallbackAppointments, fallbackPatients] = await Promise.all([repositories.appointments.getAppointments(), repositories.appointments.getPatients()]);
           }
 
           const pts = patientsResult.status === 'fulfilled' ? patientsResult.value : fallbackPatients;
@@ -350,6 +370,10 @@ export default function App() {
 
   const handleLogin = (selectedUser: User) => {
     setStoredUser(selectedUser);
+    if (DEMO_NO_AUTH_ENABLED) {
+      localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify({ role: selectedUser.role, userId: selectedUser.id }));
+      setDemoRole(selectedUser.role);
+    }
     setUser(selectedUser);
     setView('APP');
     setActiveTab(selectedUser.isPlatformAdmin ? 'platform-dashboard' : 'dashboard');
@@ -419,11 +443,21 @@ export default function App() {
 
 
   const handleLogout = () => {
-    clearAuthToken();
+    repositories.auth.clearAuthToken();
+    if (DEMO_NO_AUTH_ENABLED) {
+      localStorage.removeItem(DEMO_USER_STORAGE_KEY);
+    }
     setUser(null);
     setView('AUTH');
     setAppointments([]);
   };
+
+  const demoRoleOptions: Array<{ role: UserRole; label: string }> = [
+    { role: UserRole.ADMIN, label: 'Admin' },
+    { role: UserRole.DOCTOR, label: 'Doctor' },
+    { role: UserRole.RECEPTIONIST, label: 'Receptionist' },
+  ];
+  const demoUsersForRole = MOCK_USERS.filter((candidate) => candidate.role === demoRole);
 
   const handleStartVisitNow = async (id: string) => {
     const previous = appointments.find((appointment) => appointment.id === id);
@@ -433,7 +467,7 @@ export default function App() {
     ));
 
     try {
-      const updated = await startVisitNowViaApi(id);
+      const updated = await repositories.appointments.startVisitNow(id);
       setAppointments((prev) => prev.map((a) =>
         a.id === id
           ? { ...a, status: updated.status, checkInAt: updated.checkInAt ?? a.checkInAt, calledAt: updated.calledAt ?? a.calledAt, startedAt: updated.startedAt ?? a.startedAt }
@@ -444,7 +478,7 @@ export default function App() {
       if (previous) {
         setAppointments((prev) => prev.map((a) => a.id === id ? previous : a));
       }
-      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+      repositories.appointments.getAppointments(patients).then(setAppointments).catch(() => undefined);
     }
   };
 
@@ -453,9 +487,9 @@ export default function App() {
       a.id === id ? { ...a, status: newStatus } : a
     ));
 
-    updateAppointmentStatusViaApi(id, newStatus).catch(() => {
+    repositories.appointments.updateAppointmentStatus(id, newStatus).catch(() => {
       setToast({ type: 'error', message: t('appointment_status_update_failed') });
-      getAppointmentsFromApi(patients).then(setAppointments).catch(() => undefined);
+      repositories.appointments.getAppointments(patients).then(setAppointments).catch(() => undefined);
     });
   };
 
@@ -511,11 +545,11 @@ export default function App() {
     }
 
     try {
-      await createAppointmentViaApi(newApt, {
-        dataSourceMode: DATA_SOURCE_MODE,
+      await repositories.appointments.createAppointment(newApt, {
+        dataSourceMode: APP_DATA_SOURCE_MODE,
         entityIdMap: hybridEntityIdMap,
       });
-      const refreshedAppointments = await getAppointmentsFromApi(patients);
+      const refreshedAppointments = await repositories.appointments.getAppointments(patients);
       setAppointments(refreshedAppointments);
       setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
     } catch (error) {
@@ -546,7 +580,7 @@ export default function App() {
 
   const handleAddService = async (aptId: string, service: ServiceItem) => {
     try {
-      const updated = await addBillingItemViaApi(aptId, {
+      const updated = await repositories.appointments.addBillingItem(aptId, {
         serviceId: service.id,
         name: service.name,
         category: service.category,
@@ -571,7 +605,7 @@ export default function App() {
 
   const handleRemoveService = async (aptId: string, itemId: string) => {
     try {
-      const updated = await removeBillingItemViaApi(aptId, itemId);
+      const updated = await repositories.appointments.removeBillingItem(aptId, itemId);
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
@@ -590,7 +624,7 @@ export default function App() {
 
   const handleProcessPayment = async (aptId: string, payments: PaymentEntry[]) => {
     try {
-      const updated = await processAppointmentPaymentViaApi(aptId, { payments });
+      const updated = await repositories.appointments.processAppointmentPayment(aptId, { payments });
       setAppointments((prev) => prev.map((apt) => (apt.id === aptId ? {
         ...apt,
         billing: {
@@ -634,6 +668,50 @@ export default function App() {
   }
 
   if (view === 'AUTH') {
+    if (DEMO_NO_AUTH_ENABLED) {
+      return (
+        <AppShell toast={toast}>
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-5">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Demo Access</h1>
+                <p className="text-sm text-gray-600">Choose a role and user to continue without login.</p>
+              </div>
+
+              <div className="flex gap-2">
+                {demoRoleOptions.map((option) => (
+                  <button
+                    key={option.role}
+                    onClick={() => setDemoRole(option.role)}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${demoRole === option.role ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                {demoUsersForRole.map((candidate) => (
+                  <button
+                    key={candidate.id}
+                    onClick={() => handleLogin(candidate)}
+                    className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-left hover:bg-gray-50"
+                  >
+                    <span className="font-medium text-gray-900">{candidate.name}</span>
+                    <span className="text-xs uppercase tracking-wide text-gray-500">{candidate.role}</span>
+                  </button>
+                ))}
+
+                {demoUsersForRole.length === 0 && (
+                  <p className="text-sm text-gray-500">No demo users available for this role.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </AppShell>
+      );
+    }
+
     return (
       <AppShell toast={toast}>
         <Login onLogin={handleLogin} onPublicAccess={() => setView('PUBLIC')} />

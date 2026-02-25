@@ -5,7 +5,7 @@ import { PaymentModal } from './PaymentModal';
 import { Select } from './common/Select';
 import { formatTimeTo12Hour } from '../utils/time';
 import { useTranslation } from 'react-i18next';
-import { getClinicSettingsFromApi } from '../services/api';
+import { repositories } from '../services/repositories';
 
 interface ReceptionQueueProps {
   appointments: Appointment[];
@@ -60,7 +60,7 @@ export const ReceptionQueue: React.FC<ReceptionQueueProps> = ({ appointments, on
   useEffect(() => {
     const loadTvQueueDisplayMode = async () => {
       try {
-        const settings = await getClinicSettingsFromApi();
+        const settings = await repositories.settings.getClinicSettings();
         setTvQueueDisplayMode(settings.tv_queue_display_mode ?? 'MASKED_NAME');
       } catch (error) {
         console.error('Failed to load clinic settings for TV queue display mode', error);
