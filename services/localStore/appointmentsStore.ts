@@ -267,15 +267,41 @@ export const clinicDataStore = {
       afterTime: string;
     }> = [];
 
+    const normalizeDate = (value: string): string => (value.includes('T') ? value.split('T')[0] : value);
+
     const toMinutes = (time: string): number => {
-      const [hours, minutes] = time.split(':').map((part) => Number.parseInt(part, 10));
-      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      const match = time.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+      if (!match) {
         return Number.NaN;
       }
+
+      const hours = Number.parseInt(match[1], 10);
+      const minutes = Number.parseInt(match[2], 10);
+
+      if (Number.isNaN(hours) || Number.isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return Number.NaN;
+      }
+
       return (hours * 60) + minutes;
     };
 
+    const formatMinutes = (minutes: number): string => {
+      const normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+      const shiftedHours = Math.floor(normalized / 60);
+      const shiftedMinutePart = normalized % 60;
+
+      return `${String(shiftedHours).padStart(2, '0')}:${String(shiftedMinutePart).padStart(2, '0')}`;
+    };
+
     const fromMinutes = toMinutes(params.fromTime);
+    if (Number.isNaN(fromMinutes)) {
+      return {
+        shiftedAppointments: 0,
+        shiftedData,
+      };
+    }
+
+    const migrationDate = normalizeDate(params.date);
 
     writeStore((data) => {
       const patientById = new Map(data.patients.map((patient) => [patient.id, patient]));
@@ -284,21 +310,18 @@ export const clinicDataStore = {
         if (
           appointment.doctorId !== params.doctorId
           || appointment.branchId !== params.branchId
-          || appointment.date !== params.date
+          || normalizeDate(appointment.date) !== migrationDate
           || blockedStatuses.has(appointment.status)
         ) {
           return appointment;
         }
 
         const appointmentMinutes = toMinutes(appointment.timeSlot);
-        if (Number.isNaN(appointmentMinutes) || Number.isNaN(fromMinutes) || appointmentMinutes < fromMinutes) {
+        if (Number.isNaN(appointmentMinutes) || appointmentMinutes < fromMinutes) {
           return appointment;
         }
 
-        const shiftedMinutes = Math.max(0, appointmentMinutes + params.shiftMinutes);
-        const shiftedHours = Math.floor((shiftedMinutes % (24 * 60)) / 60);
-        const shiftedMinutePart = shiftedMinutes % 60;
-        const afterTime = `${String(shiftedHours).padStart(2, '0')}:${String(shiftedMinutePart).padStart(2, '0')}`;
+        const afterTime = formatMinutes(appointmentMinutes + params.shiftMinutes);
         const patient = patientById.get(appointment.patientId);
 
         shiftedData.push({
@@ -320,6 +343,17 @@ export const clinicDataStore = {
         ...data,
         appointments,
       };
+    });
+
+    shiftedData.sort((first, second) => {
+      const firstMinutes = toMinutes(first.beforeTime);
+      const secondMinutes = toMinutes(second.beforeTime);
+
+      if (Number.isNaN(firstMinutes) || Number.isNaN(secondMinutes)) {
+        return first.beforeTime.localeCompare(second.beforeTime);
+      }
+
+      return firstMinutes - secondMinutes;
     });
 
     return {
