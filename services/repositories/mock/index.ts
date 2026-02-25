@@ -114,7 +114,19 @@ export const mockRepositories: Repositories = {
     saveMedicalEncounter: async () => ({ id: `enc-${Date.now()}` } as any),
     getDelayInsight: async () => ({ showAlert: false, delayMinutes: 0, impactedCount: 0, suggestedShiftMinutes: 0, fromTime: null, preview: [], config: { graceMinutes: 5, thresholdMinutes: 15, roundingMinutes: 5, mode: 'manual' } } as DelayInsightResponse),
     previewShiftAppointments: async () => ({ showAlert: false, delayMinutes: 0, impactedCount: 0, suggestedShiftMinutes: 0, fromTime: null, preview: [], config: { graceMinutes: 5, thresholdMinutes: 15, roundingMinutes: 5, mode: 'manual' } } as DelayInsightResponse),
-    shiftAppointments: async () => ({ shiftedAppointments: 0 }),
+    shiftAppointments: async (params) => {
+      const shifted = clinicDataStore.shiftAppointments(params);
+
+      return {
+        shiftedAppointments: shifted.shiftedAppointments,
+        doctorId: params.doctorId,
+        branchId: params.branchId,
+        date: params.date,
+        fromTime: params.fromTime,
+        shiftMinutes: params.shiftMinutes,
+        shiftedData: shifted.shiftedData,
+      };
+    },
     getPatientAuditTimeline: async () => [],
   },
   settings: {
