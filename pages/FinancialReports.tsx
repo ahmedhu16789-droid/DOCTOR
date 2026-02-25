@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Select } from '../components/common/Select';
-import { DollarSign, TrendingUp, PieChart, Download, Building2 } from 'lucide-react';
+import { DollarSign, TrendingUp, PieChart, Download, Building2, UserX } from 'lucide-react';
 import { exportFinancialReportCsvFromApi, FinancialReportPayload, getBranchesFromApi, getFinancialReportFromApi, getReconciliationReportFromApi, ReconciliationSummaryRecord } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { Branch } from '../types';
@@ -77,6 +77,8 @@ export const FinancialReports: React.FC = () => {
                 cashCollected: 0,
                 outstandingRevenue: 0,
                 averageTicket: 0,
+                noShowRevenue: 0,
+                noShowCount: 0,
                 doctorRevenue: [],
                 branchRevenue: [],
                 recentTransactions: [],
@@ -183,14 +185,12 @@ export const FinancialReports: React.FC = () => {
             {isLoading && <div className="text-sm text-gray-500">{t('financial_loading')}</div>}
             {errorMessage && <div className="text-sm text-red-600">{errorMessage}</div>}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KPICard
                     title={t('total_revenue')}
                     value={`${stats.totalRevenue.toLocaleString()} EGP`}
                     icon={DollarSign}
                     color="green"
-                    trend="12%"
-                    trendUp={true}
                 />
                 <KPICard
                     title={t('cash_collected')}
@@ -211,6 +211,15 @@ export const FinancialReports: React.FC = () => {
                     icon={PieChart}
                     color="purple"
                 />
+                {(stats.noShowRevenue > 0 || stats.noShowCount > 0) && (
+                    <KPICard
+                        title="خسائر عدم الحضور"
+                        value={`${stats.noShowRevenue.toLocaleString()} EGP`}
+                        icon={UserX}
+                        color="red"
+                        subtitle={`${stats.noShowCount} حجز لم يحضر صاحبه`}
+                    />
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

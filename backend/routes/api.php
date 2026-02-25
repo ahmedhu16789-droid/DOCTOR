@@ -57,6 +57,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me']);
+        Route::post('auth/change-password', [AuthController::class, 'changePassword']);
         Route::get('clinic/entitlements/usage', [ClinicEntitlementController::class, 'usage']);
         Route::get('reports/dashboard', [DashboardController::class, 'index']);
 
@@ -77,6 +78,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('doctors', [DoctorController::class, 'index']);
             Route::post('doctors', [DoctorController::class, 'store']);
             Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
+            Route::delete('doctors/{doctor}', [DoctorController::class, 'destroy'])
+                ->middleware('permission.access:staff.deactivate,ADMIN|BRANCH_MANAGER');
             Route::get('doctor-profile', [DoctorProfileController::class, 'show']);
             Route::put('doctor-profile', [DoctorProfileController::class, 'update']);
             Route::get('doctor/advanced-mode/capabilities', [DoctorAdvancedModeController::class, 'capabilities']);
@@ -84,6 +87,8 @@ Route::prefix('v1')->group(function (): void {
             Route::get('employees', [EmployeeController::class, 'index']);
             Route::post('employees', [EmployeeController::class, 'store']);
             Route::put('employees/{employee}', [EmployeeController::class, 'update']);
+            Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])
+                ->middleware('permission.access:staff.deactivate,ADMIN|BRANCH_MANAGER');
             Route::get('appointments', [AppointmentController::class, 'index'])->middleware('branch.access:branchId');
             Route::get('appointments/available-slots', [AppointmentController::class, 'availableSlots']);
             Route::post('appointments/available-slots/bulk', [AppointmentController::class, 'availableSlotsBulk']);
@@ -110,6 +115,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('appointments/{appointment}/billing/reverse-finalization', [AppointmentBillingController::class, 'reverseFinalization']);
             Route::post('appointments/{appointment}/billing/void', [AppointmentBillingController::class, 'void']);
             Route::post('invoices/{invoice}/void', [AppointmentBillingController::class, 'voidInvoice']);
+            Route::get('cash-sessions/active', [CashSessionController::class, 'active'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
             Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
             Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close']);
             Route::get('reports/reconciliation', [CashSessionController::class, 'report'])->middleware('branch.access:branch_id,privilege:CASH_SESSION');
@@ -117,10 +123,6 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
             Route::get('reports/financial/export', [FinancialReportController::class, 'export'])
                 ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-            Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
-                ->middleware('permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER');
-            Route::get('reports/doctor-payroll/export', [DoctorPayrollController::class, 'export'])
-                ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
             Route::get('reports/doctor-payroll', [DoctorPayrollController::class, 'index'])
                 ->middleware(['branch.access:branch_id,privilege:FINANCE', 'permission.access:finance.view_reports,ADMIN|FINANCE_ADMIN|BRANCH_MANAGER']);
             Route::post('payroll/periods/{id}/close', [DoctorPayrollController::class, 'close'])
@@ -133,11 +135,15 @@ Route::prefix('v1')->group(function (): void {
         });
 
         Route::prefix('platform')->middleware('platform.admin')->group(function (): void {
+            Route::get('clinics/expiring', [PlatformClinicController::class, 'expiring']);
             Route::get('clinics', [PlatformClinicController::class, 'index']);
+            Route::post('clinics', [PlatformClinicController::class, 'store']);
             Route::get('clinics/{id}', [PlatformClinicController::class, 'show']);
             Route::get('clinics/{id}/timeline', [PlatformClinicController::class, 'timeline']);
+            Route::post('clinics/{id}/subscriptions', [PlatformClinicController::class, 'storeSubscription']);
             Route::patch('clinics/{id}/status', [PlatformClinicController::class, 'updateStatus']);
             Route::post('clinics/{id}/payments', [PlatformClinicController::class, 'storePayment']);
+            Route::put('clinics/{id}/entitlements', [PlatformClinicController::class, 'updateEntitlements']);
         });
     });
 });

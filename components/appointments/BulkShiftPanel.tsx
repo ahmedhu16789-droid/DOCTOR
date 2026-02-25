@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Clock3, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Select } from '../common/Select';
-import { getDelayInsightViaApi, getDoctorsFromApi, previewShiftAppointmentsViaApi, shiftAppointmentsViaApi } from '../../services/api';
+import { getDelayInsightViaApi, getDoctorsFromApi, shiftAppointmentsViaApi } from '../../services/api';
 import { sendWhatsAppQueue, WhatsAppMessage } from '../../utils/whatsapp';
 import { User, UserRole } from '../../types';
 
@@ -26,7 +26,6 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [delayInsight, setDelayInsight] = useState<any | null>(null);
-  const [previewRows, setPreviewRows] = useState<Array<{ appointmentId: string; status: string; preserved?: boolean; beforeTime: string; afterTime: string }> | null>(null);
 
   useEffect(() => {
     if (!activeBranchId) {
@@ -121,36 +120,12 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
       }
 
       setFeedback(t('migration_success', { count: result.shiftedAppointments }));
-      setPreviewRows(null);
       await onShiftApplied?.();
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : t('migration_error');
       setError(message);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handlePreview = async () => {
-    if (!doctorId || !activeBranchId) {
-      setError(t('migration_validation'));
-      return;
-    }
-
-    setError(null);
-
-    try {
-      const preview = await previewShiftAppointmentsViaApi({
-        doctorId,
-        branchId: activeBranchId,
-        date,
-        fromTime,
-        shiftMinutes,
-      });
-      setPreviewRows(preview.preview ?? []);
-    } catch (previewError) {
-      const message = previewError instanceof Error ? previewError.message : t('migration_error');
-      setError(message);
     }
   };
 
@@ -220,31 +195,13 @@ export const BulkShiftPanel: React.FC<BulkShiftPanelProps> = ({ activeBranchId, 
             />
           </div>
 
-          <div className="flex gap-2">
-            <button type="button" onClick={handlePreview} className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold hover:bg-gray-50">
-              {t('migration_preview')}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-70"
-            >
-              {isSubmitting ? t('migration_loading') : t('migration_submit')}
-            </button>
-          </div>
-
-          {previewRows && (
-            <div className="rounded-lg border border-gray-200">
-              <div className="max-h-48 overflow-auto text-xs">
-                {previewRows.map((row) => (
-                  <div key={row.appointmentId} className="flex justify-between px-3 py-2 border-b border-gray-100">
-                    <span>{row.beforeTime} → {row.afterTime}</span>
-                    <span className={row.preserved ? 'text-gray-400' : 'text-gray-700'}>{row.status}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-70"
+          >
+            {isSubmitting ? t('migration_loading') : t('migration_submit')}
+          </button>
 
           {feedback && <p className="text-sm text-green-600 font-medium">{feedback}</p>}
           {error && <p className="text-sm text-red-600 font-medium">{error}</p>}

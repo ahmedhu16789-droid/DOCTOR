@@ -14,6 +14,7 @@ import { FinancialReports } from '../../pages/FinancialReports';
 import { PatientsRecords } from '../../pages/PatientsRecords';
 import { DoctorPayrollReports } from '../../pages/DoctorPayrollReports';
 import { AppointmentMigration } from '../../pages/AppointmentMigration';
+import { CashSession } from '../../pages/CashSession';
 import { Appointment, AppointmentStatus, Branch, Patient, PaymentEntry, User, UserRole } from '../../types';
 import { DataSourceMode } from '../../services/api';
 
@@ -72,7 +73,7 @@ export function AppMainContent({
 
   return (
     <>
-      {activeTab === 'dashboard' && user && (
+      {activeTab === 'dashboard' && user && !user.isPlatformAdmin && (
         <Dashboard
           user={user}
           appointments={visibleAppointments}
@@ -80,7 +81,7 @@ export function AppMainContent({
         />
       )}
 
-      {activeTab === 'appointments' && user && (
+      {activeTab === 'appointments' && user && !user.isPlatformAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-140px)]">
           <div className="lg:col-span-3 h-full transition-all duration-300">
             <CalendarView appointments={visibleAppointments} />
@@ -105,7 +106,7 @@ export function AppMainContent({
         </div>
       )}
 
-      {activeTab === 'queue' && user && (
+      {activeTab === 'queue' && user && !user.isPlatformAdmin && (
         <div className="h-full">
           <div className="mb-4 flex justify-between items-center">
             <h2 className="text-xl font-bold">{patientQueueLabel}</h2>
@@ -126,31 +127,31 @@ export function AppMainContent({
         <PlatformDashboard />
       )}
 
-      {activeTab === 'doctors' && user && (
+      {activeTab === 'doctors' && user && !user.isPlatformAdmin && (
         <AdminDashboard currentUser={user} />
       )}
 
-      {activeTab === 'employees' && user && (
+      {activeTab === 'employees' && user && !user.isPlatformAdmin && (
         <EmployeeManagement currentUser={user} />
       )}
 
-      {activeTab === 'branches' && user && (
+      {activeTab === 'branches' && user && !user.isPlatformAdmin && (
         <BranchManagement />
       )}
 
-      {activeTab === 'settings' && user && (
+      {activeTab === 'settings' && user && !user.isPlatformAdmin && (
         user.role === UserRole.DOCTOR ? <DoctorProfile /> : <ClinicSettings />
       )}
 
-      {activeTab === 'finance' && user && (
+      {activeTab === 'finance' && user && !user.isPlatformAdmin && (
         <FinancialReports />
       )}
 
-      {activeTab === 'doctor-payroll' && user && (
+      {activeTab === 'doctor-payroll' && user && !user.isPlatformAdmin && (
         <DoctorPayrollReports />
       )}
 
-      {activeTab === 'appointment-migration' && user && (
+      {activeTab === 'appointment-migration' && user && !user.isPlatformAdmin && (
         <AppointmentMigration
           currentUser={user}
           activeBranchId={activeBranchId}
@@ -159,7 +160,15 @@ export function AppMainContent({
         />
       )}
 
-      {activeTab === 'patients' && (
+      {activeTab === 'cash-session' && user && !user.isPlatformAdmin && (
+        <CashSession
+          currentUser={user}
+          activeBranchId={activeBranchId}
+          branches={branches}
+        />
+      )}
+
+      {activeTab === 'patients' && user && !user.isPlatformAdmin && (
         <PatientsRecords
           patients={patients}
           appointments={allAppointments}

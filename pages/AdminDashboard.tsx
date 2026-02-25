@@ -4,9 +4,9 @@ import { MOCK_USERS, BRANCHES } from '../constants';
 import { KPICard } from '../components/dashboard/KPICard';
 import { DoctorForm } from '../components/forms/DoctorForm';
 import { Select } from '../components/common/Select';
-import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2 } from 'lucide-react';
+import { Building2, TrendingUp, DollarSign, Plus, XCircle, Stethoscope, Search, Phone, Mail, Filter, Link2, UserX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createAccessLinkViaApi, createDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
+import { createAccessLinkViaApi, createDoctorViaApi, deactivateDoctorViaApi, getBranchesFromApi, getDepartmentsFromApi, getDoctorsFromApi, updateDoctorViaApi, ApiDepartmentOption } from '../services/api';
 
 interface AdminDashboardProps {
     currentUser: User;
@@ -15,8 +15,8 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) => {
     const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS'>('OVERVIEW');
-    const [users, setUsers] = useState<User[]>(MOCK_USERS.filter((u) => u.role === UserRole.DOCTOR));
-    const [branches, setBranches] = useState<Branch[]>(BRANCHES);
+    const [users, setUsers] = useState<User[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [departments, setDepartments] = useState<ApiDepartmentOption[]>([]);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -64,7 +64,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
         return matchesSearch && matchesDepartment && matchesBranch;
     }), [users, isSuperAdmin, managedBranches, searchTerm, departmentFilter, branchFilter]);
 
-    const doctorsCount = filteredUsers.length;
+    // Total doctors count (unaffected by search filters)
+    const doctorsCount = users.length;
     const activeBranches = branches.filter(b => b.isActive).length;
 
 
@@ -97,9 +98,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
             setEditingUser(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to save doctor';
-            setFormError(message);
+            setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للأطباء في باقتك الحالية.' : message);
         } finally {
             setFormSaving(false);
+        }
+    };
+
+    const handleDeactivateDoctor = async (u: User): Promise<void> => {
+        if (!window.confirm(`هل أنت متأكد من تعطيل الدكتور "${u.name}"؟ لن يتمكن من تسجيل الدخول بعد ذلك.`)) return;
+        try {
+            await deactivateDoctorViaApi(u.id);
+            setUsers((prev) => prev.filter((d) => d.id !== u.id));
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'فشل تعطيل الطبيب');
         }
     };
 
@@ -114,10 +125,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
             </div>
 
             {activeTab === 'OVERVIEW' && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard title={t('total_revenue')} value="154,000 EGP" icon={DollarSign} color="green" trend="15%" trendUp />
                 <KPICard title={t('active_doctors')} value={doctorsCount} icon={Stethoscope} color="blue" subtitle={t('across_branches')} />
                 <KPICard title={t('active_branches')} value={activeBranches} icon={Building2} color="purple" />
-                <KPICard title={t('avg_utilization')} value="85%" icon={TrendingUp} color="amber" />
+                <KPICard title={t('total_revenue')} value="—" icon={DollarSign} color="green" />
+                <KPICard title={t('avg_utilization')} value="—" icon={TrendingUp} color="amber" />
             </div>}
 
             {activeTab === 'USERS' && <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
@@ -175,7 +186,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                                 <tr key={u.id} className="hover:bg-gray-50/70">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center">{u.name.charAt(0)}</div>
+                                            <div className="h-10 w-10 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center">{u.name?.charAt(0) ?? '?'}</div>
                                             <div>
                                                 <p className="font-semibold text-gray-900">{u.name}</p>
                                                 <div className="text-xs text-gray-500 space-y-1">
@@ -201,6 +212,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser }) =
                                                 <button onClick={() => setEditingUser(u)} className="text-primary-700 font-medium hover:text-primary-900">{t('edit')}</button>
                                                 <button onClick={() => handleGenerateAccessLink(u)} className="text-blue-700 font-medium hover:text-blue-900 inline-flex items-center gap-1">
                                                     <Link2 className="w-4 h-4" /> {t('copy_access_link')}
+                                                </button>
+                                                <button onClick={() => handleDeactivateDoctor(u)} className="text-red-600 font-medium hover:text-red-800 inline-flex items-center gap-1" title="تعطيل الطبيب">
+                                                    <UserX className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         )}

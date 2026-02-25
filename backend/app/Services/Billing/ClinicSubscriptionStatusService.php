@@ -65,10 +65,17 @@ class ClinicSubscriptionStatusService
         $payments = $subscription->payments->sortBy('paid_at')->values();
 
         foreach ($payments as $payment) {
-            if ($payment->payment_kind === 'LICENSE' && $subscription->license_type === 'ANNUAL') {
+            // For ANNUAL subscriptions, ANY payment kind acts as a full period extension
+            if ($subscription->license_type === 'ANNUAL') {
                 $base = $this->maxDate($licenseEndAt, $this->toImmutable($payment->paid_at));
                 $licenseEndAt = $base?->addYears(max((int) $payment->period_years, 1));
                 $hostingEndAt = $licenseEndAt;
+                continue;
+            }
+
+            if ($payment->payment_kind === 'LICENSE') {
+                $base = $this->maxDate($licenseEndAt, $this->toImmutable($payment->paid_at));
+                $licenseEndAt = $base?->addYears(max((int) $payment->period_years, 1));
                 continue;
             }
 

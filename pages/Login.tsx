@@ -23,11 +23,18 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
+  const [isOwnerPortal, setIsOwnerPortal] = useState(false);
+
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('accessToken');
     if (token) {
       setResetToken(token);
+    }
+
+    if (params.get('portal') === 'owner-secure') {
+      setIsOwnerPortal(true);
+      setEmail('');
     }
   }, []);
 
@@ -35,6 +42,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
+
+    if (email.toLowerCase() === 'owner@system.com' && !isOwnerPortal) {
+      setError(t('access_denied') || 'Access Denied. Please use the secure portal.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const user = await loginWithApi(email, password);
@@ -90,23 +103,29 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+          <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white shadow-lg ${isOwnerPortal ? 'bg-red-600' : 'bg-primary-600'}`}>
             <Building2 className="w-10 h-10" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">{t('login_title')}</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">{t('login_subtitle')}</p>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          {isOwnerPortal ? 'Super Admin Portal' : t('login_title')}
+        </h2>
+        <p className={`mt-2 text-center text-sm font-medium ${isOwnerPortal ? 'text-red-600' : 'text-gray-600'}`}>
+          {isOwnerPortal ? 'Restricted Access Area' : t('login_subtitle')}
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-lg sm:px-10 space-y-6">
-          <button
-            onClick={onPublicAccess}
-            className="w-full flex items-center justify-center px-4 py-3 border-2 border-primary-100 shadow-sm text-sm font-bold rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 hover:border-primary-200 transition-all mb-6 group"
-          >
-            <Globe className="w-5 h-5 me-2 group-hover:scale-110 transition-transform" />
-            {t('book_online')}
-          </button>
+        <div className={`bg-white py-8 px-4 shadow-xl ${isOwnerPortal ? 'shadow-red-200/50 outline outline-1 outline-red-200' : 'shadow-gray-200/50'} sm:rounded-lg sm:px-10 space-y-6`}>
+          {!isOwnerPortal && (
+            <button
+              onClick={onPublicAccess}
+              className="w-full flex items-center justify-center px-4 py-3 border-2 border-primary-100 shadow-sm text-sm font-bold rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 hover:border-primary-200 transition-all mb-6 group"
+            >
+              <Globe className="w-5 h-5 me-2 group-hover:scale-110 transition-transform" />
+              {t('book_online')}
+            </button>
+          )}
 
           {resetToken ? (
             <form onSubmit={handleSetPassword} className="space-y-3">
@@ -130,7 +149,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
               />
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700"
+                className={`w-full py-2.5 rounded-lg text-white text-sm font-bold ${isOwnerPortal ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}
               >
                 {t('set_new_password')}
               </button>
@@ -156,7 +175,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-lg bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-70"
+                className={`w-full py-2.5 rounded-lg text-white text-sm font-bold disabled:opacity-70 ${isOwnerPortal ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}
               >
                 {loading ? <LoaderCircle className="w-4 h-4 animate-spin mx-auto" /> : t('login_action')}
               </button>
@@ -165,35 +184,39 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onPublicAccess }) => {
           {error && <p className="text-xs text-red-600">{error}</p>}
           {resetMessage && <p className="text-xs text-green-600">{resetMessage}</p>}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">{t('or_staff_login')}</span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {MOCK_USERS.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => onLogin(user)}
-                className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors group"
-              >
-                <div className="flex items-center">
-                  <img className="h-9 w-9 rounded-full bg-gray-200 object-cover" src={user.avatarUrl} alt="" />
-                  <div className="ms-3 text-start">
-                    <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                    <p className="text-[10px] uppercase tracking-wide text-gray-500">{t(user.role as any)}</p>
-                  </div>
+          {!isOwnerPortal && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
                 </div>
-                <span className="text-gray-400 group-hover:text-primary-600 transition-colors">
-                  {direction === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </span>
-              </button>
-            ))}
-          </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">{t('or_staff_login')}</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {MOCK_USERS.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => onLogin(user)}
+                    className="w-full flex items-center justify-between px-4 py-3 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors group"
+                  >
+                    <div className="flex items-center">
+                      <img className="h-9 w-9 rounded-full bg-gray-200 object-cover" src={user.avatarUrl} alt="" />
+                      <div className="ms-3 text-start">
+                        <p className="text-sm font-bold text-gray-900">{user.name}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-gray-500">{t(user.role as any)}</p>
+                      </div>
+                    </div>
+                    <span className="text-gray-400 group-hover:text-primary-600 transition-colors">
+                      {direction === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -99,6 +99,20 @@ class EmployeeController extends Controller
         return response()->json(new EmployeeResource($employee));
     }
 
+    public function destroy(Request $request, User $employee): \Illuminate\Http\JsonResponse
+    {
+        $validRoles = ['BRANCH_MANAGER', 'NURSE', 'RECEPTIONIST', 'PHARMACY_MANAGER'];
+        abort_unless(in_array($employee->role, $validRoles, true), 404);
+        abort_unless($employee->clinic_id === $request->user()->clinic_id, 403);
+
+        DB::transaction(function () use ($employee): void {
+            $employee->update(['is_active' => false]);
+            $employee->tokens()->delete();
+        });
+
+        return response()->json(['message' => 'Employee deactivated successfully.']);
+    }
+
     private function branchPivotPayload(EmployeeUpsertRequest $request): array
     {
         $clinicId = $request->user()->clinic_id;

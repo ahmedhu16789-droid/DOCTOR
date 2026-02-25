@@ -40,6 +40,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     // Restore active tab from localStorage on page load
     const saved = localStorage.getItem('activeTab');
+    const userRoleRaw = localStorage.getItem('doctor:auth:user');
+
+    if (userRoleRaw) {
+      try {
+        const u = JSON.parse(userRoleRaw);
+        if (u.isPlatformAdmin) return 'platform-dashboard';
+      } catch (e) { }
+    }
+
     return saved || 'dashboard';
   });
   const [appointments, setAppointments] = useState<Appointment[]>([]);

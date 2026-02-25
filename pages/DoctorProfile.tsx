@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorAdvancedModeFromApi, updateDoctorProfileFromApi } from '../services/api';
+import { changePasswordViaApi, DoctorProfilePayload, getDoctorProfileFromApi, updateDoctorAdvancedModeFromApi, updateDoctorProfileFromApi } from '../services/api';
 
 const unique = (items: string[]) => [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 
@@ -91,6 +91,13 @@ export const DoctorProfile: React.FC = () => {
   const [newDiagnosisTemplate, setNewDiagnosisTemplate] = useState('');
   const [newPlanTemplate, setNewPlanTemplate] = useState('');
 
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const defaultExamTemplates = useMemo(
     () => [1, 2, 3, 4, 5, 6, 7, 8].map((index) => t(`doctor_profile_default_exam_${index}`)),
     [t],
@@ -175,6 +182,34 @@ export const DoctorProfile: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'يرجى تعبئة جميع الحقول.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'كلمتا المرور الجديدة غير متطابقتين.' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordMessage({ type: 'error', text: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.' });
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordMessage(null);
+    try {
+      await changePasswordViaApi(currentPassword, newPassword);
+      setPasswordMessage({ type: 'success', text: 'تم تغيير كلمة المرور بنجاح.' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPasswordMessage({ type: 'error', text: err instanceof Error ? err.message : 'فشل تغيير كلمة المرور.' });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   if (loading) {
     return <div className="bg-white p-6 rounded-xl border border-gray-200 text-sm text-gray-500">{t('doctor_profile_loading')}</div>;
   }
@@ -184,6 +219,40 @@ export const DoctorProfile: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('doctor_profile_title')}</h1>
         <p className="text-sm text-gray-500">{t('doctor_profile_templates_desc')}</p>
+      </div>
+
+      {/* Change Password Card */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Lock className="w-5 h-5 text-gray-500" />
+          <h2 className="text-base font-bold text-gray-900">تغيير كلمة المرور</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الحالية</label>
+            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">تأكيد كلمة المرور</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm" />
+            </div>
+          </div>
+        </div>
+        {passwordMessage && (
+          <p className={`text-sm font-medium ${passwordMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{passwordMessage.text}</p>
+        )}
+        <button onClick={handleChangePassword} disabled={passwordSaving}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 disabled:opacity-60">
+          {passwordSaving ? 'جاري الحفظ...' : 'تغيير كلمة المرور'}
+        </button>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -202,7 +271,7 @@ export const DoctorProfile: React.FC = () => {
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${doctorAdvancedModeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
-        <p className={`mt-2 text-xs font-medium ${doctorAdvancedModeEnabled ? 'text-emerald-700' : 'text-gray-500'}` }>
+        <p className={`mt-2 text-xs font-medium ${doctorAdvancedModeEnabled ? 'text-emerald-700' : 'text-gray-500'}`}>
           {doctorAdvancedModeEnabled ? 'Advanced controls enabled' : 'Default minimal workflow enabled'}
         </p>
       </div>

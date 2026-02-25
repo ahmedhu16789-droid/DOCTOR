@@ -265,6 +265,18 @@ export interface PlatformClinic {
   createdAt?: string | null;
   updatedAt?: string | null;
   settings?: Record<string, unknown> | null;
+  entitlements?: {
+    max_branches: number;
+    current_branches: number;
+    max_doctors: number;
+    current_doctors: number;
+  };
+  adminUser?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+  } | null;
 }
 
 export interface PlatformSubscriptionTimelinePayment {
@@ -625,6 +637,24 @@ export const getPlatformClinicsFromApi = async (): Promise<PlatformClinic[]> => 
   return payload.data ?? [];
 };
 
+export const createPlatformClinicViaApi = async (payload: {
+  clinic_name: string;
+  admin_name: string;
+  admin_phone: string;
+  admin_email?: string;
+  subscription_type: 'LIFETIME' | 'ANNUAL';
+  starts_at: string;
+  max_branches: number;
+  max_doctors: number;
+  max_staff?: number;
+}): Promise<{ clinic: PlatformClinic; admin_user_id: string }> => {
+  const result = await apiFetch<{ data: { clinic: PlatformClinic; admin_user_id: string } }>('/platform/clinics', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return result.data;
+};
+
 export const getPlatformClinicFromApi = async (id: string): Promise<PlatformClinic> => {
   const payload = await apiFetch<{ data: PlatformClinic }>(`/platform/clinics/${id}`);
   return payload.data;
@@ -636,6 +666,19 @@ export const updatePlatformClinicStatusViaApi = async (id: string, status: strin
     body: JSON.stringify({ status }),
   });
 
+  return payload.data;
+};
+
+export const getExpiringPlatformClinicsFromApi = async (days = 30): Promise<PlatformClinic[]> => {
+  const payload = await apiFetch<{ data: PlatformClinic[] }>(`/platform/clinics/expiring?days=${days}`);
+  return payload.data ?? [];
+};
+
+export const updatePlatformClinicEntitlementsViaApi = async (id: string, maxBranches: number, maxDoctors: number): Promise<PlatformClinic> => {
+  const payload = await apiFetch<{ data: PlatformClinic }>(`/platform/clinics/${id}/entitlements`, {
+    method: 'PUT',
+    body: JSON.stringify({ max_branches: maxBranches, max_doctors: maxDoctors }),
+  });
   return payload.data;
 };
 
@@ -777,6 +820,11 @@ export const updateDoctorViaApi = async (doctor: User): Promise<User> => {
   return normalizeDoctor(payload);
 };
 
+export const deactivateDoctorViaApi = async (doctorId: string): Promise<void> => {
+  await apiFetch(`/doctors/${doctorId}`, { method: 'DELETE' });
+  doctorsCache.clear();
+};
+
 export const getRolesFromApi = async (): Promise<ApiRoleOption[]> => {
   const payload = await apiFetch<{ data: string[] }>('/roles');
   return (payload.data ?? []).map((roleName) => ({ value: roleName as UserRole, label: roleName }));
@@ -806,6 +854,21 @@ export const updateEmployeeViaApi = async (employee: User): Promise<User> => {
     body: JSON.stringify(employee),
   });
   return normalizeEmployee(payload);
+};
+
+export const deactivateEmployeeViaApi = async (employeeId: string): Promise<void> => {
+  await apiFetch(`/employees/${employeeId}`, { method: 'DELETE' });
+};
+
+export const changePasswordViaApi = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await apiFetch('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+      new_password_confirmation: newPassword,
+    }),
+  });
 };
 
 
@@ -891,6 +954,39 @@ export const getAvailableSlotsFromApi = async (params: { doctorId: string; branc
 export const getPatientsFromApi = async (): Promise<Patient[]> => {
   const payload = await apiFetch<{ data: ApiPatient[] }>('/patients');
   return (payload.data ?? []).map(normalizePatient);
+};
+
+export interface CashSessionData {
+  id: string;
+  branchId: string;
+  openingBalance: number;
+  expectedCash: number;
+  collectedCash: number | null;
+  variance: number | null;
+  status: 'OPEN' | 'CLOSED';
+  openedAt: string;
+  closedAt: string | null;
+}
+
+export const openCashSessionFromApi = async (branchId: string, openingBalance: number): Promise<CashSessionData> => {
+  const payload = await apiFetch<{ data: CashSessionData }>('/cash-sessions/open', {
+    method: 'POST',
+    body: JSON.stringify({ branch_id: parseInt(branchId), opening_balance: openingBalance }),
+  });
+  return payload.data;
+};
+
+export const closeCashSessionFromApi = async (sessionId: string, collectedCash: number): Promise<CashSessionData> => {
+  const payload = await apiFetch<{ data: CashSessionData }>(`/cash-sessions/${sessionId}/close`, {
+    method: 'POST',
+    body: JSON.stringify({ collected_cash: collectedCash }),
+  });
+  return payload.data;
+};
+
+export const getActiveCashSessionFromApi = async (branchId: string): Promise<CashSessionData | null> => {
+  const payload = await apiFetch<{ data: CashSessionData | null }>(`/cash-sessions/active?branch_id=${branchId}`);
+  return payload.data;
 };
 
 export const getAppointmentsFromApi = async (patients: Patient[] = [], params?: { date?: string }): Promise<Appointment[]> => {
@@ -1264,4 +1360,16 @@ export const consumeAccessLinkViaApi = async (payload: { token: string; email: s
       password_confirmation: payload.password,
     }),
   }, false);
+};
+
+export const storePlatformClinicSubscriptionViaApi = async (clinicId: string, payload: {
+  type: 'LIFETIME' | 'ANNUAL';
+  starts_at: string;
+  notes?: string;
+}): Promise<PlatformSubscriptionTimeline> => {
+  const result = await apiFetch<{ data: PlatformSubscriptionTimeline }>(`/platform/clinics/${clinicId}/subscriptions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return result.data;
 };

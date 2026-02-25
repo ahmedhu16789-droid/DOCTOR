@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { User, Employee, UserRole, Branch } from '../types';
 import { EmployeeForm } from '../components/forms/EmployeeForm';
 import { Select } from '../components/common/Select';
-import { UserPlus, Search, MapPin, DollarSign, Clock, Link2 } from 'lucide-react';
+import { UserPlus, Search, MapPin, DollarSign, Clock, Link2, UserX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createAccessLinkViaApi, createEmployeeViaApi, getBranchesFromApi, getEmployeesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
+import { createAccessLinkViaApi, createEmployeeViaApi, deactivateEmployeeViaApi, getEmployeesFromApi, getBranchesFromApi, getRolesFromApi, updateEmployeeViaApi } from '../services/api';
 
 interface EmployeeManagementProps {
   currentUser: User;
@@ -22,6 +22,8 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,18 +50,27 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
   }, []);
 
   const handleSaveEmployee = async (emp: Employee) => {
-    const saved = isCreating
-      ? await createEmployeeViaApi(emp)
-      : await updateEmployeeViaApi(emp);
+    setFormError(null);
+    setFormSaving(true);
+    try {
+      const saved = isCreating
+        ? await createEmployeeViaApi(emp)
+        : await updateEmployeeViaApi(emp);
 
-    if (isCreating) {
-      setEmployees((prev) => [...prev, saved as Employee]);
-    } else {
-      setEmployees((prev) => prev.map((e) => e.id === saved.id ? saved as Employee : e));
+      if (isCreating) {
+        setEmployees((prev) => [...prev, saved as Employee]);
+      } else {
+        setEmployees((prev) => prev.map((e) => e.id === saved.id ? saved as Employee : e));
+      }
+
+      setIsCreating(false);
+      setSelectedEmp(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save employee';
+      setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للموظفين في باقتك الحالية.' : message);
+    } finally {
+      setFormSaving(false);
     }
-
-    setIsCreating(false);
-    setSelectedEmp(null);
   };
 
   const getBranchNames = (ids: string[]) => {
@@ -79,6 +90,16 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
         ? t('copy_link_missing_email')
         : (error instanceof Error ? error.message : t('copy_link_missing_email'));
       alert(message);
+    }
+  };
+
+  const handleDeactivateEmployee = async (emp: Employee): Promise<void> => {
+    if (!window.confirm(`هل أنت متأكد من تعطيل الموظف "${emp.name}"؟ لن يتمكن من تسجيل الدخول بعد ذلك.`)) return;
+    try {
+      await deactivateEmployeeViaApi(emp.id);
+      setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'فشل تعطيل الموظف');
     }
   };
 
@@ -189,6 +210,13 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
                   >
                     <Link2 className="w-4 h-4" /> {t('copy_access_link')}
                   </button>
+                  <button
+                    onClick={() => handleDeactivateEmployee(emp)}
+                    className="text-red-600 hover:text-red-800 inline-flex items-center gap-1 ms-3"
+                    title="تعطيل الموظف"
+                  >
+                    <UserX className="w-4 h-4" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -203,18 +231,24 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = () => {
               <h2 className="text-xl font-bold text-gray-900">
                 {isCreating ? t('add_new_employee') : t('edit_user', { name: selectedEmp?.name })}
               </h2>
-              <button onClick={() => { setIsCreating(false); setSelectedEmp(null); }} className="p-2 hover:bg-gray-100 rounded-full">
+              <button onClick={() => { setIsCreating(false); setSelectedEmp(null); setFormError(null); }} className="p-2 hover:bg-gray-100 rounded-full">
                 <span className="sr-only">{t('close')}</span>
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            {formError && (
+              <div className="mx-4 mt-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start gap-2">
+                <span className="font-bold shrink-0">⚠</span>
+                <span>{formError}</span>
+              </div>
+            )}
             <div className="flex-1 overflow-hidden">
               <EmployeeForm
                 initialData={selectedEmp || undefined}
                 branches={branches}
                 roleOptions={roleOptions}
                 onSave={handleSaveEmployee}
-                onCancel={() => { setIsCreating(false); setSelectedEmp(null); }}
+                onCancel={() => { setIsCreating(false); setSelectedEmp(null); setFormError(null); }}
               />
             </div>
           </div>

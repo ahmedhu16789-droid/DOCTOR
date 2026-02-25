@@ -14,6 +14,8 @@ export const BranchManagement: React.FC = () => {
   const [settingsBranch, setSettingsBranch] = useState<Branch | null>(null);
   const [branchSettings, setBranchSettings] = useState<BranchOperationalSettings | null>(null);
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
 
   useEffect(() => {
     getBranchesFromApi()
@@ -26,6 +28,7 @@ export const BranchManagement: React.FC = () => {
     setEditingBranch(null);
     setSettingsBranch(null);
     setBranchSettings(null);
+    setFormError(null);
   };
 
   const openSettings = async (branch: Branch) => {
@@ -35,22 +38,31 @@ export const BranchManagement: React.FC = () => {
   };
 
   const handleSaveBranch = async (formData: Omit<Branch, 'id'>) => {
-    if (isCreatingBranch) {
-      const saved = await createBranchViaApi(formData);
-      setBranches((prev) => [...prev, saved]);
+    setFormError(null);
+    setFormSaving(true);
+    try {
+      if (isCreatingBranch) {
+        const saved = await createBranchViaApi(formData);
+        setBranches((prev) => [...prev, saved]);
+        closeModal();
+        return;
+      }
+
+      if (!editingBranch) return;
+
+      const saved = await updateBranchViaApi({
+        ...editingBranch,
+        ...formData,
+      });
+
+      setBranches((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
       closeModal();
-      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save branch';
+      setFormError(message.includes('limit') ? 'عذراً، لقد استنفدت الحد المسموح للفروع في باقتك الحالية.' : message);
+    } finally {
+      setFormSaving(false);
     }
-
-    if (!editingBranch) return;
-
-    const saved = await updateBranchViaApi({
-      ...editingBranch,
-      ...formData,
-    });
-
-    setBranches((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
-    closeModal();
   };
 
   const removeBranch = async (id: string) => {
@@ -140,6 +152,12 @@ export const BranchManagement: React.FC = () => {
                 <XCircle className="w-6 h-6 text-gray-400" />
               </button>
             </div>
+            {formError && (
+              <div className="mx-4 mt-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start gap-2">
+                <span className="font-bold shrink-0">⚠</span>
+                <span>{formError}</span>
+              </div>
+            )}
             <div className="flex-1 overflow-hidden">
               <BranchForm
                 initialData={editingBranch || undefined}

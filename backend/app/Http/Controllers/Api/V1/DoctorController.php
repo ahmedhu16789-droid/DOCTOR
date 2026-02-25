@@ -147,6 +147,19 @@ class DoctorController extends Controller
         return response()->json(new DoctorResource($doctor));
     }
 
+    public function destroy(Request $request, User $doctor): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($doctor->role === 'DOCTOR', 404);
+        abort_unless($doctor->clinic_id === $request->user()->clinic_id, 403);
+
+        DB::transaction(function () use ($doctor): void {
+            $doctor->update(['is_active' => false]);
+            $doctor->tokens()->delete();
+        });
+
+        return response()->json(['message' => 'Doctor deactivated successfully.']);
+    }
+
     private function branchPivotPayload(DoctorUpsertRequest $request): array
     {
         $clinicId = $request->user()->clinic_id;

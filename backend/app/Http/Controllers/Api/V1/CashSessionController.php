@@ -47,6 +47,34 @@ class CashSessionController extends Controller
         return response()->json(['data' => $this->serializeSession($session)], 201);
     }
 
+    public function active(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'branch_id' => ['required', 'integer'],
+        ]);
+
+        $clinicId = (int) $request->user()->clinic_id;
+        $branchId = (int) $validated['branch_id'];
+
+        $session = CashSession::query()
+            ->where('clinic_id', $clinicId)
+            ->where('branch_id', $branchId)
+            ->where('status', 'OPEN')
+            ->first();
+
+        if (!$session) {
+            return response()->json(['data' => null]);
+        }
+
+        $expectedFromTransactions = (float) Transaction::query()
+            ->where('cash_session_id', $session->id)
+            ->sum('amount');
+
+        $session->expected_cash = (float) $session->opening_balance + $expectedFromTransactions;
+
+        return response()->json(['data' => $this->serializeSession($session)]);
+    }
+
     public function close(Request $request, CashSession $cashSession): JsonResponse
     {
         $this->authorization->assertTenantOwnership($request->user(), $cashSession);

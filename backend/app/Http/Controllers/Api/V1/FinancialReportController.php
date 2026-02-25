@@ -82,13 +82,22 @@ class FinancialReportController extends Controller
 
     private function buildReportPayload(array $filters): array
     {
-        $appointments = $this->appointmentsQuery($filters)->get();
+        // Revenue-bearing appointments: exclude NO_SHOW (patient didn't come, money wasn't earned)
+        $attendedAppointments = $this->appointmentsQuery($filters)
+            ->where('status', '!=', 'NO_SHOW')
+            ->get();
 
-        $totalRevenue = (float) $appointments->sum(fn (Appointment $appointment) => $appointment->invoice?->total ?? 0);
-        $paidRevenue = (float) $appointments->sum(fn (Appointment $appointment) => $appointment->invoice?->paid_amount ?? 0);
+        // No-show appointments: tracked separately for reporting
+        $noShowAppointments = $this->appointmentsQuery($filters)
+            ->where('status', 'NO_SHOW')
+            ->get();
+
+        $totalRevenue = (float) $attendedAppointments->sum(fn (Appointment $appointment) => $appointment->invoice?->total ?? 0);
+        $paidRevenue = (float) $attendedAppointments->sum(fn (Appointment $appointment) => $appointment->invoice?->paid_amount ?? 0);
         $outstandingRevenue = max($totalRevenue - $paidRevenue, 0);
+        $noShowRevenue = (float) $noShowAppointments->sum(fn (Appointment $appointment) => $appointment->invoice?->total ?? 0);
 
-        $doctorRevenue = $appointments
+        $doctorRevenue = $attendedAppointments
             ->groupBy(fn (Appointment $appointment) => $appointment->doctor?->name ?? 'Unknown Doctor')
             ->map(fn (Collection $group, string $doctorName) => [
                 'doctorName' => $doctorName,
@@ -98,7 +107,7 @@ class FinancialReportController extends Controller
             ->values()
             ->all();
 
-        $branchRevenue = $appointments
+        $branchRevenue = $attendedAppointments
             ->groupBy(fn (Appointment $appointment) => (string) $appointment->branch_id)
             ->map(function (Collection $group, string $branchId): array {
                 $first = $group->first();
@@ -137,7 +146,9 @@ class FinancialReportController extends Controller
                 'totalRevenue' => $totalRevenue,
                 'cashCollected' => $cashCollected,
                 'outstandingRevenue' => $outstandingRevenue,
-                'averageTicket' => $appointments->count() > 0 ? round($totalRevenue / $appointments->count(), 2) : 0,
+                'averageTicket' => $attendedAppointments->count() > 0 ? round($totalRevenue / $attendedAppointments->count(), 2) : 0,
+                'noShowRevenue' => $noShowRevenue,         // Money lost to no-shows (informational only)
+                'noShowCount' => $noShowAppointments->count(),
             ],
             'doctorRevenue' => $doctorRevenue,
             'branchRevenue' => $branchRevenue,

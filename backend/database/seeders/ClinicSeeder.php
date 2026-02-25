@@ -17,6 +17,7 @@ class ClinicSeeder extends Seeder
                     'currency' => 'EGP',
                     'timezone' => 'Africa/Cairo',
                 ],
+                'public_uuid' => (string) \Illuminate\Support\Str::uuid(),
             ]
         );
     }

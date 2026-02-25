@@ -188,6 +188,26 @@ class AuthController extends Controller
         return response()->json($payload);
     }
 
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json(['message' => 'كلمة المرور الحالية غير صحيحة.'], 422);
+        }
+
+        $user->update(['password' => Hash::make($validated['new_password'])]);
+        // Revoke all other tokens so re-login is required on other devices
+        $user->tokens()->where('id', '!=', $request->user()->currentAccessToken()->id)->delete();
+
+        return response()->json(['message' => 'تم تغيير كلمة المرور بنجاح.']);
+    }
+
     private function resolveActiveBranchId(User $user): ?string
     {
         // Use clinic timezone for accurate shift detection when tenant-bound, fallback to app timezone for platform users.

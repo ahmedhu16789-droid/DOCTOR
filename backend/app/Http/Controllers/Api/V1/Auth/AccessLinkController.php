@@ -21,9 +21,15 @@ class AccessLinkController extends Controller
         ]);
 
         $actor = $request->user();
-        $targetUser = User::query()
-            ->where('clinic_id', $actor->clinic_id)
-            ->findOrFail($validated['userId']);
+
+        $userQuery = User::query()->where('id', $validated['userId']);
+
+        // Platform admins can create links for any user; clinic admins only for their own clinic
+        if (! $actor->is_platform_admin) {
+            $userQuery->where('clinic_id', $actor->clinic_id);
+        }
+
+        $targetUser = $userQuery->firstOrFail();
 
         if (! $targetUser->email) {
             return response()->json(['message' => 'Target user must have an email.'], 422);

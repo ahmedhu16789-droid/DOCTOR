@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PermissionRoleSeeder::class,
             MedicationSeeder::class,
             UserSeeder::class,
+            SuperAdminSeeder::class,
         ]);
     }
 }

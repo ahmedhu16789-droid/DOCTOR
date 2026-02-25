@@ -1,4 +1,5 @@
 import { getToken } from './authSession';
+import { handleMockRequest } from './mockEngine';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
 const inFlightRequests = new Map<string, Promise<unknown>>();
@@ -68,6 +69,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, withA
   }
 
   const requestPromise = (async () => {
+    if (import.meta.env.VITE_DATA_SOURCE_MODE === 'mock') {
+      return await handleMockRequest<T>(normalizedPath, { ...options, method });
+    }
+
     const response = await fetch(getRequestUrl(normalizedPath), {
       ...options,
       credentials: USE_COOKIE_AUTH ? 'include' : (options.credentials ?? 'same-origin'),
