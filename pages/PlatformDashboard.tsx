@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   getPlatformClinicTimelineFromApi,
   getPlatformClinicsFromApi,
@@ -11,6 +12,7 @@ import {
 } from '../services/api';
 
 export const PlatformDashboard: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [clinics, setClinics] = useState<PlatformClinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,18 @@ export const PlatformDashboard: React.FC = () => {
     receipt_ref: '',
   });
 
+  const isArabic = i18n.language?.startsWith('ar');
+  const textAlignClass = isArabic ? 'text-right' : 'text-left';
+
+  const getSubscriptionStatusLabel = (status?: string | null) => {
+    if (!status) return '-';
+    return t(`admin.platform_dashboard.subscription_status.${status}`);
+  };
+
+  const getSubscriptionTypeLabel = (type: 'LIFETIME' | 'ANNUAL') => {
+    return t(`admin.platform_dashboard.subscription_type.${type.toLowerCase()}`);
+  };
+
   const loadClinics = async () => {
     try {
       setLoading(true);
@@ -65,7 +79,7 @@ export const PlatformDashboard: React.FC = () => {
       setClinics(data);
     } catch (err) {
       console.error(err);
-      setError('Failed to load clinics');
+      setError(t('admin.platform_dashboard.errors.load_clinics'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +96,7 @@ export const PlatformDashboard: React.FC = () => {
       }));
     } catch (err) {
       console.error(err);
-      setError('Failed to load timeline');
+      setError(t('admin.platform_dashboard.errors.load_timeline'));
     } finally {
       setTimelineLoading(false);
     }
@@ -109,7 +123,7 @@ export const PlatformDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to update clinic status');
+      setError(t('admin.platform_dashboard.errors.update_status'));
     } finally {
       setSavingClinicId(null);
     }
@@ -134,7 +148,7 @@ export const PlatformDashboard: React.FC = () => {
       setPaymentForm(prev => ({ ...prev, amount: 0 }));
     } catch (err) {
       console.error(err);
-      setError('Failed to record payment');
+      setError(t('admin.platform_dashboard.errors.record_payment'));
     }
   };
 
@@ -148,7 +162,7 @@ export const PlatformDashboard: React.FC = () => {
       await loadClinics();
     } catch (err) {
       console.error(err);
-      setError('Failed to create subscription');
+      setError(t('admin.platform_dashboard.errors.create_subscription'));
     }
   };
 
@@ -161,7 +175,7 @@ export const PlatformDashboard: React.FC = () => {
       setExpiringClinics(data);
     } catch (err) {
       console.error(err);
-      alert('Failed to load expiring clinics');
+      alert(t('admin.platform_dashboard.errors.load_expiring'));
     } finally {
       setExpiringLoading(false);
     }
@@ -169,7 +183,7 @@ export const PlatformDashboard: React.FC = () => {
 
   const onSaveNewClinic = async () => {
     if (!newClinicForm.clinic_name || !newClinicForm.admin_name || !newClinicForm.admin_phone) {
-      setClinicCreateError('مطلوب اسم العيادة واسم المدير ورقم هاتفه.');
+      setClinicCreateError(t('admin.platform_dashboard.errors.required_clinic_fields'));
       return;
     }
     try {
@@ -188,7 +202,7 @@ export const PlatformDashboard: React.FC = () => {
       }
       setNewClinicForm({ clinic_name: '', admin_name: '', admin_phone: '', admin_email: '' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'حدث خطأ أثناء إنشاء العيادة';
+      const message = err instanceof Error ? err.message : t('admin.platform_dashboard.errors.create_clinic');
       setClinicCreateError(message);
     } finally {
       setClinicCreateSaving(false);
@@ -205,32 +219,32 @@ export const PlatformDashboard: React.FC = () => {
         // --- LIST VIEW ---
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">العيادات المشتركة</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t('admin.platform_dashboard.title')}</h1>
             <div className="flex items-center gap-3">
               <button
                 onClick={onLoadExpiring}
                 className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg font-medium hover:bg-orange-200 transition shadow-sm border border-orange-200"
               >
-                العيادات المنتهية قريباً
+                {t('admin.platform_dashboard.expiring_soon')}
               </button>
               <button
                 onClick={() => { setCreatingClinic(true); setClinicCreateError(null); setClinicCreateSuccess(null); }}
                 className="bg-primary-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-primary-700 transition shadow-sm"
               >
-                + إنشاء عيادة جديدة
+                {t('admin.platform_dashboard.create_clinic_cta')}
               </button>
             </div>
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm text-right" dir="rtl">
+            <table className={`w-full text-sm ${textAlignClass}`}>
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-700">
                 <tr>
-                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">اسم العيادة</th>
-                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">الحالة</th>
-                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">نوع الاشتراك</th>
-                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">رقم الهاتف الأساسي</th>
+                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">{t('admin.platform_dashboard.table.clinic_name')}</th>
+                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">{t('admin.platform_dashboard.table.status')}</th>
+                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">{t('admin.platform_dashboard.table.subscription_type')}</th>
+                  <th className="px-6 py-4 font-semibold uppercase tracking-wider">{t('admin.platform_dashboard.table.primary_phone')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -247,21 +261,21 @@ export const PlatformDashboard: React.FC = () => {
                           clinic.subscriptionStatus === 'suspended' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                         }`}>
-                        {clinic.subscriptionStatus}
+                        {getSubscriptionStatusLabel(clinic.subscriptionStatus)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
-                      {clinic.subscriptionType === 'LIFETIME' ? 'شراء لمرة واحدة (مدى الحياة)' : 'اشتراك سنوي'}
+                      {getSubscriptionTypeLabel(clinic.subscriptionType)}
                     </td>
                     <td className="px-6 py-4 text-gray-600 font-mono">
-                      {(clinic.settings as any)?.phone || (clinic.settings as any)?.main_phone || (clinic.settings as any)?.contactPhone || 'غير مسجل'}
+                      {(clinic.settings as any)?.phone || (clinic.settings as any)?.main_phone || (clinic.settings as any)?.contactPhone || t('admin.platform_dashboard.not_registered')}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {clinics.length === 0 && (
-              <div className="p-8 text-center text-gray-500">لا توجد عيادات مسجلة حالياً.</div>
+              <div className="p-8 text-center text-gray-500">{t('admin.platform_dashboard.empty_clinics')}</div>
             )}
           </div>
         </div>
@@ -273,9 +287,9 @@ export const PlatformDashboard: React.FC = () => {
               onClick={() => setSelectedClinicId(null)}
               className="text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2 text-sm font-medium transition-colors"
             >
-              &rarr; العودة للقائمة
+              {t('admin.platform_dashboard.back_to_list')}
             </button>
-            <h1 className="text-2xl font-bold text-gray-800">تفاصيل العيادة: <span className="text-primary-600">{selectedClinic?.name}</span></h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t('admin.platform_dashboard.clinic_details')}: <span className="text-primary-600">{selectedClinic?.name}</span></h1>
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
@@ -283,7 +297,7 @@ export const PlatformDashboard: React.FC = () => {
             {/* Admin User Card */}
             {selectedClinic?.adminUser && (
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-3">
-                <h2 className="text-lg font-bold text-gray-800 border-b pb-2">مدير العيادة</h2>
+                <h2 className="text-lg font-bold text-gray-800 border-b pb-2">{t('admin.platform_dashboard.clinic_admin')}</h2>
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center text-lg shrink-0">
                     {selectedClinic.adminUser.name.charAt(0)}
@@ -306,45 +320,45 @@ export const PlatformDashboard: React.FC = () => {
                         const { token } = await createAccessLinkViaApi(selectedClinic.adminUser!.id);
                         const link = `${window.location.origin}${window.location.pathname}?accessToken=${encodeURIComponent(token)}`;
                         await navigator.clipboard.writeText(link);
-                        alert('تم نسخ رابط دخول المدير!');
+                        alert(t('admin.platform_dashboard.admin_link_copied'));
                       } catch (err) {
-                        const message = err instanceof Error ? err.message : 'حدث خطأ أثناء إنشاء الرابط';
+                        const message = err instanceof Error ? err.message : t('admin.platform_dashboard.errors.create_link');
                         alert(message);
                       }
                     }}
                     className="w-full mt-1 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
                   >
-                    إنشاء رابط إعادة كلمة المرور
+                    {t('admin.platform_dashboard.create_reset_link')}
                   </button>
                 ) : (
-                  <p className="text-xs text-gray-400 italic">لا يوجد بريد إلكتروني — لا يمكن إنشاء رابط دخول بدونه</p>
+                  <p className="text-xs text-gray-400 italic">{t('admin.platform_dashboard.no_email_no_link')}</p>
                 )}
               </div>
             )}
 
             {/* Status Card */}
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
-              <h2 className="text-lg font-bold text-gray-800 border-b pb-2">الحالة والإعدادات</h2>
+              <h2 className="text-lg font-bold text-gray-800 border-b pb-2">{t('admin.platform_dashboard.status_settings')}</h2>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">حالة الاشتراك</span>
+                <span className="text-gray-600">{t('admin.platform_dashboard.subscription_status_label')}</span>
                 <select
                   className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary-500"
                   value={selectedClinic?.subscriptionStatus}
                   disabled={savingClinicId === selectedClinic?.id}
                   onChange={(event) => onStatusChange(selectedClinic!.id, event.target.value)}
                 >
-                  <option value="active">Active (فعال)</option>
-                  <option value="grace">Grace (فترة سماح)</option>
-                  <option value="suspended">Suspended (معلق)</option>
-                  <option value="expired">Expired (منتهي)</option>
+                  <option value="active">{t('admin.platform_dashboard.subscription_status.active')}</option>
+                  <option value="grace">{t('admin.platform_dashboard.subscription_status.grace')}</option>
+                  <option value="suspended">{t('admin.platform_dashboard.subscription_status.suspended')}</option>
+                  <option value="expired">{t('admin.platform_dashboard.subscription_status.expired')}</option>
                 </select>
               </div>
               <div className="flex justify-between text-sm py-2">
-                <span className="text-gray-500">الحالة الفعالة:</span>
-                <span className="font-semibold">{selectedClinic?.effectiveStatus ?? '-'}</span>
+                <span className="text-gray-500">{t('admin.platform_dashboard.effective_status')}:</span>
+                <span className="font-semibold">{selectedClinic?.effectiveStatus ? getSubscriptionStatusLabel(selectedClinic.effectiveStatus) : '-'}</span>
               </div>
               <div className="flex justify-between text-sm py-2">
-                <span className="text-gray-500">تاريخ الإنشاء:</span>
+                <span className="text-gray-500">{t('admin.platform_dashboard.created_at')}:</span>
                 <span className="font-medium text-gray-700">{selectedClinic?.createdAt ? new Date(selectedClinic.createdAt).toLocaleDateString() : '-'}</span>
               </div>
             </div>
@@ -353,7 +367,7 @@ export const PlatformDashboard: React.FC = () => {
             {selectedClinic?.entitlements ? (
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-bold text-gray-800 border-b pb-2 flex-1">حدود العيادة والاستخدام</h2>
+                  <h2 className="text-lg font-bold text-gray-800 border-b pb-2 flex-1">{t('admin.platform_dashboard.entitlements')}</h2>
                   {!editingLimits && (
                     <button
                       className="text-sm font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition"
@@ -365,7 +379,7 @@ export const PlatformDashboard: React.FC = () => {
                         setEditingLimits(true);
                       }}
                     >
-                      تعديل الحدود
+                      {t('admin.platform_dashboard.edit_limits')}
                     </button>
                   )}
                 </div>
@@ -374,7 +388,7 @@ export const PlatformDashboard: React.FC = () => {
                   <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-4 animate-in fade-in duration-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">الحد الأقصى للفروع</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.max_branches')}</label>
                         <input
                           type="number"
                           min={1}
@@ -384,7 +398,7 @@ export const PlatformDashboard: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">الحد الأقصى للأطباء</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.max_doctors')}</label>
                         <input
                           type="number"
                           min={1}
@@ -399,7 +413,7 @@ export const PlatformDashboard: React.FC = () => {
                         onClick={() => setEditingLimits(false)}
                         className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                       >
-                        إلغاء
+                        {t('admin.cancel')}
                       </button>
                       <button
                         onClick={async () => {
@@ -408,19 +422,19 @@ export const PlatformDashboard: React.FC = () => {
                             await loadClinics();
                             setEditingLimits(false);
                           } catch (e) {
-                            alert('Failed to update limits');
+                            alert(t('admin.platform_dashboard.errors.update_limits'));
                           }
                         }}
                         className="px-4 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm"
                       >
-                        حفظ التعديلات
+                        {t('admin.platform_dashboard.save_changes')}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
-                      <span className="text-gray-500 font-medium mb-1">الفروع</span>
+                      <span className="text-gray-500 font-medium mb-1">{t('admin.platform_dashboard.branches')}</span>
                       <div className="text-2xl font-bold text-gray-800">
                         <span className={selectedClinic.entitlements.current_branches > selectedClinic.entitlements.max_branches ? 'text-red-500' : 'text-green-600'}>
                           {selectedClinic.entitlements.current_branches}
@@ -430,7 +444,7 @@ export const PlatformDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
-                      <span className="text-gray-500 font-medium mb-1">الأطباء</span>
+                      <span className="text-gray-500 font-medium mb-1">{t('admin.platform_dashboard.doctors')}</span>
                       <div className="text-2xl font-bold text-gray-800">
                         <span className={selectedClinic.entitlements.current_doctors > selectedClinic.entitlements.max_doctors ? 'text-red-500' : 'text-blue-600'}>
                           {selectedClinic.entitlements.current_doctors}
@@ -444,43 +458,43 @@ export const PlatformDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-center text-gray-400">
-                لم يتم تعيين حدود للعيادة (تأكد من وجود اشتراك نشط)
+                {t('admin.platform_dashboard.no_entitlements')}
               </div>
             )}
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="bg-gray-50 p-4 border-b">
-              <h2 className="text-lg font-bold text-gray-800">الاشتراكات والمدفوعات</h2>
+              <h2 className="text-lg font-bold text-gray-800">{t('admin.platform_dashboard.subscriptions_payments')}</h2>
             </div>
             <div className="p-5 space-y-6">
-              {timelineLoading && <p className="text-sm text-gray-500">جاري التحميل...</p>}
+              {timelineLoading && <p className="text-sm text-gray-500">{t('admin.platform_dashboard.loading')}</p>}
 
               <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                 <div className="flex flex-col md:col-span-1">
-                  <label className="text-xs font-semibold text-gray-600 mb-1">الاشتراك</label>
+                  <label className="text-xs font-semibold text-gray-600 mb-1">{t('admin.platform_dashboard.subscription')}</label>
                   <select className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white" value={paymentForm.clinic_subscription_id} onChange={(e) => setPaymentForm((prev) => ({ ...prev, clinic_subscription_id: e.target.value }))}>
-                    <option value="">اختر...</option>
-                    {timeline.map((s) => <option key={s.id} value={s.id}>#{s.id} ({s.license.type})</option>)}
+                    <option value="">{t('admin.platform_dashboard.select')}</option>
+                    {timeline.map((s) => <option key={s.id} value={s.id}>#{s.id} ({getSubscriptionTypeLabel(s.license.type)})</option>)}
                   </select>
                 </div>
 
                 <div className="flex flex-col md:col-span-1">
-                  <label className="text-xs font-semibold text-gray-600 mb-1">النوع</label>
+                  <label className="text-xs font-semibold text-gray-600 mb-1">{t('admin.platform_dashboard.type')}</label>
                   <select className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white" value={paymentForm.payment_kind} onChange={(e) => setPaymentForm((prev) => ({ ...prev, payment_kind: e.target.value as 'LICENSE' | 'HOSTING' }))}>
                     {selectedClinic?.subscriptionType === 'LIFETIME' ? (
                       <>
-                        <option value="LICENSE">ترخيص لمرة واحدة</option>
-                        <option value="HOSTING">تجديد استضافة</option>
+                        <option value="LICENSE">{t('admin.platform_dashboard.payment_kind.license')}</option>
+                        <option value="HOSTING">{t('admin.platform_dashboard.payment_kind.hosting')}</option>
                       </>
                     ) : (
-                      <option value="LICENSE">اشتراك سنوي (شامل الاستضافة)</option>
+                      <option value="LICENSE">{t('admin.platform_dashboard.payment_kind.annual_bundle')}</option>
                     )}
                   </select>
                 </div>
 
                 <div className="flex flex-col md:col-span-1">
-                  <label className="text-xs font-semibold text-gray-600 mb-1">السنوات</label>
+                  <label className="text-xs font-semibold text-gray-600 mb-1">{t('admin.platform_dashboard.years')}</label>
                   <input
                     className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white disabled:bg-gray-100 disabled:text-gray-500"
                     type="number"
@@ -492,49 +506,49 @@ export const PlatformDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col md:col-span-1">
-                  <label className="text-xs font-semibold text-gray-600 mb-1">المبلغ</label>
+                  <label className="text-xs font-semibold text-gray-600 mb-1">{t('admin.platform_dashboard.amount')}</label>
                   <input className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white disabled:bg-gray-100" type="number" min={0} disabled={!paymentForm.clinic_subscription_id} value={paymentForm.amount} onChange={(e) => setPaymentForm((prev) => ({ ...prev, amount: Number(e.target.value) }))} />
                 </div>
 
                 <div className="flex flex-col md:col-span-1">
-                  <label className="text-xs font-semibold text-gray-600 mb-1">التاريخ</label>
+                  <label className="text-xs font-semibold text-gray-600 mb-1">{t('admin.platform_dashboard.date')}</label>
                   <input className="border border-gray-300 rounded-lg p-2.5 text-sm bg-white disabled:bg-gray-100" type="date" disabled={!paymentForm.clinic_subscription_id} value={paymentForm.paid_at} onChange={(e) => setPaymentForm((prev) => ({ ...prev, paid_at: e.target.value }))} />
                 </div>
 
                 <button disabled={!paymentForm.clinic_subscription_id} className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm px-4 py-2.5 rounded-lg transition-colors md:col-span-1 shadow-sm" onClick={onRecordPayment}>
-                  تسجيل دفعة
+                  {t('admin.platform_dashboard.record_payment')}
                 </button>
               </div>
 
               {!timelineLoading && timeline.length === 0 && !creatingSubscription && (
                 <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                  <p className="text-gray-500 mb-4 font-medium">لا توجد سجلات اشتراك لهذه العيادة.</p>
+                  <p className="text-gray-500 mb-4 font-medium">{t('admin.platform_dashboard.no_subscription_records')}</p>
                   <button
                     onClick={() => setCreatingSubscription(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm"
                   >
-                    إنشاء اشتراك جديد
+                    {t('admin.platform_dashboard.create_subscription')}
                   </button>
                 </div>
               )}
 
               {creatingSubscription && (
                 <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm mb-6 animate-in fade-in slide-in-from-top-4">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">إنشاء اشتراك جديد للعيادة</h3>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">{t('admin.platform_dashboard.create_subscription_for_clinic')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">نوع الاشتراك الأساسي</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.base_subscription_type')}</label>
                       <select
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         value={newSubscriptionForm.type}
                         onChange={(e) => setNewSubscriptionForm(prev => ({ ...prev, type: e.target.value as 'LIFETIME' | 'ANNUAL' }))}
                       >
-                        <option value="ANNUAL">اشتراك سنوي (Annual)</option>
-                        <option value="LIFETIME">شراء لمرة واحدة (Lifetime)</option>
+                        <option value="ANNUAL">{t('admin.platform_dashboard.subscription_type.annual')}</option>
+                        <option value="LIFETIME">{t('admin.platform_dashboard.subscription_type.lifetime')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">تاريخ بداية الاشتراك</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.subscription_start_date')}</label>
                       <input
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         type="date"
@@ -548,13 +562,13 @@ export const PlatformDashboard: React.FC = () => {
                       onClick={() => setCreatingSubscription(false)}
                       className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
-                      إلغاء
+                      {t('admin.cancel')}
                     </button>
                     <button
                       onClick={onCreateSubscription}
                       className="px-6 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm"
                     >
-                      تأكيد إنشاء الاشتراك
+                      {t('admin.platform_dashboard.confirm_create_subscription')}
                     </button>
                   </div>
                 </div>
@@ -564,55 +578,55 @@ export const PlatformDashboard: React.FC = () => {
                 {timeline.map((sub) => (
                   <div key={sub.id} className="border rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-gray-100 px-4 py-3 flex justify-between items-center">
-                      <div className="font-bold text-gray-800">الاشتراك #{sub.id} <span className="text-xs font-normal text-gray-500 bg-white px-2 py-0.5 rounded-md border ml-2">{sub.license.type}</span></div>
+                      <div className="font-bold text-gray-800">{t('admin.platform_dashboard.subscription_number', { id: sub.id })} <span className="text-xs font-normal text-gray-500 bg-white px-2 py-0.5 rounded-md border ml-2">{getSubscriptionTypeLabel(sub.license.type)}</span></div>
                       <div>
-                        {sub.effectiveStatus === 'active' && <span className="text-green-700 bg-green-100 px-2 py-1 text-xs rounded-full font-bold">نشط</span>}
-                        {sub.effectiveStatus !== 'active' && <span className="text-yellow-700 bg-yellow-100 px-2 py-1 text-xs rounded-full font-bold">{sub.effectiveStatus}</span>}
+                        {sub.effectiveStatus === 'active' && <span className="text-green-700 bg-green-100 px-2 py-1 text-xs rounded-full font-bold">{getSubscriptionStatusLabel(sub.effectiveStatus)}</span>}
+                        {sub.effectiveStatus !== 'active' && <span className="text-yellow-700 bg-yellow-100 px-2 py-1 text-xs rounded-full font-bold">{getSubscriptionStatusLabel(sub.effectiveStatus)}</span>}
                       </div>
                     </div>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                       {sub.license.type === 'LIFETIME' ? (
                         <>
                           <div>
-                            <span className="font-semibold block mb-1">الرخصة لمرة واحدة:</span>
+                            <span className="font-semibold block mb-1">{t('admin.platform_dashboard.one_time_license')}:</span>
                             <div className="bg-gray-50 border rounded p-2">
-                              {sub.license.startsAt ? new Date(sub.license.startsAt).toLocaleDateString() : '-'} &rarr; {sub.license.endsAt ? new Date(sub.license.endsAt).toLocaleDateString() : 'مدى الحياة'}
+                              {sub.license.startsAt ? new Date(sub.license.startsAt).toLocaleDateString() : '-'} &rarr; {sub.license.endsAt ? new Date(sub.license.endsAt).toLocaleDateString() : t('admin.platform_dashboard.lifetime')}
                             </div>
                           </div>
                           <div>
-                            <span className="font-semibold block mb-1">الاستضافة:</span>
+                            <span className="font-semibold block mb-1">{t('admin.platform_dashboard.hosting')}:</span>
                             <div className="bg-gray-50 border rounded p-2">
-                              {sub.hosting.startsAt ? new Date(sub.hosting.startsAt).toLocaleDateString() : '-'} &rarr; {sub.hosting.endsAt ? new Date(sub.hosting.endsAt).toLocaleDateString() : 'غير مسددة'}
+                              {sub.hosting.startsAt ? new Date(sub.hosting.startsAt).toLocaleDateString() : '-'} &rarr; {sub.hosting.endsAt ? new Date(sub.hosting.endsAt).toLocaleDateString() : t('admin.platform_dashboard.unpaid')}
                             </div>
                           </div>
                         </>
                       ) : (
                         <div className="md:col-span-2">
-                          <span className="font-semibold block mb-1">فترة الاشتراك السنوي الشامل:</span>
+                          <span className="font-semibold block mb-1">{t('admin.platform_dashboard.annual_period')}:</span>
                           <div className="bg-gray-50 border rounded p-2">
-                            {sub.license.startsAt ? new Date(sub.license.startsAt).toLocaleDateString() : '-'} &rarr; {sub.license.endsAt ? new Date(sub.license.endsAt).toLocaleDateString() : 'لم يبدأ / منتهي'}
+                            {sub.license.startsAt ? new Date(sub.license.startsAt).toLocaleDateString() : '-'} &rarr; {sub.license.endsAt ? new Date(sub.license.endsAt).toLocaleDateString() : t('admin.platform_dashboard.not_started_or_expired')}
                           </div>
                         </div>
                       )}
                     </div>
                     <div className="px-4 pb-4">
-                      <h4 className="font-bold text-sm mb-2 text-gray-800">المدفوعات السابقة</h4>
+                      <h4 className="font-bold text-sm mb-2 text-gray-800">{t('admin.platform_dashboard.previous_payments')}</h4>
                       <ul className="space-y-2 text-sm">
                         {sub.payments.map((payment) => (
                           <li key={payment.id} className="border rounded-lg p-2.5 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors">
                             <span className="font-medium text-gray-700">{new Date(payment.paidAt).toLocaleDateString()}</span>
                             <span className="text-blue-700 font-semibold bg-blue-100 px-2 rounded">
                               {sub.license.type === 'LIFETIME'
-                                ? (payment.paymentKind === 'LICENSE' ? 'رخصة مدى الحياة' : 'تجديد استضافة')
-                                : 'تجديد اشتراك مجمع'}
+                                ? (payment.paymentKind === 'LICENSE' ? t('admin.platform_dashboard.payment_label.lifetime_license') : t('admin.platform_dashboard.payment_label.hosting_renewal'))
+                                : t('admin.platform_dashboard.payment_label.bundle_renewal')}
                             </span>
                             <span className="text-gray-600">
-                              {payment.periodYears === 1 ? 'سنة واحدة' : (payment.periodYears === 2 ? 'سنتين' : `${payment.periodYears} سنوات`)}
+                              {payment.periodYears === 1 ? t('admin.platform_dashboard.duration.one_year') : (payment.periodYears === 2 ? t('admin.platform_dashboard.duration.two_years') : t('admin.platform_dashboard.duration.years', { count: payment.periodYears }))}
                             </span>
-                            <span className="font-bold text-green-700">{payment.amount} ج.م</span>
+                            <span className="font-bold text-green-700">{payment.amount} {t('admin.platform_dashboard.currency')}</span>
                           </li>
                         ))}
-                        {sub.payments.length === 0 && <li className="text-gray-400 text-sm border-t pt-2">لا توجد مدفوعات مسجلة لهذا الاشتراك.</li>}
+                        {sub.payments.length === 0 && <li className="text-gray-400 text-sm border-t pt-2">{t('admin.platform_dashboard.no_payments')}</li>}
                       </ul>
                     </div>
                   </div>
@@ -627,7 +641,7 @@ export const PlatformDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">المركز التنبيهي: اشتراكات/استضافات تقترب من الانتهاء (أقل من 30 يوم)</h2>
+              <h2 className="text-xl font-bold text-gray-800">{t('admin.platform_dashboard.expiring_center_title')}</h2>
               <button
                 onClick={() => setExpiringModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
@@ -636,25 +650,25 @@ export const PlatformDashboard: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto flex-1 bg-gray-50" dir="rtl">
+            <div className="p-4 overflow-y-auto flex-1 bg-gray-50">
               {expiringLoading ? (
                 <div className="flex justify-center items-center py-12 text-gray-500 font-medium">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 ml-3"></div>
-                  جاري التحميل...
+                  {t('admin.platform_dashboard.loading')}
                 </div>
               ) : expiringClinics.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed text-lg">
-                  لا توجد عيادات اقترب موعد انتهاء استضافتها أو رسومها.
+                  {t('admin.platform_dashboard.no_expiring_clinics')}
                 </div>
               ) : (
                 <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-                  <table className="w-full text-sm text-right">
+                  <table className={`w-full text-sm ${textAlignClass}`}>
                     <thead className="bg-orange-50 text-orange-900 border-b border-orange-100">
                       <tr>
-                        <th className="px-6 py-4 font-bold">اسم العيادة</th>
-                        <th className="px-6 py-4 font-bold">خطة الاشتراك</th>
-                        <th className="px-6 py-4 font-bold">نهاية الترخيص</th>
-                        <th className="px-6 py-4 font-bold">نهاية الاستضافة</th>
+                        <th className="px-6 py-4 font-bold">{t('admin.platform_dashboard.table.clinic_name')}</th>
+                        <th className="px-6 py-4 font-bold">{t('admin.platform_dashboard.plan')}</th>
+                        <th className="px-6 py-4 font-bold">{t('admin.platform_dashboard.license_end')}</th>
+                        <th className="px-6 py-4 font-bold">{t('admin.platform_dashboard.hosting_end')}</th>
                         <th className="px-6 py-4 font-bold"></th>
                       </tr>
                     </thead>
@@ -663,16 +677,16 @@ export const PlatformDashboard: React.FC = () => {
                         <tr key={clinic.id} className="hover:bg-orange-50/30 transition-colors">
                           <td className="px-6 py-4 font-bold text-gray-900">{clinic.name}</td>
                           <td className="px-6 py-4 font-medium text-gray-600">
-                            {clinic.subscriptionType === 'LIFETIME' ? 'مدى الحياة' : 'سنوي'}
+                            {clinic.subscriptionType === 'LIFETIME' ? t('admin.platform_dashboard.lifetime') : t('admin.platform_dashboard.annual')}
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-3 py-1 rounded-md text-xs font-bold ${clinic.subscriptionEndsAt && new Date(clinic.subscriptionEndsAt) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'bg-red-100 text-red-700' : 'text-gray-600'}`}>
-                              {clinic.subscriptionEndsAt ? new Date(clinic.subscriptionEndsAt).toLocaleDateString() : 'مدى الحياة'}
+                              {clinic.subscriptionEndsAt ? new Date(clinic.subscriptionEndsAt).toLocaleDateString() : t('admin.platform_dashboard.lifetime')}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-3 py-1 rounded-md text-xs font-bold ${clinic.hostingEndsAt && new Date(clinic.hostingEndsAt) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'bg-orange-100 text-orange-800' : 'text-gray-600'}`}>
-                              {clinic.hostingEndsAt ? new Date(clinic.hostingEndsAt).toLocaleDateString() : 'مدى الحياة'}
+                              {clinic.hostingEndsAt ? new Date(clinic.hostingEndsAt).toLocaleDateString() : t('admin.platform_dashboard.lifetime')}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-left">
@@ -683,7 +697,7 @@ export const PlatformDashboard: React.FC = () => {
                                 setSelectedClinicId(clinic.id);
                               }}
                             >
-                              إدارة ودفع
+                              {t('admin.platform_dashboard.manage_pay')}
                             </button>
                           </td>
                         </tr>
@@ -702,33 +716,33 @@ export const PlatformDashboard: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="p-5 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">إنشاء عيادة جديدة</h2>
+              <h2 className="text-xl font-bold text-gray-800">{t('admin.platform_dashboard.create_clinic_title')}</h2>
               <button onClick={() => { setCreatingClinic(false); setClinicCreateSuccess(null); setClinicCreateError(null); }} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
             </div>
 
             {clinicCreateSuccess ? (
               <div className="p-6 space-y-4 text-center">
                 <div className="text-5xl">🎉</div>
-                <h3 className="text-xl font-bold text-green-700">تم إنشاء العيادة بنجاح!</h3>
+                <h3 className="text-xl font-bold text-green-700">{t('admin.platform_dashboard.create_success_title')}</h3>
                 {clinicCreateSuccess.link ? (
                   <>
-                    <p className="text-gray-600 text-sm">انسخ هذا الرابط وأرسله لمدير العيادة ليقوم بوضع كلمة مروره الخاصة:</p>
+                    <p className="text-gray-600 text-sm">{t('admin.platform_dashboard.create_success_desc')}</p>
                     <div className="bg-gray-100 rounded-xl p-3 text-xs text-gray-700 break-all font-mono border">{clinicCreateSuccess.link}</div>
                     <button
-                      onClick={() => { navigator.clipboard.writeText(clinicCreateSuccess.link); alert('تم نسخ الرابط!'); }}
+                      onClick={() => { navigator.clipboard.writeText(clinicCreateSuccess.link); alert(t('admin.platform_dashboard.link_copied')); }}
                       className="bg-primary-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-primary-700 transition"
                     >
-                      نسخ الرابط
+                      {t('admin.platform_dashboard.copy_link')}
                     </button>
                   </>
                 ) : (
-                  <p className="text-gray-500 text-sm">تم إنشاء العيادة ولكن فشل إنشاء رابط الدخول. يمكنك إنشاءه منصفحة الأطباء يدوياً.</p>
+                  <p className="text-gray-500 text-sm">{t('admin.platform_dashboard.create_success_no_link')}</p>
                 )}
                 <button
                   onClick={() => { setCreatingClinic(false); setClinicCreateSuccess(null); }}
                   className="mt-2 text-gray-500 hover:text-gray-700 text-sm underline"
                 >
-                  إغلاق
+                  {t('admin.platform_dashboard.close')}
                 </button>
               </div>
             ) : (
@@ -737,61 +751,61 @@ export const PlatformDashboard: React.FC = () => {
                   <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-2 text-sm">⚠ {clinicCreateError}</div>
                 )}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">اسم العيادة *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.clinic_name')} *</label>
                   <input
                     className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                     value={newClinicForm.clinic_name}
                     onChange={(e) => setNewClinicForm(p => ({ ...p, clinic_name: e.target.value }))}
-                    placeholder="عيادة الفتح"
+                    placeholder={t('admin.platform_dashboard.form.clinic_name_placeholder')}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">اسم مدير العيادة *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.admin_name')} *</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                       value={newClinicForm.admin_name}
                       onChange={(e) => setNewClinicForm(p => ({ ...p, admin_name: e.target.value }))}
-                      placeholder="محمد فلان"
+                      placeholder={t('admin.platform_dashboard.form.admin_name_placeholder')}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">رقم هاتف المدير *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.admin_phone')} *</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                       value={newClinicForm.admin_phone}
                       onChange={(e) => setNewClinicForm(p => ({ ...p, admin_phone: e.target.value }))}
-                      placeholder="01012345678"
+                      placeholder={t('admin.platform_dashboard.form.admin_phone_placeholder')}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">بريد المدير الإلكتروني (اختياري)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.admin_email_optional')}</label>
                   <input
                     className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                     type="email"
                     value={newClinicForm.admin_email}
                     onChange={(e) => setNewClinicForm(p => ({ ...p, admin_email: e.target.value }))}
-                    placeholder="admin@clinic.com"
+                    placeholder={t('admin.platform_dashboard.form.admin_email_placeholder')}
                   />
                 </div>
 
                 <div className="border-t border-gray-200 pt-4 mt-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">خطة الاشتراك والقيود</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('admin.platform_dashboard.form.subscription_and_limits')}</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">نوع الاشتراك *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.subscription_type')} *</label>
                       <select
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-primary-500"
                         value={newClinicForm.subscription_type}
                         onChange={(e) => setNewClinicForm(p => ({ ...p, subscription_type: e.target.value as 'LIFETIME' | 'ANNUAL' }))}
                       >
-                        <option value="ANNUAL">سنوي (Annual)</option>
-                        <option value="LIFETIME">مدى الحياة (Lifetime)</option>
+                        <option value="ANNUAL">{t('admin.platform_dashboard.annual')}</option>
+                        <option value="LIFETIME">{t('admin.platform_dashboard.lifetime')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">تاريخ بداية الاشتراك *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.subscription_start_date')} *</label>
                       <input
                         type="date"
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
@@ -800,7 +814,7 @@ export const PlatformDashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">الحد الأقصى للفروع *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.max_branches')} *</label>
                       <input
                         type="number" min={1}
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
@@ -809,7 +823,7 @@ export const PlatformDashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">الحد الأقصى للأطباء *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.max_doctors')} *</label>
                       <input
                         type="number" min={1}
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
@@ -818,7 +832,7 @@ export const PlatformDashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">الحد الأقصى للموظفين</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">{t('admin.platform_dashboard.form.max_staff')}</label>
                       <input
                         type="number" min={1}
                         className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary-500"
@@ -833,14 +847,14 @@ export const PlatformDashboard: React.FC = () => {
                     onClick={() => { setCreatingClinic(false); setClinicCreateError(null); }}
                     className="px-5 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"
                   >
-                    إلغاء
+                    {t('admin.cancel')}
                   </button>
                   <button
                     onClick={onSaveNewClinic}
                     disabled={clinicCreateSaving}
                     className="px-6 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition shadow-sm"
                   >
-                    {clinicCreateSaving ? 'جاري الإنشاء...' : 'إنشاء العيادة'}
+                    {clinicCreateSaving ? t('admin.platform_dashboard.creating') : t('admin.platform_dashboard.create_clinic')}
                   </button>
                 </div>
               </div>

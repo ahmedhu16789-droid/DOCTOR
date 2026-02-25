@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, CheckCircle2, AlertCircle, Clock, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getBranchesFromApi, openCashSessionFromApi, closeCashSessionFromApi, getActiveCashSessionFromApi, CashSessionData } from '../services/api';
 import { Branch, User, UserRole } from '../types';
 
@@ -10,6 +11,7 @@ interface CashSessionPageProps {
 }
 
 export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activeBranchId, branches }) => {
+    const { t, i18n } = useTranslation();
     const [activeSession, setActiveSession] = useState<CashSessionData | null>(null);
     const [loading, setLoading] = useState(true);
     const [openingBalance, setOpeningBalance] = useState('0');
@@ -43,7 +45,7 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
 
     const handleOpen = async () => {
         if (!selectedBranchId) {
-            setMessage({ type: 'error', text: 'يرجى اختيار الفرع أولاً.' });
+            setMessage({ type: 'error', text: t('admin.cash_session.select_branch_first') });
             return;
         }
         setSaving(true);
@@ -51,9 +53,9 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
         try {
             const data = await openCashSessionFromApi(selectedBranchId, parseFloat(openingBalance) || 0);
             setActiveSession(data);
-            setMessage({ type: 'success', text: 'تم فتح جلسة الكاش بنجاح.' });
+            setMessage({ type: 'success', text: t('admin.cash_session.open_success') });
         } catch (err) {
-            setMessage({ type: 'error', text: err instanceof Error ? err.message : 'فشل فتح جلسة الكاش.' });
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : t('admin.cash_session.open_failed') });
         } finally {
             setSaving(false);
         }
@@ -62,10 +64,10 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
     const handleClose = async () => {
         if (!activeSession) return;
         if (!collectedCash) {
-            setMessage({ type: 'error', text: 'يرجى إدخال النقد المحصّل.' });
+            setMessage({ type: 'error', text: t('admin.cash_session.enter_collected_cash') });
             return;
         }
-        if (!window.confirm(`هل أنت متأكد من إغلاق جلسة الكاش؟ النقد المحصّل: ${collectedCash} EGP`)) return;
+        if (!window.confirm(t('admin.cash_session.close_confirm', { amount: collectedCash }))) return;
         setSaving(true);
         setMessage(null);
         try {
@@ -75,16 +77,18 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
             const variance = (data.variance ?? 0);
             setMessage({
                 type: variance === 0 ? 'success' : 'error',
-                text: `تم إغلاق الجلسة. الفرق: ${variance >= 0 ? '+' : ''}${variance} EGP`,
+                text: t('admin.cash_session.close_result', { variance: `${variance >= 0 ? '+' : ''}${variance}` }),
             });
         } catch (err) {
-            setMessage({ type: 'error', text: err instanceof Error ? err.message : 'فشل إغلاق جلسة الكاش.' });
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : t('admin.cash_session.close_failed') });
         } finally {
             setSaving(false);
         }
     };
 
     const branchName = branches.find(b => b.id === selectedBranchId)?.name ?? selectedBranchId;
+
+    const locale = i18n.language?.startsWith('ar') ? 'ar-EG' : 'en-US';
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
@@ -93,21 +97,21 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
                     <Wallet className="w-6 h-6 text-primary-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">جلسة الكاش</h1>
-                    <p className="text-sm text-gray-500">فتح وإغلاق جلسات الكاش اليومية وتسوية الإيرادات</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{t('admin.cash_session.title')}</h1>
+                    <p className="text-sm text-gray-500">{t('admin.cash_session.subtitle')}</p>
                 </div>
             </div>
 
             {/* Branch Selector */}
             {isAdmin && branches.length > 1 && (
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">اختر الفرع</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.cash_session.select_branch')}</label>
                     <select
                         value={selectedBranchId}
                         onChange={(e) => { setSelectedBranchId(e.target.value); checkActiveSession(e.target.value); }}
                         className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
                     >
-                        <option value="">-- اختر فرعاً --</option>
+                        <option value="">{t('admin.cash_session.select_branch_placeholder')}</option>
                         {branches.filter(b => b.isActive).map(b => (
                             <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
@@ -132,39 +136,39 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
                 <div className="bg-white rounded-xl border-2 border-emerald-300 shadow-sm overflow-hidden">
                     <div className="bg-emerald-50 px-6 py-4 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-emerald-600" />
-                        <h2 className="font-bold text-emerald-800">جلسة كاش مفتوحة</h2>
-                        <span className="ms-auto text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">OPEN</span>
+                        <h2 className="font-bold text-emerald-800">{t('admin.cash_session.open_session')}</h2>
+                        <span className="ms-auto text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">{t('admin.cash_session.status_open')}</span>
                     </div>
                     <div className="p-6 space-y-4">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <p className="text-gray-500">الفرع</p>
+                                <p className="text-gray-500">{t('admin.cash_session.branch')}</p>
                                 <p className="font-bold text-gray-900 flex items-center gap-1"><Building2 className="w-4 h-4" /> {branchName}</p>
                             </div>
                             <div>
-                                <p className="text-gray-500">الرصيد الافتتاحي</p>
-                                <p className="font-bold text-gray-900">{activeSession.openingBalance.toLocaleString()} EGP</p>
+                                <p className="text-gray-500">{t('admin.cash_session.opening_balance')}</p>
+                                <p className="font-bold text-gray-900">{activeSession.openingBalance.toLocaleString()} {t('admin.cash_session.currency')}</p>
                             </div>
                             <div>
-                                <p className="text-gray-500">النقد المتوقع</p>
-                                <p className="font-bold text-gray-900">{activeSession.expectedCash.toLocaleString()} EGP</p>
+                                <p className="text-gray-500">{t('admin.cash_session.expected_cash')}</p>
+                                <p className="font-bold text-gray-900">{activeSession.expectedCash.toLocaleString()} {t('admin.cash_session.currency')}</p>
                             </div>
                             <div>
-                                <p className="text-gray-500">وقت الفتح</p>
-                                <p className="font-bold text-gray-900">{new Date(activeSession.openedAt).toLocaleTimeString('ar-EG')}</p>
+                                <p className="text-gray-500">{t('admin.cash_session.opened_at')}</p>
+                                <p className="font-bold text-gray-900">{new Date(activeSession.openedAt).toLocaleTimeString(locale)}</p>
                             </div>
                         </div>
 
                         <hr className="border-gray-100" />
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">النقد المحصّل فعلياً</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.cash_session.collected_cash')}</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={collectedCash}
                                 onChange={(e) => setCollectedCash(e.target.value)}
-                                placeholder="أدخل المبلغ المحصّل"
+                                placeholder={t('admin.cash_session.collected_cash_placeholder')}
                                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500"
                             />
                         </div>
@@ -174,7 +178,7 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
                             disabled={saving}
                             className="w-full py-3 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 disabled:opacity-60 transition-colors"
                         >
-                            {saving ? 'جاري الإغلاق...' : '🔒 إغلاق جلسة الكاش'}
+                            {saving ? t('admin.cash_session.closing') : t('admin.cash_session.close_cta')}
                         </button>
                     </div>
                 </div>
@@ -182,18 +186,18 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
                 /* Open New Session Card */
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                        <h2 className="font-bold text-gray-900">فتح جلسة كاش جديدة</h2>
-                        <p className="text-sm text-gray-500 mt-0.5">سيتم تسجيل جميع إيرادات اليوم تحت هذه الجلسة</p>
+                        <h2 className="font-bold text-gray-900">{t('admin.cash_session.open_new')}</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">{t('admin.cash_session.open_new_desc')}</p>
                     </div>
                     <div className="p-6 space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">الرصيد الافتتاحي (النقد الموجود في الدرج)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.cash_session.opening_balance_label')}</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={openingBalance}
                                 onChange={(e) => setOpeningBalance(e.target.value)}
-                                placeholder="0"
+                                placeholder={t('admin.cash_session.opening_balance_placeholder')}
                                 className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
                             />
                         </div>
@@ -203,7 +207,7 @@ export const CashSession: React.FC<CashSessionPageProps> = ({ currentUser, activ
                             disabled={saving || !selectedBranchId}
                             className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 disabled:opacity-60 transition-colors"
                         >
-                            {saving ? 'جاري الفتح...' : '🟢 فتح جلسة الكاش'}
+                            {saving ? t('admin.cash_session.opening') : t('admin.cash_session.open_cta')}
                         </button>
                     </div>
                 </div>
