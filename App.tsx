@@ -441,6 +441,11 @@ export default function App() {
     localStorage.setItem(getSessionStorageKey('active-branch', user.id), activeBranchId);
   }, [activeBranchId, user]);
 
+  useEffect(() => {
+    if (!user || view !== 'APP') return;
+    writeCachedSessionData({ appointments, patients, branches }, user.id);
+  }, [appointments, patients, branches, user, view]);
+
 
   const handleLogout = () => {
     repositories.auth.clearAuthToken();
@@ -538,18 +543,12 @@ export default function App() {
       }
     } as Appointment;
 
-    if (DATA_SOURCE_MODE === 'mock') {
-      setAppointments((prev) => [...prev, newApt]);
-      setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
-      return;
-    }
-
     try {
       await repositories.appointments.createAppointment(newApt, {
         dataSourceMode: APP_DATA_SOURCE_MODE,
         entityIdMap: hybridEntityIdMap,
       });
-      const refreshedAppointments = await repositories.appointments.getAppointments(patients);
+      const refreshedAppointments = await repositories.appointments.getAppointments(patientsRef.current);
       setAppointments(refreshedAppointments);
       setToast({ type: 'success', message: t('booking_saved_for_patient', { patientName: newApt.patientName }) });
     } catch (error) {
