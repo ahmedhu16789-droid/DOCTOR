@@ -37,6 +37,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
   const [slotsByDoctor, setSlotsByDoctor] = useState<Record<string, { time: string; available: boolean }[]>>({});
   const [bookingGuardMessage, setBookingGuardMessage] = useState<string | null>(null);
   const [isEarlyCheckin, setIsEarlyCheckin] = useState(false);
+  const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
 
   // Find if the selected patient has a later SCHEDULED appointment today
   const patientLaterAppointment = useMemo(() => {
@@ -62,8 +63,13 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
     if (!activeBranchId) return;
 
     repositories.doctors.getDoctors({ branchId: activeBranchId, specialty: selectedDept })
-      .then((payload) => setDoctors(payload))
-      .catch(() => setDoctors([]));
+      .then((payload) => {
+        setDoctors(payload);
+        setAvailabilityWarning(null);
+      })
+      .catch(() => {
+        setAvailabilityWarning(t('failed_fetch_doctors_fallback', { defaultValue: 'تعذر تحديث قائمة الأطباء حالياً. تم الإبقاء على آخر بيانات متاحة.' }));
+      });
   }, [activeBranchId, selectedDept]);
 
   useEffect(() => {
@@ -77,8 +83,13 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
       branchId: activeBranchId,
       date: selectedDate,
     })
-      .then((payload) => setSlotsByDoctor(payload))
-      .catch(() => setSlotsByDoctor({}));
+      .then((payload) => {
+        setSlotsByDoctor(payload);
+        setAvailabilityWarning(null);
+      })
+      .catch(() => {
+        setAvailabilityWarning(t('failed_fetch_slots_fallback', { defaultValue: 'تعذر تحديث المواعيد المتاحة الآن. تم الإبقاء على آخر بيانات متاحة.' }));
+      });
   }, [doctors, activeBranchId, selectedDate]);
 
   useEffect(() => {
@@ -218,7 +229,7 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
               setStep('SELECTION');
             }}
             onAddNewPatient={handlePatientCreate}
-            onSearchByPhone={lookupPatientsByPhoneFromApi}
+            onSearchByPhone={(phone, name) => repositories.appointments.lookupPatientsByPhone(phone, name)}
           />
         )}
 
@@ -272,6 +283,12 @@ export const AppointmentBooking: React.FC<AppointmentBookingProps> = ({ onBook, 
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t('available_doctors')}</h3>
                 <p className="text-xs text-gray-500">{t('choose_slot_hint')}</p>
               </div>
+
+              {availabilityWarning && (
+                <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {availabilityWarning}
+                </div>
+              )}
 
               {!activeBranchId ? (
                 <div className="text-center py-8 text-amber-600 bg-amber-50 rounded-lg border border-dashed border-amber-300">{t('no_doctors_without_branch')}</div>
